@@ -12,11 +12,9 @@ name: ci
 #
 on:
   push:
-    branches: [dev, main]
-  # PRs into dev only: a dev -> main ship PR reuses the required checks the
-  # dev push already put on the same head SHA, so it needs no second run.
+    branches: [master]
   pull_request:
-    branches: [dev]
+    branches: [master]
 
 # a force-push while CI is mid-run should cancel the stale run, not queue
 concurrency:

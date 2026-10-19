@@ -7,7 +7,7 @@ name: Decomp report
 
 on:
   push:
-    branches: [dev, main]
+    branches: [master]
     paths:
       - "decomp/**"
       - ".github/workflows/decomp-report.yml"
