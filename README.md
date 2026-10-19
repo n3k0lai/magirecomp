@@ -20,6 +20,39 @@ repository linked above.
 Magi Nation is the property of its respective rights holders. Pokemon and all
 related names are the property of Nintendo, Creatures Inc., and GAME FREAK inc.
 
+## Decomp progress
+
+How much of *Magi Nation* (USA) the matching disassembly in `decomp/` rebuilds
+from source. A byte counts as DONE only when committed source (not an `INCBIN`
+of the cartridge) assembles to it and the whole image still matches the
+retail ROM; the header is left out. Code is instructions, data is everything
+else. The headline is the DONE count from `make progress`, not objdiff's
+per-category figures.
+
+<!-- decomp-progress:start -->
+[![decomp DONE](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/badge.json)](decomp/README.md)
+
+<img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/progress.svg" width="838" alt="Magi Nation (USA) decomp: DONE code and data" />
+<img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/chart.svg" width="838" alt="DONE over time" />
+<img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/banks.svg" width="838" alt="DONE per ROM bank" />
+
+`████████░░░░░░░░░░░░` **39.83% DONE**: 835,317 / 2,097,072 bytes (measured 2026-10-19 at `d80f43b3`)
+
+| | Bytes | Share of the image |
+| --- | ---: | ---: |
+| **DONE** | **835,317** | **39.83%** |
+| DONE code | 86,132 | 4.11% |
+| DONE data | 749,185 | 35.73% |
+| still INCBIN | 1,261,755 | 60.17% |
+<!-- decomp-progress:end -->
+
+The bar, chart and bank map are redrawn on every push to `master` that touches
+`decomp/` by [decomp-progress.yml](.github/workflows/decomp-progress.yml) and
+published to the [`progress`](https://github.com/n3k0lai/magirecomp/tree/progress)
+branch, which also keeps the running `history.tsv` the chart is drawn from. No
+ROM is needed for that: the count reads only the committed source. The table
+above is refreshed with `make readme` in `decomp/`.
+
 ## What is in this repository
 
 | Path | What it is |

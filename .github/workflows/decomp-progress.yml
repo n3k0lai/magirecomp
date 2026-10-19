@@ -1,0 +1,68 @@
+name: Decomp progress
+
+# Draws the README's decomp progress visualizer and publishes it to the
+# `progress` branch, the way Alchemy publishes its progress chart: progress.svg
+# (DONE code and data), chart.svg (DONE over time), banks.svg (DONE per ROM
+# bank), badge.json (shields.io endpoint) and history.tsv, which gains a row
+# whenever the count changes. The count reads only committed source, exactly
+# as `make progress` does (INCBIN counts 0), so no ROM is involved.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "decomp/src/**"
+      - "decomp/scripts/progress.py"
+      - "decomp/scripts/progress_visual.py"
+      - "decomp/scripts/lib/**"
+      - ".github/workflows/decomp-progress.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: decomp-progress
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Check out the progress branch
+        run: |
+          set -euo pipefail
+          dir="$RUNNER_TEMP/progress"
+          if git ls-remote --exit-code --heads origin progress >/dev/null; then
+            git fetch --depth=1 origin progress
+            git worktree add --detach "$dir" FETCH_HEAD
+          else
+            git worktree add --orphan -b progress "$dir"
+          fi
+
+      - name: Count and draw
+        run: |
+          python3 decomp/scripts/progress_visual.py \
+            --out "$RUNNER_TEMP/progress" \
+            --history "$RUNNER_TEMP/progress/history.tsv" \
+            --commit "${GITHUB_SHA::8}"
+
+      - name: Publish
+        working-directory: ${{ runner.temp }}/progress
+        run: |
+          set -euo pipefail
+          git add -A
+          if git diff --cached --quiet; then
+            echo "progress unchanged"
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "progress: ${GITHUB_SHA::8}"
+          git push origin HEAD:refs/heads/progress

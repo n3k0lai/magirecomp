@@ -25,6 +25,7 @@ make setup
 | `make compare` | Build, then compare that image to `roms/magination.gbc` and to `rom.sha1`. |
 | `make progress` | Print DONE code and DONE data, per bank, and the humanizing debt. |
 | `make report` | Write `out/report.json` after the image matches the retail ROM. |
+| `make readme` | Refresh the progress block in the MagiRecomp README and draw the visualizer into `out/progress/`. |
 | `make check` | Refuse tracked ROMs, dumped disassembly, and the boot logo, and run the rule checks. |
 | `make test` | Test the tools against the build. |
 | `make verify` | Run `check`, `compare`, `test`, and `progress`. |
@@ -45,6 +46,6 @@ A model is used for one thing: naming a placeholder from a short context pack (`
 
 `make report` writes `out/report.json` (objdiff report version 2). `decomp.yaml` names the USA ROM, and `config/categories.txt` tags banks: bank `$30` is audio, a section that is mostly instructions is code, and everything else, including what is still `INCBIN`, is data. The header stays out of the totals. In MagiRecomp, `.github/workflows/decomp-report.yml` (at the repository root) builds the report on a runner that receives the ROM through the `BASEROM_B64` secret and uploads `usa_report`. decomp.dev has no Game Boy platform yet, so the project is not listed there yet.
 
-The public figure is the DONE count from `make progress` (INCBIN counts as 0). On 2026-10-19 it was 835,317 of 2,097,072 bytes, **39.83%** (code 86,132 B, data 749,185 B).
+The public figure is the DONE count from `make progress` (INCBIN counts as 0). It is drawn in the MagiRecomp README by `scripts/progress_visual.py`; `.github/workflows/decomp-progress.yml` republishes the images to the `progress` branch on every push to `master`. On 2026-10-19 it was 835,317 of 2,097,072 bytes, **39.83%** (code 86,132 B, data 749,185 B).
 
 `disassembly/` and `out/` are gitignored. `make notes` is a reading aid. The build does not use it.

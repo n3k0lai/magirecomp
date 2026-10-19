@@ -25,7 +25,7 @@ OBJ := $(patsubst %.gbc,%.o,$(OUT))
 OBJ := $(patsubst %.gb,%.o,$(OBJ))
 OBJ := $(patsubst %.gba,%.o,$(OBJ))
 
-.PHONY: build compare notes clean info progress check test verify report setup \
+.PHONY: build compare notes clean info progress readme check test verify report setup \
 	targets lift propagate worker stats
 
 SRC := $(shell find $(dir $(ASM)) -type f \( -name '*.asm' -o -name '*.inc' -o -name '*.tmap' \))
@@ -76,6 +76,11 @@ notes:
 
 progress:
 	python3 scripts/progress.py --project $(PROJECT) --banks
+
+# Rewrite the progress block in the MagiRecomp README and draw the visualizer
+# into out/progress/ (a preview of what decomp-progress.yml publishes).
+readme:
+	python3 scripts/progress_visual.py --out out/progress --readme ../README.md
 
 # Publication rules (L1, O1) and the rules a tool can check (check_rules.py).
 check:
