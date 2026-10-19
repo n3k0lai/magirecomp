@@ -15,6 +15,15 @@ if os.getenv("POKEPORT_JIT") == "0" and jit and jit.off then
   print("[info] jit off")
 end
 
+-- Magi Nation rebuild: `love . --mn` boots src/mn/Boot.lua directly.
+for _, a in ipairs(arg or {}) do
+  if a == "--mn" then
+    love.filesystem.setRequirePath("src/?.lua;src/?/init.lua;" .. love.filesystem.getRequirePath())
+    require("src.mn.Boot")
+    return
+  end
+end
+
 local SwitchDiagnostics = require("src.debug.SwitchDiagnostics")
 
 -- Global emergency quit: holding Start + Select for 5 seconds forcefully terminates LOVE.

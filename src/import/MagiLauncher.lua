@@ -78,7 +78,7 @@ function MagiLauncher:refresh()
   local RomImport = require("src.import.RomImport")
   local rows = {
     { id = MAGI_ID, label = "Magi Nation (3D)", wip = true,
-      detail = "Magi Nation launcher WIP: the 3D Magi Nation recomp is not playable yet." },
+      detail = "Magi Nation launcher WIP." },
   }
   for _, version in ipairs(GameVersion.ORDER) do
     local info = GameVersion.info(version)
@@ -111,14 +111,37 @@ function MagiLauncher:play(index)
   local row = self.rows[index or self.selected]
   if not row then return end
   if row.wip then
-    self.message = row.detail
-    return
+    return self:playMagi()
   end
   if not row.ready then
     self.message = "Drop a clean ROM file onto this window to import it first."
     return
   end
   if self.onPlay then self.onPlay(row.id, nil, nil) end
+end
+
+-- Hand off to the Magi Nation rebuild (src/mn/Boot.lua).  It needs the
+-- player's own ROM at roms/magination.gbc or an existing private cache.
+function MagiLauncher:playMagi()
+  local okImp, MnImporter = pcall(function()
+    package.path = "src/?.lua;" .. package.path
+    return require("mn.MnImporter")
+  end)
+  local cached = okImp and MnImporter.isCached and MnImporter.isCached()
+  local f = io.open("roms/magination.gbc", "rb")
+  if f then f:close() end
+  if not cached and not f then
+    self.message = "Magi Nation (WIP): put your own Magi Nation (USA) ROM at "
+      .. "roms/magination.gbc, then press Enter again (or run love . --mn)."
+    return
+  end
+  love.filesystem.setRequirePath("src/?.lua;src/?/init.lua;"
+    .. love.filesystem.getRequirePath())
+  local ok, err = pcall(function()
+    require("src.mn.Boot")
+    love.load(arg)
+  end)
+  if not ok then self.message = "Magi Nation failed to start: " .. tostring(err) end
 end
 
 function MagiLauncher:move(delta)

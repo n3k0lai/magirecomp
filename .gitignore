@@ -132,3 +132,8 @@ src/import/gba/chrome/*.pal
 src/import/gba/chrome/*.rgba
 /os
 /re
+# Magi Nation: user-supplied ROMs, local references, build output
+roms/
+docs/ref/
+out/mn/
+*.gbc
