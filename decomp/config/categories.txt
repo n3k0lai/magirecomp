@@ -1,0 +1,16 @@
+# Category overrides for the decomp.dev report.
+#
+# A bank line tags every section in that 16 KiB ROM bank. The bank number is
+# the file address divided by $4000, so bank $30 is RGBDS BANK[48] at file
+# $0C0000. The section titled "ROM Bank 030" is bank $1E and is not this line.
+# A quoted name tags one section and wins over the bank line.
+#
+# Categories: code, data, graphics, audio.
+# A section that is not listed here is classified as below.
+# The cartridge header $0100-$014F is left out of every total.
+#
+# Bank $30 is the sound engine. A section no line names is code when most of
+# its source bytes are instructions (scripts/progress.py), else data; an INCBIN
+# is data until scripts/xref.py shows a call, jump or far call landing in it.
+
+bank $30 audio

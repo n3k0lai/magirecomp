@@ -1,0 +1,144 @@
+# Bank $30 sound data format
+
+Source: `src/sound_data.asm`, which `scripts/own/gen_sound_data.py`
+generates with the macros in `src/sound_macros.inc`. Everything below
+comes from the lifted handlers in bank $30.
+
+## What the 9,611 bytes at $5A75-$7FFF are
+
+| range | bytes | what |
+|---|---|---|
+| $5A75-$5A78 | 4 | end of the nibble table before the header |
+| $5A79-$5A87 | 15 | `SoundDataHeader`: offsets of the tables below, from $5A79 |
+| $5A88-$5AEB | 100 | `SoundStreamTable`: 50 little-endian offsets from $5A88 |
+| $5AEC-$60B7 | 1,483 | 50 sound-effect streams (529 commands; 3 bytes no stream reaches) |
+| $60B8-$6169 | 178 | phase-script table and 40 four-byte slot entries |
+| $616A-$6181 | 24 | `WaveRecords`: 4 six-byte records for LookupWaveRecord |
+| $6182-$61FD | 123 | `SongList`: 41 (bank - $30, pointer) entries for InstallSoundIndex |
+| $61FE-$7FFF | 7,683 | zero padding (`ds`) |
+
+Bank $30 has the driver and the sound-effect streams. Songs are in
+banks $32-$3C (not $37). Wave frames are in bank $31 (WaveRecords points
+at $31:$4000).
+
+## Header ($5A79)
+
+| addr | type | meaning (reader) |
+|---|---|---|
+| $5A79 | word | phase-script table offset (SoundCommandPhaseScript) |
+| $5A7B | word | slot-entry offset (OpenSlotChannel) |
+| $5A7D | byte | slot-entry count, 40 (OpenSlotChannel limit) |
+| $5A7E | word | WaveRecords offset (LookupWaveRecord) |
+| $5A80 | byte | wave limit (StepWaveSlot) |
+| $5A82 | word | wave index table offset (StepWaveSlot). It points to $60B6, which is inside the last stream command |
+| $5A84 | byte | wave index count (StepWaveSlot) |
+| $5A85 | word | SongList offset (InstallSoundIndex) |
+| $5A87 | byte | song count, 41 (InstallSoundIndex limit) |
+
+## Streams
+
+RunSoundStream reads one command byte, looks it up in the word table at
+$4DA6, and calls the handler. The handler leaves the cursor at $DF9A.
+Command $04 (`snd_wait`) is the only one that ends a tick. The walk
+stops when the cursor is 0 (`snd_end`, $00 and $23). `snd_release` ($0D)
+also ends a stream, and `snd_jump` ($06) does not fall through.
+
+Targets for $06, $15-$17 and $18 are big-endian offsets from $5A88. The
+target for $05 is big-endian and relative to the next command. The
+macros take labels for all of these.
+
+| op | macro | operands | handler |
+|---|---|---|---|
+| 00 | snd_end | - | SoundCommand00 |
+| 01 | snd_cmd01 | 3 | SoundCommand01 (word, byte) |
+| 02 | snd_cmd02 | 5 | SoundCommand02 (to $52D6) |
+| 03 | snd_cmd03 | 5 | SoundCommand03 |
+| 04 | snd_wait | 4 | SoundCommand04: countdown; yields the tick |
+| 05 | snd_loop | count, rel | SoundCommand05 |
+| 06 | snd_jump | target | SoundCommand06 |
+| 07 | snd_slide_toward | be word | SoundCommandSlideToward |
+| 08 | snd_slide | mode, be word | SoundCommandSetOrAddSlide |
+| 09 | snd_env_mix | 1 | SoundCommandSetEnvelopeFromMix |
+| 0A | snd_output | 1 | UpdateChannelOutputMask |
+| 0B | snd_random_period | 4 | SoundCommandRandomPeriod |
+| 0C | snd_duty | 1 | SoundCommandRestartWithDuty |
+| 0D | snd_release | - | ContinueClearedChannel |
+| 0E | snd_skip | 1 | SoundCommandSkipByte |
+| 0F | snd_phase_script | 1 | SoundCommandPhaseScript |
+| 10 | snd_noise | 1 | SoundCommandSetNoise (rNR43) |
+| 11 | snd_phase_up | le word | SoundCommandStartPhase |
+| 12 | snd_countdown | 1 | SoundCommandArmCountdown |
+| 13 | snd_envelope | 1 | SoundCommandSetEnvelope |
+| 14 | snd_slide_rel | be word | SoundCommandSlideRelative |
+| 15 | snd_if_period | thr, target | SoundCommandBranchIfPeriodAtLeast |
+| 16 | snd_if_random | thr, target | SoundCommandBranchIfRandomAtLeast |
+| 17 | snd_if_envelope | thr, target | SoundCommandBranchIfEnvelopeAtLeast |
+| 18 | snd_loop_point | target | SoundCommandSetLoopPoint |
+| 19 | snd_clear_loop | - | ClearSlotLoopPoint |
+| 1A | snd_df33_bit | 1 | SoundCommandSetDf33Bit |
+| 1B | snd_glide | 4 | SoundCommandGlide |
+| 1C, 29 | snd_priority, snd_priority_29 | mode, value | SoundCommandAdjustPriority |
+| 1D | snd_wave_sweep | 4 | StartDefaultWaveSweep+1 |
+| 1E | snd_load_wave_sweep | 4 | SoundCommandLoadWaveSweep |
+| 1F | snd_clear_fx | - | ClearSlotEffects |
+| 20 | snd_clear_fx_slide | - | ClearSlotEffectsAndSlide |
+| 21 | snd_select_wave | 1 | SoundCommandSelectWave |
+| 22 | snd_step_wave | - | StepWaveSlot |
+| 23 | snd_end_23 | - | SoundCommand00 |
+| 24 | snd_reset_wave | 1 | SoundCommandResetWaveSweep |
+| 25 | snd_restart_wave | - | RestartWaveSweepFromDff6 |
+| 26 | snd_trigger_tag | 2 | SoundCommandTriggerTag |
+| 27 | snd_phase_down | le word | SoundCommandStartPhaseDown |
+| 28 | snd_env_level | 1 | SoundCommandSetEnvelopeAndLevel |
+
+Notes on $1D: the entry at $49AD falls on the operand of `ld hl, $6069`.
+Those bytes are $69 $60, which decode as `ld l, c; ld h, b`. So $1D loads
+the same wave-sweep record as StartDefaultWaveSweep, but from the stream.
+
+Usage counts in the 50 streams: wait 121, noise 78, skip 48, end 47,
+duty 43, phase_up 43, df33_bit 34. That mix points to sound effects, not
+music.
+
+## Songs (banks $32-$3C)
+
+Generated by `scripts/own/gen_music.py`, which uses the parser in
+`music_format.py` and the macros in `src/music_macros.inc`. The 41
+SongList entries name 41 distinct songs, and every data byte in the ten
+banks belongs to exactly one decoded item (checked by the generator).
+InstallSoundIndex maps the song bank and points $DFA7 at song + $84.
+
+| offset | size | what | reader |
+|---|---|---|---|
+| +$00 | 4 | starting program for slots 0-3, copied to $DFAD-$DFB0 | SeedCountdownFromTable |
+| +$04 | 128 | program map: program -> instrument byte | ReadIndexedCountdownByte |
+| +$84 (table) | 2 | BE offset from the table to the track table | SeedCountdownFromTable |
+| +$86 | 2 | BE offset to the pattern table | LoadLowerCountdownStream |
+| +$88 | 2 | BE tempo. FillCountdownStep sets the step to tempo * $66 / $3C | ReadCountdownScale |
+| tracks | 8 | 4 BE offsets (0 = slot unused) | SeedCountdownFromTable |
+| patterns | 2n | BE offsets, indexed by the track action & $7F | LoadLowerCountdownStream |
+
+**Track** (upper slot, one per channel): 3-byte records of a BE delta
+and an action. The delta is added to the high 16 bits of a 24-bit count.
+StepSoundCountdowns subtracts the tempo step from that count each tick.
+- `trk_play delta, n`: wait, then start pattern n (StartLowerSoundCountdown).
+- `trk_loop delta, addend, delta2` ($FE): jump to track start + addend
+  (StepIndexedCountdown).
+- `trk_end` ($FF): stop. Its 4 trailing bytes have the loop shape and
+  are never read.
+
+**Pattern events** (ReadExpiredLowerCountdown, AddLowerCountdownDelta):
+byte 0 is a high nibble "tag" plus 4 high bits of a 12-bit delta, and
+byte 1 is the delta's low byte. The delta is added before the event is
+read. Byte 2 then picks the event:
+- bit 7 clear: a note, then a length of 1 byte, or 2 bytes with bit 15
+  set (`ev_note`). The length arms the upper countdown, so it is the
+  note duration.
+- bit 7 set, tag 0: a program change (`ev_prog`), no length.
+- bit 7 set, tag nonzero: a note (low 7 bits), a program byte, and a
+  length (`ev_note_prog`).
+- $FF with tag $F: end of pattern (`ev_end`).
+
+Still open: what the tag nibble does beyond 0 and $F (ServiceLower
+merges C into $DFAC as pan bits), and what the instrument byte means
+(it reaches $4F1A, OpenSlotChannel-side code). Neither matters for
+rebuilding.

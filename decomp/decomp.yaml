@@ -1,0 +1,16 @@
+# Shared project descriptor. decomp.dev reads the objdiff report from CI.
+# Its manage page has no Game Boy platform (ps, win32, n64, ps2, gba, gc,
+# xbox, nds, psp, xbox360, wii, 3ds, switch). `gbc` is for local tools.
+# Pick a value that page accepts when the project is registered.
+name: Magi-Nation
+platform: gbc
+build_system: make
+versions:
+  - name: usa
+    fullname: USA
+    sha1: 9972a7bca43210b4b6c0b3f6ee5d1957a865e12d
+    paths:
+      target: roms/magination.gbc
+      build_dir: out
+      map: out/magination.map
+      compiled_target: out/magination.gbc

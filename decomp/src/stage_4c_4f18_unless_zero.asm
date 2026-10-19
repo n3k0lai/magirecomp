@@ -1,0 +1,12 @@
+; Bank 2 at $47F8. Returns immediately when Z is set. Otherwise stages
+; bank $4C and pointer $4F18 through StagePointerUnlessD0B6Matches,
+; which compares [$D0B6] with [$D103] and returns on a match.
+;
+; StagePointerUnlessD0B6Matches is already source in this bank.
+
+Stage4C4F18UnlessZero::
+    ret z
+    ld a, $4C
+    ld bc, $4F18
+    call StagePointerUnlessD0B6Matches
+    ret

@@ -1,0 +1,45 @@
+{
+  "nodes": {
+    "mgbdis": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1745312262,
+        "narHash": "sha256-6TJ0aRlYKSR2thN4YQurwkvXSfcWAe7LV6hLMqAVmsU=",
+        "owner": "mattcurrie",
+        "repo": "mgbdis",
+        "rev": "236b857af9bc35537f3f2d419089279c87ee6c9f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "mattcurrie",
+        "ref": "v3.0",
+        "repo": "mgbdis",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1791456040,
+        "narHash": "sha256-H83yz/do+hjOO0uujHyH8RgtIQP2v7Mw+cLwcZK/xKc=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "e7439b6b14ad3cc35d05608ebca9bce01a25f5f8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "mgbdis": "mgbdis",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}

@@ -1,0 +1,25 @@
+# Cartridge images and anything else that is a copy of a game file.
+roms/*
+!roms/README.md
+*.gb
+*.gbc
+*.gba
+
+# mgbdis notes. Regenerated with `make notes`. Not the build.
+disassembly/
+
+# Build output.
+out/
+
+# Worker state, locks and metrics.csv. `make worker` writes these.
+overnight/
+
+# Python
+__pycache__/
+*.pyc
+
+# Nix
+.direnv/
+result
+result-*
+
