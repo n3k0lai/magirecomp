@@ -34,7 +34,9 @@ function WebClip.spec(version, cartId)
   if not info then return nil end
 
   local title = WEB_CLIP_TITLES[version] or info.displayName
-  local artPath = "assets/labels/" .. tostring(version) .. ".png"
+  -- Upstream cart-label art (assets/labels/) is part of the proprietary
+  -- launcher and is not shipped in MagiRecomp; fall back to no art.
+  local artPath = "assets/magi/labels/" .. tostring(version) .. ".png"
   if cartId then
     local ok, cart = pcall(CartStore.get, cartId)
     if not ok or type(cart) ~= "table" or cart.base ~= version then return nil end

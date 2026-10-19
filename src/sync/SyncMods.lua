@@ -10,10 +10,25 @@ local function versions()
   return { "red", "blue", "yellow", "gold", "silver", "crystal" }
 end
 
+-- The upstream mod manager (src/mods/LauncherMods.lua) is part of the
+-- proprietary launcher and is not shipped in MagiRecomp.  Mod sync degrades
+-- to "nothing installed" until MagiRecomp grows its own mod manager.
+local function launcherMods()
+  local ok, mod = pcall(require, "src.mods.LauncherMods")
+  if ok and type(mod) == "table" then return mod end
+  return {
+    list = function() return {} end,
+    installFromIndex = function() return false, "mod install unavailable" end,
+    setEnabled = function() return false, "mod manager unavailable" end,
+    modOptions = function() return {} end,
+    setModOptions = function() return false, "mod manager unavailable" end,
+  }
+end
+
 local function defaultDeps()
   return {
     installed = function()
-      return require("src.mods.LauncherMods").list()
+      return launcherMods().list()
     end,
     indexes = function()
       return require("src.mods.ModIndex").sources()
@@ -32,16 +47,16 @@ local function defaultDeps()
       return nil
     end,
     install = function(entry)
-      return require("src.mods.LauncherMods").installFromIndex(entry)
+      return launcherMods().installFromIndex(entry)
     end,
     setEnabled = function(id, enabled, version)
-      return require("src.mods.LauncherMods").setEnabled(id, enabled, version)
+      return launcherMods().setEnabled(id, enabled, version)
     end,
     modOptions = function()
-      return require("src.mods.LauncherMods").modOptions()
+      return launcherMods().modOptions()
     end,
     setOptions = function(id, values)
-      return require("src.mods.LauncherMods").setModOptions(id, values)
+      return launcherMods().setModOptions(id, values)
     end,
   }
 end

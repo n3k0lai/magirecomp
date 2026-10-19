@@ -62,9 +62,9 @@ fi
 cp "$ROOT/flatpak/$APP_ID.desktop" "$CACHE/$APP_ID.desktop"
 # AppStream rejects icons larger than the declared hicolor size.
 if command -v magick >/dev/null 2>&1; then
-  magick "$ROOT/assets/logo/gen1recomp_cover.png" -resize 512x512 "$CACHE/icon.png"
+  magick "$ROOT/assets/logo/magirecomp_cover.png" -resize 512x512 "$CACHE/icon.png"
 elif command -v convert >/dev/null 2>&1; then
-  convert "$ROOT/assets/logo/gen1recomp_cover.png" -resize 512x512 "$CACHE/icon.png"
+  convert "$ROOT/assets/logo/magirecomp_cover.png" -resize 512x512 "$CACHE/icon.png"
 else
   fail "need ImageMagick (magick/convert) to resize the Flatpak icon to 512x512"
 fi

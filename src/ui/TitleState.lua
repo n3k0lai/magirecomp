@@ -241,7 +241,7 @@ function TitleState.new(game, opts)
   end
   self.title = title
   self.logo = tryImage(imagePath(title.logo)
-                       or "assets/logo/pokemon_logo.png")
+                       or "assets/logo/magirecomp.png")
   -- versionRibbon is the file-12 key; version is the importer's.  The
   -- vanilla sheet is two fragments the draw pass repositions, so an
   -- explicit ribbon (a conversion's or a translation's continuous art)

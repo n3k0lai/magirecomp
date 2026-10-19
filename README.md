@@ -1,189 +1,81 @@
-# G1R Deluxe aka Gen1Recomp
+# MagiRecomp
 
-A native LÖVE2D recreation of Poke Red, Blue, Yellow, Gold, Silver, Crystal, FireRed, LeafGreen, Ruby, Sapphire, and Emerald.
-The engine and map behavior are hand-written Lua; game data and graphics are 
-decoded from a ROM supplied by the player.
+**A 3D Magi Nation recompilation for LÖVE.**
 
-And before you say, "that's not a recomp", you're wrong. Recomp is an acronym. ***Reverse Engineering Causes Obsessive Mental Problems***
+MagiRecomp rebuilds the Game Boy Color RPG *Magi Nation* (USA) as a native
+LÖVE (Lua) program, with the long-term goal of a 3D presentation of Magi Nation.
+The game data and graphics come from a ROM **you supply**; no ROM image is
+included in this repository, and the LÖVE rebuild reads game data only from a
+private cache it builds from your ROM.
 
-[Click Here for the AI Use Disclosure!](AIDisclosure.md)
+> Based on the Pokemon Gen 1 Recompilation Project by BOIS CLUB GAMES, LLC
+> (https://github.com/bryanthaboi/gen1recomp)
 
-> [!CAUTION]
-> **We are NOT affiliated with the website `gen1recomp[.]com`** That website is not run by this project, was not authorized by us, and we have no idea who operates it. It is impersonating this project; do not download anything from it, and treat anything it hosts or claims as untrustworthy. Even if the site currently links back to this repository, the people behind it can change its content at any time, so nothing on it should ever be trusted. This GitHub repository, the Discord, and https://gen1re.com are the only official sources for this project. Also, as I assumed would eventually happen, the idiot that made that website now pumped it full of adware. Please stay away from that website.
+MagiRecomp is a **modified fork** of that project (fork created and modified
+in October 2026). It is **not** an official BOIS CLUB GAMES, LLC product, is
+not endorsed by them, and is not the upstream Gen1Recomp project. For
+Gen1Recomp itself (its releases, support, and community) go to the upstream
+repository linked above.
 
-<p align="center"><img src="https://raw.githubusercontent.com/bryanthaboi/gen1recomp/refs/heads/dev/assets/logo/logo.png"></p>
+Magi Nation is the property of its respective rights holders. Pokemon and all
+related names are the property of Nintendo, Creatures Inc., and GAME FREAK inc.
 
-# [SUPPORT / ANNOUNCEMENTS / MODS ALL FOUND ON THE DISCORD](https://bois.icu)
+## What is in this repository
 
-<p align="center">
+| Path | What it is |
+| --- | --- |
+| `src/mn/` | The Magi Nation LÖVE rebuild: ROM import, script VM, overworld, battle, font, sprites, music. |
+| `src/import/MagiLauncher.lua` | MagiRecomp's own launcher (written for this fork). |
+| `src/import/RomImport.lua` | GPL ROM import / verification / cache-extraction logic. |
+| `decomp/` | A matching disassembly of Magi Nation (USA) for RGBDS, with progress reporting for decomp trackers. |
+| everything else | The inherited engine from the Pokemon Gen 1 Recompilation Project, under its GPL license. |
 
-<a href="https://www.youtube.com/@bryanthaboi">
-  <img src="https://img.shields.io/badge/YouTube-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube">
-</a>
-<a href="https://www.tiktok.com/@bryanthaboi">
-  <img src="https://img.shields.io/badge/TikTok-000000?style=for-the-badge&logo=tiktok&logoColor=white" alt="TikTok">
-</a>
-<a href="https://x.com/bryanthaboi">
-  <img src="https://img.shields.io/badge/X-000000?style=for-the-badge&logo=x&logoColor=white" alt="X">
-</a>
-<a href="https://bsky.app/profile/bryanthaboi.live">
-  <img src="https://img.shields.io/badge/Bluesky-0285FF?style=for-the-badge&logo=bluesky&logoColor=white" alt="Bluesky">
-</a>
-<a href="https://www.instagram.com/bryanthaboi">
-  <img src="https://img.shields.io/badge/Instagram-E4405F?style=for-the-badge&logo=instagram&logoColor=white" alt="Instagram">
-</a>
+### The launcher
 
-</p>
+The upstream project's launcher is proprietary to BOIS CLUB GAMES, LLC and is
+**not** part of this fork (see `LICENSE.MD`, Additional Terms, term 2). It has
+been removed. MagiRecomp ships its own small launcher
+(`src/import/MagiLauncher.lua`), which shows the required credit, lists the
+games the engine can start, imports a dropped ROM, and starts a ready game. It
+is a work in progress.
 
+## Running the Magi Nation rebuild
 
-<p align="center"> <a href="https://www.polygon.com/pokemon-red-blue-3d-voxel-mod-battle-pixels-gameplay-footage-remake/"> <img src="https://img.shields.io/badge/AS%20SEEN%20ON-POLYGON-ea2e49?style=for-the-badge" alt="As seen on Polygon"> </a> 
-<a href="https://kotaku.com/pokemon-red-blue-recompilation-project-voxel-3d-mod-2000720281"> <img src="https://img.shields.io/badge/AS%20SEEN%20ON-KOTAKU-ea2e49?style=for-the-badge" alt="As seen on KOTAKU"> </a> 
+1. Install [LÖVE 11.5](https://love2d.org).
+2. Put your own legally obtained *Magi Nation (USA)* Game Boy Color ROM at
+   `roms/magination.gbc` (SHA-1 `9972a7bca43210b4b6c0b3f6ee5d1957a865e12d`).
+   `roms/` is git-ignored; never commit a ROM.
+3. Run `love . --mn` from the repository root. The first run imports the ROM
+   into a private cache in LÖVE's save directory.
 
-  <a href="https://www.digitalfoundry.net/news/2026/07/pokemon-yellow-voxel-mod-turns-the-original-gameboy-code-into-a-stunning-world">
-    <img src="https://img.shields.io/badge/AS%20SEEN%20ON-DIGITAL%20FOUNDRY-ea2e49?style=for-the-badge" alt="As seen on Digital Foundry">
-  </a>
-  <a href="https://www.androidauthority.com/unofficial-android-port-pokemon-red-blue-yellow-3692724/">
-  <img src="https://img.shields.io/badge/AS%20SEEN%20ON-ANDROID%20AUTHORITY-ea2e49?style=for-the-badge" alt="As seen on Android Authority">
-</a>
+Running `love .` with no flags opens the MagiRecomp launcher.
 
-<a href="https://www.xda-developers.com/this-amazing-pokemon-red-and-blue-voxel-mod-adds-a-3d-perspective-without-an-emulator/">
-  <img src="https://img.shields.io/badge/AS%20SEEN%20ON-XDA%20DEVELOPERS-ea2e49?style=for-the-badge" alt="As seen on XDA Developers">
-</a>
-</p>
+Progress on the story is tracked in [docs/story-checklist.md](docs/story-checklist.md);
+the porting plan is in [docs/mn-port-plan.md](docs/mn-port-plan.md).
 
-### Watch the latest update video
+## The matching disassembly (`decomp/`)
 
-<a href="https://youtu.be/Q87iK8u_52o">
-  <img src="https://img.youtube.com/vi/Q87iK8u_52o/maxresdefault.jpg" width="320" alt="Watch the latest update video">
-</a>
-
-
-## What this is
-
-G1R Deluxe aka Gen1Recomp is a native LÖVE2D recreation of Pokemon Red, Blue, Yellow, Gold,
-Silver, Crystal, FireRed, LeafGreen, Ruby, Sapphire, and Emerald. The engine and map behavior are
-hand-written Lua, ported from the [pret](https://github.com/pret)
-disassemblies & C. Game data, graphics, and audio programs are decoded on first
-launch from a ROM you supply.
-
-The project does not include a ROM, emulate the Game Boy, transpile assembly,
-or download a disassembly. Your ROM is verified, used during import, and
-released from memory. It is never copied into the cache, and later launches
-load the private generated cache without asking for it again. Music, sound
-effects, and cries are synthesized while the game runs. All eleven games can be
-imported side by side. Gen 2 support is still under construction.
-
-## Quick Start
-
-1. Download the build for your platform from the
-   [latest release](https://github.com/bryanthaboi/gen1recomp/releases/latest).
-2. Launch it. The packaged app contains no ROM and no game data, so the
-   launcher will ask for one.
-3. Choose your legally obtained `.gb` / `.gbc` / `.gba` file, a `.zip` /
-   `.7z` that holds one (offered only where your platform's build supports
-   archives), or drop it onto the window. Import takes a few seconds and the
-   game starts automatically.
-4. Repeat for any other game you own. Each one gets its own tab in the launcher.
-
-Only the canonical US English ROMs below are accepted. The importer checks the
-SHA-1 before creating any game data. FireRed, LeafGreen, Ruby, Sapphire, and Emerald support is in beta.
-
-| Game | Revision | ROM size | SHA-1 |
-| --- | --- | --- | --- |
-| Red | - | 1 MiB | `ea9bcae617fdf159b045185467ae58b2e4a48b9a` |
-| Blue | - | 1 MiB | `d7037c83e1ae5b39bde3c30787637ba1d4c48ce2` |
-| Yellow | - | 1 MiB | `cc7d03262ebfaf2f06772c1a480c7d9d5f4a38e1` |
-| Gold | - | 2 MiB | `d8b8a3600a465308c9953dfa04f0081c05bdcb94` |
-| Silver | - | 2 MiB | `49b163f7e57702bc939d642a18f591de55d92dae` |
-| Crystal | 1.0 | 2 MiB | `f4cd194bdee0d04ca4eac29e09b8e4e9d818c133` |
-| Crystal | 1.1 | 2 MiB | `f2f52230b536214ef7c9924f483392993e226cfb` |
-| FireRed | 1.0 | 16 MiB | `41cb23d8dccc8ebd7c649cd8fbb58eeace6e2fdc` |
-| FireRed | 1.1 | 16 MiB | `dd5945db9b930750cb39d00c84da8571feebf417` |
-| LeafGreen | 1.0 | 16 MiB | `574fa542ffebb14be69902d1d36f1ec0a4afd71e` |
-| LeafGreen | 1.1 | 16 MiB | `7862c67bdecbe21d1d69ce082ce34327e1c6ed5e` |
-| Emerald | 1.0 | 16 MiB | `f3ae088181bf583e55daf962a92bb46f4f1d07b7` |
-| Ruby | 1.0 | 16 MiB | `f28b6ffc97847e94a6c21a63cacf633ee5c8df1e` |
-| Ruby | 1.1 | 16 MiB | `610b96a9c9a7d03d2bafb655e7560ccff1a6d894` |
-| Ruby | 1.2 | 16 MiB | `5b64eacf892920518db4ec664e62a086dd5f5bc8` |
-| Sapphire | 1.0 | 16 MiB | `3ccbbd45f8553c36463f13b938e833f652b793e4` |
-| Sapphire | 1.1 | 16 MiB | `4722efb8cd45772ca32555b98fd3b9719f8e60a9` |
-| Sapphire | 1.2 | 16 MiB | `89b45fb172e6b55d51fc0e61989775187f6fe63c` |
-
-**Platform notes:** [Linux](docs/platforms/linux.md),
-[iOS](docs/platforms/ios.md), [Xbox Dev Mode](docs/platforms/xbox.md),
-[handhelds](docs/platforms/handhelds.md),
-[Nintendo Switch](docs/platforms/switch.md), and
-[PlayStation 4](docs/platforms/ps4.md) each have their own install steps.
-
-**Windows Defender:** it sometimes flags the Windows build with a generic
-detection such as `Trojan:Win32/Wacatac!ml` (#621). This is a known false
-positive: the exe is the official LÖVE runtime with the game archive appended,
-and Defender distrusts unsigned executables with appended data. Every release
-publishes `sha256sums.txt` so you can verify your download, and you can check
-a flagged file on [VirusTotal](https://www.virustotal.com).
-
-## Controls
-
-| Action | Keyboard          | Controller         |
-| ------ | ----------------- | ------------------ |
-| Move   | Arrow keys / WASD | D-pad / left stick |
-| A      | Z / Enter / Space | A                  |
-| B      | X / Backspace     | B                  |
-| Start  | Escape            | Start              |
-| Select | Tab / Shift       | Back / Select      |
-
-Rebind any of these in-game under **OPTIONS > CONTROLS**.
-
-| Key       | What it does                                           |
-| --------- | ------------------------------------------------------ |
-| `-` / `=` | Zoom out / in (overworld; also mouse wheel)            |
-| `1` / `0` | GAME SPEED up / down (controller: R2 faster, L2 slower) |
-| `2`       | Cycle COLORS                                           |
-| `3`       | Cycle TILT (free-roam overworld)                       |
-| `4`       | Cycle ZOOM through every level (free-roam overworld)   |
-| `F1`      | Save                                                   |
-| `F2`      | Load                                                   |
-| `F10`     | Open / close the mod manager                           |
-
-COLORS, TILT, ZOOM, SHADER FX, GAME SPEED, and VOID FILL are also in the
-Options menu and persist in `options.lua`.
-
-**Low-end devices:** **OPTIONS > PERFORMANCE** scales the optional extras for
-weaker hardware (HIGH, BALANCED, LOW, or AUTO, the default). It only changes
-presentation; game logic is identical on every tier. Details in
-[docs/new-features.md](docs/new-features.md).
-
-## Documentation
-
-Everything else lives in the [docs folder](docs/README.md) or on the
-[project wiki](https://github.com/bryanthaboi/gen1recomp/wiki), which has the
-modding book, link play, save editor, and developer setup guides:
-
-- [Rulesets](docs/guides/rulesets.md): faithful Gen 1 quirks or modern cleanups
-- [Online play](docs/guides/online-play.md): lobby, battles, tournaments, trading
-- [Launch options](docs/guides/launch-options.md): one-click shortcuts and URLs
-- [Portable mode](docs/guides/portable-mode.md): run from a USB drive
-- [Running from source](docs/guides/running-from-source.md)
-- [Modding](docs/modding-overview.md): mod platform, example mods, Tiled map editing
-- [Architecture](docs/architecture.md)
-
-## Bugs
-
-Found a bug? A warp dropping you somewhere it shouldn't, a battle doing math
-that looks wrong, text in the wrong box, anything that does not match the
-original game.
-[Open a bug report](https://github.com/bryanthaboi/gen1recomp/issues/new?template=bug_report.yml).
-Attach a screenshot if you can. It saves a lot of back and forth, and if you
-can't get one, the form asks you to describe what you saw instead.
+`decomp/` rebuilds a byte-identical *Magi Nation (USA)* image from assembly
+source with RGBDS. Progress counts only code and data that is lifted to
+source and matches (INCBIN placeholders count as 0%). See
+[decomp/README.md](decomp/README.md) and [decomp/decomp.yaml](decomp/decomp.yaml).
+The ROM is never committed; CI restores it from a repository secret to build
+the progress report and checks that the report carries no ROM bytes.
 
 ## License
 
-See [LICENSE.MD](LICENSE.MD).
+MagiRecomp is distributed under the GNU General Public License version 3 with
+the Additional Terms (GPLv3 Section 7) in [LICENSE.MD](LICENSE.MD), exactly as
+the upstream project is. All upstream copyright and author notices are kept.
+See [NOTICE.md](NOTICE.md) for what this fork changed and when.
 
-## Special Thanks
+Required attribution (LICENSE.MD term 1):
 
-This project would not be possible without [pret](https://github.com/pret) >
-the pret band of decompiling maniacs > and their
-[pokered](https://github.com/pret/pokered) disassembly.
+> Based on the Pokemon Gen 1 Recompilation Project by BOIS CLUB GAMES, LLC
+> (https://github.com/bryanthaboi/gen1recomp)
 
-<p align="center"><a href="https://boisclub.games"><img src="https://raw.githubusercontent.com/bryanthaboi/gen1recomp/refs/heads/dev/assets/logo/bcg.png"></a></p>
+## Thanks
+
+To BOIS CLUB GAMES, LLC and the Gen1Recomp contributors for the engine this
+fork builds on, and to [pret](https://github.com/pret) for showing what a
+matching disassembly can be.

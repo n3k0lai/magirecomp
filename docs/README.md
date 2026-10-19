@@ -1,5 +1,11 @@
 # Documentation
 
+> These docs are inherited from the upstream Pokemon Gen 1 Recompilation Project
+> (https://github.com/bryanthaboi/gen1recomp) and describe that engine. Links to
+> the upstream wiki, releases, and issue tracker belong to that project, not to
+> MagiRecomp. Magi Nation docs: [mn-port-plan.md](mn-port-plan.md),
+> [story-checklist.md](story-checklist.md).
+
 These docs cover the port itself. Guides for modding, link play, the save
 editor, and developer setup live on the
 [project wiki](https://github.com/bryanthaboi/gen1recomp/wiki).

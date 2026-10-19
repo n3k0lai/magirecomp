@@ -86,7 +86,7 @@ fi
 # rather than failing the build over an icon.
 IN_DIR="$WORK/in"
 rm -rf "$IN_DIR"; mkdir -p "$IN_DIR"
-ICON_SRC="$ROOT/assets/logo/gen1recomp_cover.png"
+ICON_SRC="$ROOT/assets/logo/magirecomp_cover.png"
 [ -f "$ICON_SRC" ] || fail "missing icon source: $ICON_SRC"
 if ! python3 - "$ICON_SRC" "$IN_DIR/icon.png" <<'PY' 2>/dev/null
 import sys

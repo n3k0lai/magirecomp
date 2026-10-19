@@ -23,7 +23,7 @@ function love.conf(t)
 
   if companion then
     t.identity = "pokemon-love2d-companion"
-    t.window.title = "gen1recomp Secondary Display"
+    t.window.title = "MagiRecomp Secondary Display"
     t.window.width = 640
     t.window.height = 576
     t.window.minwidth = 160
@@ -45,7 +45,7 @@ function love.conf(t)
     -- back to the plain title if the source is not mounted yet
     local ok, Version = pcall(require, "src.core.Version")
     t.window.title = ok and Version.title()
-      or "gen1recomp"
+      or "MagiRecomp"
     -- Open at the launcher's design size (the split-screen ROM selector is
     -- laid out for 1024x768). The window is resizable and the 160x144 game
     -- canvas letterboxes into whatever size it ends up, so this only sets the
@@ -130,7 +130,7 @@ function love.conf(t)
     -- app's external-files folder, which is readable/writable via USB or a
     -- file manager with no runtime permission, so RomImporter can ask the
     -- player to copy their ROM there instead of needing a native file
-    -- picker (LOVE 11.5 on Android has none -- see src/import/RomImporter.lua).
+    -- picker (LOVE 11.5 on Android has none -- see src/import/RomImport.lua).
     t.externalstorage = osName == "Android"
     -- LOVE 11.x exposes the phone's accelerometer as a 3-axis joystick by
     -- default.  Gravity keeps one axis pinned near +/-1.0 whenever the phone

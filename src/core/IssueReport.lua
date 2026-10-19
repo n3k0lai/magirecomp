@@ -3,7 +3,7 @@ local Version = require("src.core.Version")
 
 local IssueReport = {}
 
-local FORM_URL = "https://github.com/bryanthaboi/gen1recomp/issues/new"
+local FORM_URL = "https://github.com/n3k0lai/magirecomp/issues/new"
 local TEMPLATE = "bug_report.yml"
 
 local APPLE_MODELS = {
@@ -231,7 +231,7 @@ local function metadata(options, context)
   -- chrome hides it on release builds (Version.title).  Unstamped
   -- working-tree builds stay as plain "gen1recomp" so the placeholder
   -- never lands in a filed issue.
-  add("App", version ~= "" and ("gen1recomp v" .. version) or "gen1recomp")
+  add("App", version ~= "" and ("MagiRecomp v" .. version) or "MagiRecomp")
   add("LÖVE", loveVersion())
   if safeMode then add("Safe mode", "on") end
   local guardOk, guardPresent = pcall(function()

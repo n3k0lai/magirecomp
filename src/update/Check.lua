@@ -20,7 +20,8 @@
 local Check = {}
 local Platform = require("src.core.Platform")
 
-Check.REPO = "bryanthaboi/gen1recomp"
+-- MagiRecomp checks its own releases, never the upstream project.
+Check.REPO = "n3k0lai/magirecomp"
 
 -- Full native packages are deliberately named by release target, not by the
 -- generic .love payload.  Keeping the mapping here makes the release parser,

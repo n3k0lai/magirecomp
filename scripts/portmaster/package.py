@@ -48,7 +48,6 @@ def main():
     licenses = game / "licenses"
     licenses.mkdir()
     shutil.copy2(ROOT / "LICENSE.MD", licenses / "LICENSE.MD")
-    shutil.copy2(ROOT / "assets/launcher/lucide/LICENSE", licenses / "lucide.txt")
     for notice in (ROOT / "scripts/portmaster/licenses").glob("*.txt"):
         shutil.copy2(notice, licenses / notice.name)
     for notice in ("fonts/plainpixel", "skins/gba_purple", "skins/gb_anim",
@@ -58,7 +57,7 @@ def main():
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     dirty = bool(subprocess.check_output(["git", "status", "--porcelain", "--untracked-files=no"], cwd=ROOT))
     (game / "SOURCE.txt").write_text(
-        f"https://github.com/bryanthaboi/gen1recomp\nRevision: {revision}\n"
+        f"https://github.com/n3k0lai/magirecomp\nRevision: {revision}\n"
         f"Version: {args.version}\nTracked working-tree changes: {dirty}\n"
         "Testing candidate; hardware validation pending.\n")
     for name in ("Gen1Recomp.sh", "README.md"):
@@ -83,8 +82,8 @@ def main():
 <desc>Native Pokemon recreation. Supply your own supported US ROM.
 Based on the Pokemon Gen 1 Recompilation Project by BOIS CLUB GAMES, LLC
 (https://github.com/bryanthaboi/gen1recomp)</desc>
-<releasedate>{date}T000000</releasedate><developer>BOIS CLUB GAMES, LLC</developer>
-<publisher>BOIS CLUB GAMES, LLC</publisher><genre>RPG</genre>
+<releasedate>{date}T000000</releasedate><developer>MagiRecomp contributors</developer>
+<publisher>MagiRecomp contributors</publisher><genre>RPG</genre>
 <image>./gen1recomp/screenshot{screenshot.suffix.lower()}</image>
 </game></gameList>
 ''')

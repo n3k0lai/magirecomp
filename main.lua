@@ -566,9 +566,12 @@ end
 
 local function makeLauncher(launcherOpts)
   require("src.import.LauncherWindow").activate()
-  local RomImporter = require("src.import.RomImporter")
+  -- MagiRecomp ships its own launcher (src/import/MagiLauncher.lua).  The
+  -- upstream launcher is proprietary to BOIS CLUB GAMES, LLC and is not part
+  -- of this fork (LICENSE.MD term 2).
+  local MagiLauncher = require("src.import.MagiLauncher")
   local forceImport = os.getenv("POKEPORT_FORCE_IMPORT") == "1"
-  return RomImporter.new(function(version, cartId, opts)
+  return MagiLauncher.new(function(version, cartId, opts)
     require("src.import.LauncherWindow").observe(0)
     require("src.import.LauncherWindow").flush()
     Importer = nil
@@ -617,12 +620,9 @@ local function rebuildLauncherInProcess(opts)
 
   applySavedOrientation()
 
-  local preload = require("src.mods.LauncherMods").translationStrings()
-  if preload then require("src.core.Strings").load({ strings = preload }) end
-
   if love.window and love.window.setTitle then
     local Version = require("src.core.Version")
-    love.window.setTitle(Version.title("Gen 1 Recompilation Project"))
+    love.window.setTitle(Version.title("MagiRecomp"))
   end
 
   Importer = makeLauncher({ initialTab = opts.tab, invite = opts.invite })
@@ -668,8 +668,7 @@ function bootGame(version, cartId, opts)
   if recoveryNotice then require("src.core.Logger").warn("%s", recoveryNotice) end
   if not recovered then
     Importer = makeLauncher({ initialTab = "box" })
-    Importer._boxState = nil
-    require("src.import.BoxPanel").refresh(Importer).notice = recoveryError
+    Importer.message = tostring(recoveryError)
     return
   end
   pcall(function()
@@ -714,7 +713,7 @@ function bootGame(version, cartId, opts)
   if love.window and love.window.setTitle then
     local Version = require("src.core.Version")
     love.window.setTitle(Version.title(
-      GameVersion.info().displayName .. " (Gen 1 Recompilation Project)"))
+      GameVersion.info().displayName .. " (MagiRecomp)"))
   end
   -- Gen 2: Gen 1 Game:load cannot consume a Gen 2 cache -- different generated
   -- tables, save shape and screen registry -- so Gold and Silver boot their
@@ -810,7 +809,7 @@ local function startLaunchRequest(request)
     return true
   end
 
-  local RomImporter = require("src.import.RomImporter")
+  local RomImporter = require("src.import.RomImport")
   Importer = nil
   if Prelaunch then return true end
 
@@ -841,6 +840,8 @@ local function startLaunchRequest(request)
 
   local function bootAfterMods()
     if not wantsModUpdate(request) then return bootShortcut() end
+    -- The MagiRecomp launcher has no mod updater yet; boot straight in.
+    if true then return bootShortcut() end
     Importer = makeLauncher({ initialTab = "mods",
       onBoot = function(v, c, opts)
         if v ~= version or c ~= cartId or opts ~= nil then return false end
@@ -942,7 +943,7 @@ function love.load(args)
     return
   end
 
-  local RomImporter = require("src.import.RomImporter")
+  local RomImporter = require("src.import.RomImport")
   local resolvedLaunch = LaunchOptions.resolveRequest(arg, args)
   local forceImport = os.getenv("POKEPORT_FORCE_IMPORT") == "1"
   local importPath = os.getenv("POKEPORT_IMPORT_ROM")
@@ -1003,10 +1004,6 @@ function love.load(args)
   -- enabled mods' string catalogs -- data only, no entry chunk -- so a
   -- translation reaches the launcher too.  The active game's loader replaces
   -- this with the real merged catalog once a version boots.
-  do
-    local preload = require("src.mods.LauncherMods").translationStrings()
-    if preload then require("src.core.Strings").load({ strings = preload }) end
-  end
 
   -- LAUNCH OPTIONS: skip the launcher and boot a game directly.
   --   --game red|blue|yellow|gold  (or POKEPORT_GAME / POKEPORT_LAUNCH)
@@ -1038,7 +1035,6 @@ function love.load(args)
   -- Edit on a save row opens the bundled editor on that slot (openEditor).
   if not relaunched then
     Importer = makeLauncher()
-    launcherSplash = require("src.import.LauncherSplash").new()
     autoUpdateMods(resolvedLaunch,
       not resolvedLaunch.game and "mods" or nil)
     return

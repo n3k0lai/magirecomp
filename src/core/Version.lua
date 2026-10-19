@@ -98,7 +98,7 @@ end
 -- ("gen1recomp v0.0.0-dev"); release builds are just the base name so Linux
 -- window chrome and taskbars do not read "gen1recomp 0.1.73".
 function Version.title(base)
-  base = base or "gen1recomp"
+  base = base or "MagiRecomp"
   if Version.isDev() then
     return base .. " v" .. Version.engine
   end

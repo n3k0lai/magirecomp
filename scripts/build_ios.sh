@@ -237,7 +237,7 @@ verify_documents_overlay() {
 }
 
 apply_ios_icon() {
-  local source="$ROOT/assets/logo/gen1recomp_cover.png"
+  local source="$ROOT/assets/logo/magirecomp_cover.png"
   local target="$XCODE_DIR/Images.xcassets/iOS AppIcon.appiconset"
   [ -f "$source" ] || fail "missing iOS icon source: $source"
   [ -d "$target" ] || fail "missing iOS app icon set: $target"

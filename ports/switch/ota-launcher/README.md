@@ -11,7 +11,7 @@ with `envSetNextLoad`.
 
 The LÖVE self-updater (`src/update/Check.lua`) stays **disabled** on NX.
 Wire format (also in Lua): `src/update/SwitchOta.lua`.
-NACP icon: `ports/switch/assets/icon.jpg`, generated from `assets/logo/gen1recomp_cover.png` by `tools/brand_platform_icons.py`.
+NACP icon: `ports/switch/assets/icon.jpg`, generated from `assets/logo/magirecomp_cover.png` by `tools/brand_platform_icons.py`.
 
 ## Layout on microSD
 
@@ -63,7 +63,7 @@ Docker fallback uses the same pin as fused builds (`scripts/switch/dkp-docker.im
 
 The launcher draws a pre-scaled logo from `romfs:/logo.rgba` (no PNG decoder in
 the NRO). The baked blob lives at `../assets/logo.rgba` and is copied into romfs at
-build time. After changing `assets/logo/logo.png`, regenerate:
+build time. After changing `assets/logo/magirecomp.png`, regenerate:
 
 ```bash
 python3 scripts/switch/bake_ota_logo.py
