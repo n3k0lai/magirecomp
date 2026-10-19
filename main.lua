@@ -849,8 +849,11 @@ local function startLaunchRequest(request)
 
   local function bootAfterMods()
     if not wantsModUpdate(request) then return bootShortcut() end
-    -- The MagiRecomp launcher has no mod updater yet; boot straight in.
-    if true then return bootShortcut() end
+    -- Only a launcher that ships a mod updater can run one before boot; the
+    -- MagiRecomp launcher has none yet, so it boots straight in.
+    if not require("src.import.MagiLauncher").autoUpdateAll then
+      return bootShortcut()
+    end
     Importer = makeLauncher({ initialTab = "mods",
       onBoot = function(v, c, opts)
         if v ~= version or c ~= cartId or opts ~= nil then return false end

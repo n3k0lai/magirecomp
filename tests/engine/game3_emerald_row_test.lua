@@ -36,9 +36,9 @@ if f then
   f:close()
   check(body:find(SHA, 1, true) ~= nil, "emerald manifest carries the sha1")
 end
-local label = io.open(GameVersion.info("emerald").cartLabel, "rb")
-check(label ~= nil, "emerald label art exists")
-if label then label:close() end
+-- the cartridge label art belonged to the proprietary launcher, which
+-- MagiRecomp does not ship (LICENSE.MD term 2), so no row names one
+eq(GameVersion.info("emerald").cartLabel, nil, "emerald row names no launcher label art")
 
 local ok, ModProfile = pcall(require, "src.mods.ModProfile")
 if ok and type(ModProfile) == "table" then
