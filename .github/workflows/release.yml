@@ -8,7 +8,8 @@ name: Release
 #
 # Versioning:
 #   - First ever release is 0.1.0.
-#   - Every push to master auto-increments the patch: 0.1.0 -> 0.1.1 -> ... -> 0.1.99,
+#   - Pushing a vX.Y.Z tag releases that version. A manual run with no
+#     version auto-increments the patch: 0.1.0 -> 0.1.1 -> ... -> 0.1.99,
 #     then rolls over to 0.2.0 and keeps going.
 #   - To force a specific version, either:
 #       * run this workflow manually (Actions tab) and type it into "version", or
@@ -20,16 +21,9 @@ name: Release
 
 on:
   push:
-    branches: [master]
-    # CI/workflow and docs-only changes don't ship anything to users, so they
-    # don't earn a release. A push touching these *and* real source still
-    # releases; only pushes confined entirely to these paths are skipped.
-    paths-ignore:
-      - '.github/**'
-      - '**.md'
-      - 'mobile/ios/app-repo.json'
-      # The matching disassembly is not part of the shipped app.
-      - 'decomp/**'
+    # Releases ship only from version tags (vX.Y.Z); pushes to master don't
+    # build. workflow_dispatch can still cut a release manually.
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       version:
@@ -63,6 +57,8 @@ jobs:
         id: ver
         env:
           DISPATCH_VERSION: ${{ github.event.inputs.version }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
@@ -70,7 +66,12 @@ jobs:
 
           # 1) Explicit override from a manual run.
           override=""
-          if [ -n "${DISPATCH_VERSION:-}" ]; then
+          from_tag=0
+          if [ "${REF_TYPE:-}" = "tag" ]; then
+            # 0) Tag push: the pushed tag names the version.
+            override="${REF_NAME#v}"
+            from_tag=1
+          elif [ -n "${DISPATCH_VERSION:-}" ]; then
             override="$DISPATCH_VERSION"
           else
             # 2) Override from the commit message: [release X.Y.Z]
@@ -114,7 +115,7 @@ jobs:
           fi
 
           tag="v${version}"
-          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+          if [ "$from_tag" = 0 ] && git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
             echo "::error::Tag $tag already exists. Pick a different version."
             exit 1
           fi
