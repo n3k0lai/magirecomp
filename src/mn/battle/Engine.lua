@@ -185,7 +185,9 @@ end
 function E.fillFromEntry(s, species, spends, energy)
   local e = s.data.entries[species]
   local d = 0xD110
-  for i = 0, E.STRIDE - 1 do s.m[d + i] = 0 end
+  -- the routine writes D110..D136 only; D137..D146 (+$27 command pointer and the
+  -- command name) keep whatever the staging record held before
+  for i = 0, 0x26 do s.m[d + i] = 0 end
   wr(s, d, 1); wr(s, d + 1, 0); wr(s, d + 2, species); wr(s, d + 3, e[0])
   for i = 0, 9 do wr(s, d + 0x0B + i, e[4 + i]) end
   wr(s, d + 0x15, 0); wr(s, d + 0x16, e[14]); wr(s, d + 0x17, e[15])
@@ -237,7 +239,7 @@ end
 -- setup = {
 --   magi = id,                 -- op $25 second arg ($6C wild, $5D Korg, ...)
 --   tony = saved record table (E.tonySaved{...}) or nil for defaults,
---   party = { {species=, spends=, energy=} ... } creatures Tony can summon,
+--   party = { {species=, spends=, energy=, relics={a,b}} ... } creatures Tony can summon,
 --   summons = { {slot=9, species=, spends=, energy=, delay=} ... } op $2E args,
 --   spells = { group ptr... }, items = { {ptr=, count=} ... },
 --   ffa9 = initial $FFA9 (0 by default)
@@ -258,6 +260,8 @@ function E.new(data, setup, rng)
       E.fillFromEntry(s, p.species, p.spends or 1, p.energy or 10)
       local t = {}
       for k = 0, E.SAVED_LEN - 1 do t[k] = rd(s, 0xD112 + k) end
+      -- relic ids sit at saved +$22/+$23 (they load to D134/D135)
+      if p.relics then t[0x22] = p.relics[1] or 0; t[0x23] = p.relics[2] or 0 end
       s.party[addr] = t
     end
   end
@@ -308,6 +312,10 @@ function E.init(s)
   for a = 0xD0B8, 0xD0BF do s.m[a] = 0xFF end
   ww(s, 0xD35D, 0); wr(s, 0xD35D, 0xC2); wr(s, 0xD35E, 0x51) -- magi command = default $51C2
   wr(s, 0xD16E, 0xC2); wr(s, 0xD16F, 0x51)                    -- Tony command = default
+  -- the battle script's ops (op $AA stores, op $2E summons), then the first
+  -- rank and walk. In the game the engine loop runs beside the script and op $2B
+  -- lets one pass through; this order reproduces the Glade start byte for byte
+  -- and the Korg duel start except one leftover byte pair (see the report).
   for _, o in ipairs(setup.script or {}) do E.scriptOp(s, o) end
   for _, sm in ipairs(setup.summons or {}) do E.opcode2E(s, sm) end
   E.rank(s)
@@ -800,6 +808,7 @@ end
 E.AI = AI
 
 local function runAI(s)
+  emit(s, { t = "ai", type = rd(s, 0xD0F0), slot = rd(s, 0xD0B6) })
   local f = AI[rd(s, 0xD0F0)]
   if f then f(s) else unimpl(s, ("AI type %d"):format(rd(s, 0xD0F0))) end
 end
@@ -1522,6 +1531,9 @@ local function applyMarkedFlags(s)
       local en = rw(s, 0xD0E0)
       wr(s, 0xD0E0, 0); wr(s, 0xD0E1, 0)
       local amt = divideHL(en, 3) + 1
+      -- the negated amount stays at D0C3 (low byte first), as the game leaves it
+      local neg = band(0x10000 - amt, 0xFFFF)
+      wr(s, 0xD0C3, band(neg, 0xFF)); wr(s, 0xD0C4, rshift(neg, 8))
       local base = 0xD14E + E.STRIDE * (rd(s, 0xD0D9) * 4 + 1)
       for k = 0, 3 do
         local a = base + k * E.STRIDE

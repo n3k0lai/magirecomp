@@ -16,6 +16,9 @@ ap.add_argument('--state', required=True)
 ap.add_argument('--out', required=True)
 ap.add_argument('--kind', default='both')
 ap.add_argument('--rounds', type=int, default=2)
+ap.add_argument('--only', default='', help='comma separated record pointers, e.g. 7149,716B')
+ap.add_argument('--round-input', default='', help='menu inputs for one round instead of the Glade default')
+ap.add_argument('--poke', action='append', default=[], help='extra WRAM pokes passed to oracle.py')
 a = ap.parse_args()
 
 rom = open(a.rom, 'rb').read()
@@ -41,12 +44,18 @@ if a.kind in ('item', 'both'):
         jobs.append(('item_%04X' % ptr, have, 'down wait30 down wait30 down wait30 a wait90 a wait90 a!'))
 
 traces = []
+only = {x.upper() for x in a.only.split(',') if x}
 for name, pokes, rnd in jobs:
+    if only and name.split('_')[1] not in only:
+        continue
+    rnd = a.round_input or rnd
     out = os.path.join(a.out, name + '.json')
     cmd = [sys.executable, os.path.join(here, 'oracle.py'), '--rom', a.rom, '--state', a.state, '--out', out,
            '--max-frames', '7200']
     for p in pokes:
         cmd += ['--poke-sram', p]
+    for p in a.poke:
+        cmd += ['--poke', p]
     for _ in range(a.rounds):
         cmd += ['--round', rnd]
     r = subprocess.run(cmd, capture_output=True, text=True)

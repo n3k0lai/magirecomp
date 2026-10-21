@@ -42,7 +42,8 @@ end
 --   $D0CC  CopyThreePlaceDigitGlyphs' leading-digit latch (5:$4430)
 local UI_ONLY = { [0xD0CC] = true }
 
-local summary = { rounds = 0, matched = 0, moves = {}, creatures = {}, mismatchMoves = {}, battles = {}, groups = {} }
+local summary = { rounds = 0, matched = 0, moves = {}, creatures = {}, mismatchMoves = {}, battles = {}, groups = {},
+  relics = {}, ai = {} }
 for _, f in ipairs(files) do
   local fh = assert(io.open(f, "r")); local t = json.decode(fh:read("*a")); fh:close()
   local okAll = true
@@ -71,7 +72,11 @@ for _, f in ipairs(files) do
     if rng.err then diffs[#diffs + 1] = "rng " .. rng.err end
     if not ok then diffs[#diffs + 1] = "error " .. tostring(err) end
     local acts = {}
+    local match0 = #diffs == 0
     for _, ev in ipairs(s.events) do
+      -- relic routines and AI types that ran in this round; a mismatch anywhere marks them false
+      if ev.t == "relic" then local k = ev.id .. ":" .. ev.field; summary.relics[k] = (summary.relics[k] ~= false) and match0 end
+      if ev.t == "ai" then summary.ai[ev.type] = (summary.ai[ev.type] ~= false) and match0 end
       if ev.t == "act" then acts[#acts + 1] = { handler = ev.handler, species = ev.species, slot = ev.slot, group = ev.group } end
     end
     local names = {}
@@ -105,6 +110,8 @@ if out then
   for p in pairs(summary.moves) do if not summary.mismatchMoves[p] then L[#L + 1] = ('"move:%04X": true'):format(p) end end
   for g, v in pairs(summary.groups) do if v then L[#L + 1] = ('"group:%04X": true'):format(g) end end
   for id in pairs(summary.creatures) do L[#L + 1] = ('"creature:%02X": true'):format(id) end
+  for k, v in pairs(summary.relics) do if v then L[#L + 1] = ('"relic:%s": true'):format(k) end end
+  for k, v in pairs(summary.ai) do if v then L[#L + 1] = ('"ai:%d": true'):format(k) end end
   for k, v in pairs(summary.battles) do L[#L + 1] = ('"battle:%s": "%s"'):format(k, v) end
   L[#L + 1] = ('"rounds": %d, "matched": %d'):format(summary.rounds, summary.matched)
   local fh = assert(io.open(out, "w")); fh:write("{\n  ", table.concat(L, ",\n  "), "\n}\n"); fh:close()

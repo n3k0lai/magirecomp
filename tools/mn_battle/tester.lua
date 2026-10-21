@@ -41,7 +41,7 @@ local function hex(v, n) return ("%0" .. (n or 4) .. "X"):format(v) end
 -- coverage accumulators
 local moveByHandler = {}
 for _, p in ipairs(data.moveList) do moveByHandler[data.moves[p].handler] = p end
-local cov = { moves = {}, creatures = {}, groups = {}, relics = {} }
+local cov = { moves = {}, creatures = {}, groups = {}, relics = {}, ai = {} }
 local issues = { crashes = {}, violations = {}, unimplemented = {}, stalemates = {}, nondeterministic = {} }
 local stats = { battles = 0, rounds = 0, results = {} }
 local function bump(t, k, n) t[k] = (t[k] or 0) + (n or 1) end
@@ -94,6 +94,10 @@ local function account(m)
       elseif ev.t == "summon" or ev.t == "appear" then
         local c = cov.creatures[ev.species] or { acted = 0, seen = 0 }
         c.seen = c.seen + 1; cov.creatures[ev.species] = c
+      elseif ev.t == "relic" then
+        bump(cov.relics, ev.id .. ":" .. ev.field)
+      elseif ev.t == "ai" then
+        bump(cov.ai, ev.type)
       elseif ev.t == "unimplemented" then
         bump(issues.unimplemented, ev.what)
       end
@@ -157,7 +161,7 @@ end
 -- scenarios ------------------------------------------------------------------
 local scenarios = {}
 -- story battles, as the overworld scripts set them up (op $25 / op $2E)
-scenarios[#scenarios + 1] = { name = "Glade: wild Magi + Weebo", kind = "story", magi = 0x6C,
+scenarios[#scenarios + 1] = { name = "Glade: wild Magi + Weebo", kind = "story", magi = 0x6C, arg3 = 1,
   party = { { species = 0x1C, spends = 1, energy = 22 } },
   summons = { { slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } }, replay = true, keepHashes = true, hashLog = {} }
 -- Korg's duel script (14:$4184) stores $00 $19 at $D33D with op $AA (he starts
@@ -191,6 +195,28 @@ scenarios[#scenarios + 1] = { name = "Tony spells + items", kind = "groups", mag
   party = { { species = 0x1C, spends = 3, energy = 22 } },
   summons = { { slot = 9, species = 0x53, spends = 3, energy = 30, delay = 0 } } }
 
+-- every relic on the summoned party creature (saved +$22/+$23), paired with the next
+for id = 1, #data.relics do
+  local other = id % #data.relics + 1
+  scenarios[#scenarios + 1] = { name = ("relics %s + %s"):format(data.relics[id].name, data.relics[other].name), kind = "relic",
+    magi = 0x6C, party = { { species = 0x1C, spends = 3, energy = 30, relics = { id, other } } },
+    summons = { { slot = 9, species = 0x53, spends = 3, energy = 30, delay = 0 } }, replay = (id % 6 == 0) }
+end
+-- every enemy AI routine: the summoned enemy creature (slot 6, record byte +$17 at
+-- $D2A8) or the Magi ($D34D) gets the type with an op $AA store, as a story script
+-- would. Types 0 and 3 choose a command and suit creatures; the others only pick a
+-- target (1 and 2 load the Magi's Focus), so they go on the Magi. A creature with
+-- one of those keeps whatever command its record held, and a Magi with 0 locks the
+-- real game up (seen in PyBoy), so those pairings are left out.
+local function aiScenario(t, addr, who)
+  scenarios[#scenarios + 1] = { name = ("AI %d on the %s"):format(t, who), kind = "ai", magi = 0x5D, arg3 = 5,
+    party = { { species = 0x1C, spends = 6, energy = 40 } },
+    script = { { op = 0x2E, slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 0 },
+      { op = 0xAA, addr = addr, bank = 7, value = t } }, replay = (t % 4 == 0) }
+end
+aiScenario(0, 0xD2A8, "enemy creature"); aiScenario(3, 0xD2A8, "enemy creature")
+for t = 1, 16 do if t ~= 3 then aiScenario(t, 0xD34D, "Magi") end end
+
 -- run ------------------------------------------------------------------------
 local function runAll()
   local t0 = os.clock()
@@ -203,7 +229,7 @@ local function runAll()
   return os.clock() - t0
 end
 
-local oracle = { moves = {}, creatures = {}, battles = {}, groups = {} }
+local oracle = { moves = {}, creatures = {}, battles = {}, groups = {}, relics = {}, ai = {} }
 if args.oracle then
   local f = io.open(args.oracle, "r")
   if f then
@@ -212,6 +238,8 @@ if args.oracle then
     for k in txt:gmatch('"move:(%x+)"%s*:%s*true') do oracle.moves[tonumber(k, 16)] = true end
     for k in txt:gmatch('"creature:(%x+)"%s*:%s*true') do oracle.creatures[tonumber(k, 16)] = true end
     for k in txt:gmatch('"group:(%x+)"%s*:%s*true') do oracle.groups[tonumber(k, 16)] = true end
+    for k in txt:gmatch('"relic:([%w:]+)"%s*:%s*true') do oracle.relics[k] = true end
+    for k in txt:gmatch('"ai:(%d+)"%s*:%s*true') do oracle.ai[tonumber(k)] = true end
     for name, res in txt:gmatch('"battle:([^"]+)"%s*:%s*"([^"]*)"') do oracle.battles[name] = res end
   end
 end
@@ -300,17 +328,43 @@ local function report(elapsed)
     if impl and uses > 0 then t.tested = t.tested + 1 end
     if match then t.match = t.match + 1 end
   end
-  local rt = { total = 0, impl = 0 }
+  local rt = { total = 0, impl = 0, tested = 0, match = 0 }
+  local mdRel = {}
   for i = 1, #data.relics do
     local r = data.relics[i]
-    local impl = r.onSummon == 0x6BD5 and r.onHit == 0x6BD5
-    J.relics[#J.relics + 1] = { id = i, name = r.name, onSummon = hex(r.onSummon), onHit = hex(r.onHit), implemented = impl }
+    local ops = Engine.RELIC_OPS
+    local impl = (ops[r.onLoad] and ops[r.onSummon] and ops[r.onHit]) and true or false
+    local uses = cov.relics[i .. ":onSummon"] or 0
+    local hitUses = cov.relics[i .. ":onHit"] or 0
+    -- matching: the summon routine (and the damage-step one, for the essences) ran
+    -- in a replayed real-ROM round that matched byte for byte
+    local match = oracle.relics[i .. ":onSummon"] and (r.onHit == 0x6BD5 or oracle.relics[i .. ":onHit"]) and true or false
+    J.relics[#J.relics + 1] = { id = i, name = r.name, onLoad = hex(r.onLoad), onSummon = hex(r.onSummon), onHit = hex(r.onHit),
+      implemented = impl, uses = uses, hitUses = hitUses, matching = match }
     rt.total = rt.total + 1; if impl then rt.impl = rt.impl + 1 end
+    if impl and uses > 0 then rt.tested = rt.tested + 1 end
+    if match then rt.match = rt.match + 1 end
+    mdRel[#mdRel + 1] = ("| %d | %s | 7:%s | 7:%s | %s | %d | %s |"):format(i, r.name, hex(r.onSummon), hex(r.onHit),
+      impl and "yes" or "**no**", uses, match and "yes" or "-")
+  end
+  local at = { total = 0, impl = 0, tested = 0, match = 0 }
+  local used = {}
+  for _, e in pairs(data.entries) do used[e[15]] = (used[e[15]] or 0) + 1 end
+  local mdAi = {}
+  J.ai = {}
+  for t = 0, 16 do
+    local impl = Engine.AI[t] ~= nil
+    local n, match = cov.ai[t] or 0, oracle.ai[t] and true or false
+    at.total = at.total + 1; if impl then at.impl = at.impl + 1 end
+    if impl and n > 0 then at.tested = at.tested + 1 end
+    if match then at.match = at.match + 1 end
+    J.ai[#J.ai + 1] = { type = t, templates = used[t] or 0, implemented = impl, uses = n, matching = match }
+    mdAi[#mdAi + 1] = ("| %d | %d | %s | %d | %s |"):format(t, used[t] or 0, impl and "yes" or "**no**", n, match and "yes" or "-")
   end
   for k, v in pairs(issues.crashes) do J.crashes[#J.crashes + 1] = { error = k, count = v.count, first = v.first } end
   for k, v in pairs(issues.violations) do J.violations[#J.violations + 1] = { rule = k, count = v.count, first = v.first } end
   for _, sc in ipairs(scenarios) do if sc.keepHashes then J.storyHashes[sc.name] = sc.hashLog end end
-  J.summary = { moves = mt, creatures = ct, spells = gt.spell, items = gt.item, relics = rt }
+  J.summary = { moves = mt, creatures = ct, spells = gt.spell, items = gt.item, relics = rt, ai = at }
   local f = assert(io.open(OUT .. "/battle-coverage.json", "w")); f:write(toJson(J), "\n"); f:close()
 
   local L = {}
@@ -330,7 +384,8 @@ local function report(elapsed)
   w(("| creatures | %d | %d | %d | %d |"):format(ct.total, ct.impl, ct.tested, ct.match))
   w(("| spells | %d | %d | %d | %d |"):format(gt.spell.total, gt.spell.impl, gt.spell.tested, gt.spell.match))
   w(("| items | %d | %d | %d | %d |"):format(gt.item.total, gt.item.impl, gt.item.tested, gt.item.match))
-  w(("| relics | %d | %d | - | - |"):format(rt.total, rt.impl))
+  w(("| relics | %d | %d | %d | %d |"):format(rt.total, rt.impl, rt.tested, rt.match))
+  w(("| enemy AI types | %d | %d | %d | %d |"):format(at.total, at.impl, at.tested, at.match))
   w("")
   w("## Results")
   w("")
@@ -361,13 +416,13 @@ local function report(elapsed)
     -- named traces one per line; the per-move / per-group sweeps are summed up
     local keys, sweeps = {}, { n = 0, ok = 0 }
     for k, v in pairs(oracle.battles) do
-      if k:find("move_") or k:find("spell_") or k:find("item_") then
+      if k:find("move_") or k:find("spell_") or k:find("item_") or k:find("relic_") or k:find("ai_") or k:find("combo_") then
         sweeps.n = sweeps.n + 1; if v:find("^all rounds match") then sweeps.ok = sweeps.ok + 1 end
       else keys[#keys + 1] = k end
     end
     table.sort(keys)
     for _, k in ipairs(keys) do w(("- %s: %s"):format(k, oracle.battles[k])) end
-    if sweeps.n > 0 then w(("- move/spell/item sweep runs: %d/%d with every round matching"):format(sweeps.ok, sweeps.n)) end
+    if sweeps.n > 0 then w(("- move/spell/item/relic/AI/combo sweep runs: %d/%d with every round matching"):format(sweeps.ok, sweeps.n)) end
   else
     w("- no oracle file given")
   end
@@ -386,14 +441,33 @@ local function report(elapsed)
   w("")
   w("## Spells, items, relics")
   w("")
-  w("Bank-7 group effects (spells, items) and relic routines are enumerated but not ported yet.")
+  w("| record | name | kind | effect | cost | target | implemented | uses | matching |")
+  w("|---|---|---|---|---|---|---|---|---|")
+  for _, x in ipairs(J.spells) do w(("| %s | %s | spell | 7:%s | %d | %s | %s | %d | %s |"):format(x.ptr, x.name, x.handler, x.cost, x.target,
+    x.implemented and "yes" or "**no**", x.uses, x.matching and "yes" or "-")) end
+  for _, x in ipairs(J.items) do w(("| %s | %s | item | 7:%s | - | %s | %s | %d | %s |"):format(x.ptr, x.name, x.handler, x.target,
+    x.implemented and "yes" or "**no**", x.uses, x.matching and "yes" or "-")) end
   w("")
-  for _, x in ipairs(J.spells) do w(("- spell %s %s (cost %d, target %s, 7:%s)"):format(x.ptr, x.name, x.cost, x.target, x.handler)) end
-  for _, x in ipairs(J.items) do w(("- item %s %s (target %s, 7:%s)"):format(x.ptr, x.name, x.target, x.handler)) end
-  for _, x in ipairs(J.relics) do w(("- relic %d %s (summon 7:%s, hit 7:%s)%s"):format(x.id, x.name, x.onSummon, x.onHit, x.implemented and "" or " - not ported")) end
+  w("Relics: the summon routine runs on the creature that carries the relic when it is")
+  w("summoned, the damage-step routine after each of its moves (only the essences have one).")
+  w("")
+  w("| id | name | summon | damage step | implemented | summons | matching |")
+  w("|---|---|---|---|---|---|---|")
+  for _, x in ipairs(mdRel) do w(x) end
+  w("")
+  w("## Enemy AI types")
+  w("")
+  w("The routine an enemy runs is its record byte +$17 (table at 2:$6FD7). *templates*: how")
+  w("many creature and Magi templates start with it; the rest are only reached when a battle")
+  w("script stores another value.")
+  w("")
+  w("| type | templates | implemented | uses | matching |")
+  w("|---|---|---|---|---|")
+  for _, x in ipairs(mdAi) do w(x) end
   f = assert(io.open(OUT .. "/battle-coverage.md", "w")); f:write(table.concat(L, "\n"), "\n"); f:close()
-  print(("battles %d rounds %d in %.1fs | moves impl %d/%d tested %d match %d | creatures impl %d/%d tested %d match %d | crashes %d violations %d nondet %d stalemates %d unimpl kinds %d")
+  print(("battles %d rounds %d in %.1fs | moves impl %d/%d tested %d match %d | creatures impl %d/%d tested %d match %d | spells match %d/%d items match %d/%d relics match %d/%d AI match %d/%d | crashes %d violations %d nondet %d stalemates %d unimpl kinds %d")
     :format(stats.battles, stats.rounds, elapsed, mt.impl, mt.total, mt.tested, mt.match, ct.impl, ct.total, ct.tested, ct.match,
+      gt.spell.match, gt.spell.total, gt.item.match, gt.item.total, rt.match, rt.total, at.match, at.total,
       #J.crashes, #J.violations, #issues.nondeterministic, #issues.stalemates, #uk))
   local failed = #J.crashes > 0 or #issues.nondeterministic > 0
   return failed

@@ -20,6 +20,8 @@ ap.add_argument('--slot', type=int, default=1)
 ap.add_argument('--rounds', type=int, default=3)
 ap.add_argument('--energy', type=int, default=0x50)
 ap.add_argument('--only', default='')
+ap.add_argument('--force', action='append', default=[], help='forced rolls passed to oracle.py')
+ap.add_argument('--poke', action='append', default=[], help='extra WRAM pokes passed to oracle.py')
 a = ap.parse_args()
 
 rom = open(a.rom, 'rb').read()
@@ -40,11 +42,14 @@ for ptr, raw in moves():
     pokes = [
         '%04X=%02X%02X' % (rec + 0x18, ptr & 0xFF, ptr >> 8),
         '%04X=FF' % (rec + 0x20),
-        '%04X=%02X%02X%02X%02X' % (rec + 7, 0, a.energy, 0, a.energy),
+        '%04X=%02X%02X%02X%02X' % (rec + 7, a.energy >> 8, a.energy & 0xFF, a.energy >> 8, a.energy & 0xFF),
     ]
     rnd = 'a wait150 down wait60 a wait90 a!'
     cmd = [sys.executable, os.path.join(here, 'oracle.py'), '--rom', a.rom, '--state', a.state, '--out', out,
-           '--max-frames', '7200']
+           '--max-frames', str(2400 * a.rounds)]
+    for f in a.force:
+        cmd += ['--force', f]
+    pokes += a.poke
     for p in pokes:
         cmd += ['--poke', p]
     for _ in range(a.rounds):

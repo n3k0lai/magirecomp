@@ -39,6 +39,12 @@ ap.add_argument('--poke', action='append', default=[],
 ap.add_argument('--poke-sram', action='append', default=[],
                 help='[BANK:]ADDR=HEXBYTES written into save RAM, bank wSRAMBank ($C727) unless BANK is given, '
                      'e.g. A3A8=02 for two of item 1, 1:A047=0C00 for a relic on the first party creature')
+ap.add_argument('--force', action='append', default=[],
+                help='KIND:LO-HI=VAL forces a roll by its caller return address: s:4838-5050=00 makes every '
+                     'AddDividerStep called from the move handlers leave $FFA9 = $00 (chance branches fire), '
+                     'm:5420-5440=00 forces MaskDivByC results. The trace records the forced values.')
+ap.add_argument('--max-draws', type=int, default=20000,
+                help='stop when one round consumes this many rolls (a game-side runaway loop)')
 ap.add_argument('--save-end', default=None, help='save a PyBoy state where the run stops (at a menu)')
 ap.add_argument('--shots', default=None, help='directory for a screenshot per round')
 a = ap.parse_args()
@@ -74,15 +80,45 @@ def ret_addr():
 
 st = {'draws': None, 'rounds': [], 'menu': False, 'ended': False, 'cur': None}
 
+forces = []
+for spec in a.force:
+    kind, rest = spec.split(':', 1)
+    rng, val = rest.split('=')
+    lo, hi = (rng.split('-') + [None])[:2]
+    forces.append((kind, int(lo, 16), int(hi or lo, 16), int(val, 16)))
+forced = {'s': 0, 'm': 0}
+
+def forced_value(kind, ra):
+    for k, lo, hi, v in forces:
+        if k == kind and lo <= ra < max(hi, lo + 1):
+            return v
+    return None
+
 def on_mask(_):
     if st['draws'] is not None:
-        st['draws'].append(['m', pb.register_file.A, ret_addr(), pb.memory[0xFFA1] if False else 0])
+        ra = ret_addr()
+        v = forced_value('m', ra)
+        if v is not None:
+            pb.register_file.A = v
+            forced['m'] += 1
+        st['draws'].append(['m', pb.register_file.A, ra, 0])
 
 def on_step(_):
     if st['draws'] is not None:
-        e = pb.register_file.E
+        rf = pb.register_file
+        ra = ret_addr()
+        v = forced_value('s', ra)
+        if v is not None:
+            old = (rf.A - rf.E) & 0xFF
+            rf.A = v
+            rf.E = (v - old) & 0xFF
+            pb.memory[0xFFA9] = v
+            forced['s'] += 1
+        e = rf.E
         if e >= 0x80: e -= 0x100
-        st['draws'].append(['s', e, ret_addr(), pb.register_file.A])
+        st['draws'].append(['s', e, ra, rf.A])
+        if len(st['draws']) > a.max_draws:
+            st['runaway'] = True
 
 def on_div(_):
     if st['draws'] is not None:
@@ -145,7 +181,7 @@ frames = 0
 rounds = list(a.round)
 ri = 0
 st['menu'] = True  # the state is parked at a menu
-while frames < a.max_frames and not st['ended']:
+while frames < a.max_frames and not st['ended'] and not st.get('runaway'):
     if st['menu']:
         st['menu'] = False
         run(a.settle)
@@ -177,8 +213,11 @@ if a.shots:
 if a.save_end:
     with open(a.save_end, 'wb') as f:
         pb.save_state(f)
-json.dump({'rounds': st['rounds'], 'ended': st['ended'], 'inputs': rounds}, open(a.out, 'w'))
-print('rounds', len(st['rounds']), 'ended', st['ended'], 'frames', frames)
+if st.get('runaway'):
+    print('runaway: one round drew more than %d rolls; the open round is dropped' % a.max_draws)
+json.dump({'rounds': st['rounds'], 'ended': st['ended'], 'runaway': bool(st.get('runaway')), 'inputs': rounds, 'force': a.force, 'forced': forced},
+          open(a.out, 'w'))
+print('rounds', len(st['rounds']), 'ended', st['ended'], 'frames', frames, 'forced', forced['s'], forced['m'])
 for i, r in enumerate(st['rounds']):
     kinds = {}
     for d in r['draws']:

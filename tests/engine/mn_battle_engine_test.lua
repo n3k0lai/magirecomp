@@ -89,6 +89,14 @@ do -- starting energy comes from the script, not a constant
   ok(s.m[0xD36D] == 5, "op $25 arg3 lands in D36D")
 end
 
+do -- FillD110FromIndexedEntry writes D110..D136 only; D137.. keep the old staging bytes
+  local s = Engine.new(data, GLADE, Rng.seeded(2))
+  s.m[0xD137], s.m[0xD138], s.m[0xD146] = 0xC2, 0x51, 0x7E
+  Engine.fillFromEntry(s, 0x53, 1, 3)
+  ok(s.m[0xD137] == 0xC2 and s.m[0xD138] == 0x51 and s.m[0xD146] == 0x7E, "fillFromEntry leaves D137..D146 alone")
+  ok(s.m[0xD136] == 0 and s.m[0xD112] == 0x53, "fillFromEntry writes the record up to D136")
+end
+
 do -- relic routines: every record pointer resolves to a translated routine
   local n = 0
   for id = 1, #data.relics do
