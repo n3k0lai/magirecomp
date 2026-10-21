@@ -46,17 +46,18 @@ per-category figures.
 | still INCBIN | 591,610 | 28.21% |
 <!-- decomp-progress:end -->
 
-The bar, chart and bank map are redrawn on every push to `master` that touches
-`decomp/` by [decomp-progress.yml](.github/workflows/decomp-progress.yml) and
-published to the [`progress`](https://github.com/n3k0lai/magirecomp/tree/progress)
-branch, which also keeps the running `history.tsv` the chart is drawn from. No
-ROM is needed for that: the count reads only the committed source. The table
-above is refreshed with `make readme` in `decomp/`.
+The figures are measured on the full working tree of the disassembly, which
+is not public: most of what it has converted since the start is data copied
+from the cartridge (graphics, dialogue, scripts, maps), and that stays out of
+this repository. `decomp/` here publishes the code part only (see below).
 
-The figures above are measured on the full working tree of the disassembly.
-The source published in `decomp/` is an older snapshot of it (39.83%): newer
-work converts graphics, dialogue text and script data from the cartridge, and
-those files stay out of this repository because they are copied from the ROM.
+The measured figures are committed as
+[decomp/progress.json](decomp/progress.json). On every push to `master` that
+changes that file, [decomp-progress.yml](.github/workflows/decomp-progress.yml)
+redraws the bar, chart and bank map from it and publishes them to the
+[`progress`](https://github.com/n3k0lai/magirecomp/tree/progress) branch, which
+also keeps the running `history.tsv` the chart is drawn from. The table above
+is refreshed from the same file with `make readme` in `decomp/`.
 
 ## What is in this repository
 
@@ -93,9 +94,11 @@ the porting plan is in [docs/mn-port-plan.md](docs/mn-port-plan.md).
 
 ## The matching disassembly (`decomp/`)
 
-`decomp/` rebuilds a byte-identical *Magi Nation (USA)* image from assembly
-source with RGBDS. Progress counts only code and data that is lifted to
-source and matches (INCBIN placeholders count as 0%). See
+`decomp/` rebuilds a byte-identical *Magi Nation (USA)* image with RGBDS from
+the code part of the disassembly: the routines lifted to assembly, the link
+scaffold, the build and progress tooling. Every range that holds data
+(graphics, text, scripts, maps, music, tables) is read from your own ROM with
+`INCBIN`, so no game data is in this repository. See
 [decomp/README.md](decomp/README.md) and [decomp/decomp.yaml](decomp/decomp.yaml).
 The ROM is never committed; CI restores it from a repository secret to build
 the progress report and checks that the report carries no ROM bytes.

@@ -4,17 +4,18 @@ name: Decomp progress
 # `progress` branch, the way Alchemy publishes its progress chart: progress.svg
 # (DONE code and data), chart.svg (DONE over time), banks.svg (DONE per ROM
 # bank), badge.json (shields.io endpoint) and history.tsv, which gains a row
-# whenever the count changes. The count reads only committed source, exactly
-# as `make progress` does (INCBIN counts 0), so no ROM is involved.
+# whenever the count changes. MagiRecomp publishes only the code part of the
+# disassembly, so the figures are not recounted from decomp/src here: they are
+# read from decomp/progress.json, which is measured on the full working tree
+# (`make progress`, INCBIN counts 0) and committed with the README. No ROM is
+# involved.
 
 on:
   push:
     branches: [master]
     paths:
-      - "decomp/src/**"
-      - "decomp/scripts/progress.py"
+      - "decomp/progress.json"
       - "decomp/scripts/progress_visual.py"
-      - "decomp/scripts/lib/**"
       - ".github/workflows/decomp-progress.yml"
   workflow_dispatch:
 
@@ -49,9 +50,9 @@ jobs:
       - name: Count and draw
         run: |
           python3 decomp/scripts/progress_visual.py \
+            --from decomp/progress.json \
             --out "$RUNNER_TEMP/progress" \
-            --history "$RUNNER_TEMP/progress/history.tsv" \
-            --commit "${GITHUB_SHA::8}"
+            --history "$RUNNER_TEMP/progress/history.tsv"
 
       - name: Publish
         working-directory: ${{ runner.temp }}/progress

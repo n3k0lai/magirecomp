@@ -2,6 +2,7 @@
 """Progress visualizer for the README, in the style of Alchemy's progress chart.
 
     progress_visual.py --out DIR [--history FILE] [--readme PATH] [--commit SHA]
+                       [--from FIGURES.json] [--dump FIGURES.json]
 
 Counts DONE exactly as `make progress` does (AGENTS.md C1: committed source
 outside an INCBIN; INCBIN counts 0; header left out) and draws it:
@@ -14,6 +15,11 @@ outside an INCBIN; INCBIN counts 0; header left out) and draws it:
 --history is a TSV (date, commit, done, code, data, total). The current count
 is appended when it differs from the last row, so the chart climbs run by run.
 --readme rewrites the block between the progress markers in that file.
+
+--from reads the figures from a JSON file (decomp/progress.json) instead of
+counting this tree. MagiRecomp publishes only the code part of the
+disassembly, so its public figures are measured on the full working tree and
+committed as that file; --dump writes it.
 
 No ROM is needed: the count reads only the committed text. Without
 roms/magination.gbc the image size is the retail size (2 MiB).
@@ -242,7 +248,7 @@ def readme_block(now: dict, commit: str) -> str:
     v = pct(done, total)
     filled = round(v / 5)
     bar = "█" * filled + "░" * (20 - filled)
-    when = dt.date.today().isoformat()
+    when = now.get("measured") or dt.date.today().isoformat()
     return "\n".join([
         START,
         f"[![decomp DONE](https://img.shields.io/endpoint?url={RAW}/badge.json)](decomp/README.md)",
@@ -281,9 +287,21 @@ def main() -> int:
     ap.add_argument("--history", type=Path)
     ap.add_argument("--readme", type=Path)
     ap.add_argument("--commit")
+    ap.add_argument("--from", dest="src", type=Path,
+                    help="read the figures from this JSON instead of counting")
+    ap.add_argument("--dump", type=Path, help="write the figures to this JSON")
     a = ap.parse_args()
-    now = count()
-    commit = a.commit or head()
+    if a.src:
+        now = json.loads(a.src.read_text())
+        commit = a.commit or now.get("commit") or head()
+    else:
+        now = count()
+        commit = a.commit or head()
+        now["commit"] = commit
+        now["measured"] = dt.date.today().isoformat()
+    if a.dump:
+        keep = ("done", "code", "data", "total", "commit", "measured", "rows")
+        a.dump.write_text(json.dumps({k: now[k] for k in keep if k in now}, indent=1) + "\n")
     rows = []
     if a.history:
         rows = record(read_history(a.history), now, commit)

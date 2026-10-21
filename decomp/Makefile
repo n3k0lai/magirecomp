@@ -77,10 +77,12 @@ notes:
 progress:
 	python3 scripts/progress.py --project $(PROJECT) --banks
 
-# Rewrite the progress block in the MagiRecomp README and draw the visualizer
-# into out/progress/ (a preview of what decomp-progress.yml publishes).
+# Rewrite the progress block in the MagiRecomp README from progress.json and
+# draw the visualizer into out/progress/ (a preview of what
+# decomp-progress.yml publishes). progress.json holds the figures of the full
+# working tree; this published tree carries only the code part of it.
 readme:
-	python3 scripts/progress_visual.py --out out/progress --readme ../README.md
+	python3 scripts/progress_visual.py --from progress.json --out out/progress --readme ../README.md
 
 # Publication rules (L1, O1) and the rules a tool can check (check_rules.py).
 check:

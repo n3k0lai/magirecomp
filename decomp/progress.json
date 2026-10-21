@@ -1,0 +1,1162 @@
+{
+ "done": 1505462,
+ "code": 86159,
+ "data": 1419303,
+ "total": 2097072,
+ "commit": "59b48ab5",
+ "measured": "2026-10-21",
+ "rows": [
+  {
+   "bank": 0,
+   "total": 16304,
+   "done": 16304,
+   "code": 15408,
+   "fill": 0,
+   "data": 896,
+   "incbin": 0
+  },
+  {
+   "bank": 1,
+   "total": 16384,
+   "done": 16306,
+   "code": 9104,
+   "fill": 0,
+   "data": 7202,
+   "incbin": 78
+  },
+  {
+   "bank": 2,
+   "total": 16384,
+   "done": 16384,
+   "code": 13465,
+   "fill": 0,
+   "data": 2919,
+   "incbin": 0
+  },
+  {
+   "bank": 3,
+   "total": 16384,
+   "done": 16384,
+   "code": 11592,
+   "fill": 280,
+   "data": 4512,
+   "incbin": 0
+  },
+  {
+   "bank": 4,
+   "total": 16384,
+   "done": 16384,
+   "code": 7030,
+   "fill": 76,
+   "data": 9278,
+   "incbin": 0
+  },
+  {
+   "bank": 5,
+   "total": 16384,
+   "done": 16384,
+   "code": 9073,
+   "fill": 0,
+   "data": 7311,
+   "incbin": 0
+  },
+  {
+   "bank": 6,
+   "total": 16384,
+   "done": 16384,
+   "code": 6059,
+   "fill": 1193,
+   "data": 9132,
+   "incbin": 0
+  },
+  {
+   "bank": 7,
+   "total": 16384,
+   "done": 16384,
+   "code": 8251,
+   "fill": 192,
+   "data": 7941,
+   "incbin": 0
+  },
+  {
+   "bank": 8,
+   "total": 16384,
+   "done": 10027,
+   "code": 0,
+   "fill": 372,
+   "data": 9655,
+   "incbin": 6357
+  },
+  {
+   "bank": 9,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 10,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 11,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 12,
+   "total": 16384,
+   "done": 12288,
+   "code": 0,
+   "fill": 64,
+   "data": 12224,
+   "incbin": 4096
+  },
+  {
+   "bank": 13,
+   "total": 16384,
+   "done": 5568,
+   "code": 0,
+   "fill": 0,
+   "data": 5568,
+   "incbin": 10816
+  },
+  {
+   "bank": 14,
+   "total": 16384,
+   "done": 1921,
+   "code": 0,
+   "fill": 0,
+   "data": 1921,
+   "incbin": 14463
+  },
+  {
+   "bank": 15,
+   "total": 16384,
+   "done": 400,
+   "code": 0,
+   "fill": 0,
+   "data": 400,
+   "incbin": 15984
+  },
+  {
+   "bank": 16,
+   "total": 16384,
+   "done": 616,
+   "code": 0,
+   "fill": 0,
+   "data": 616,
+   "incbin": 15768
+  },
+  {
+   "bank": 17,
+   "total": 16384,
+   "done": 790,
+   "code": 0,
+   "fill": 0,
+   "data": 790,
+   "incbin": 15594
+  },
+  {
+   "bank": 18,
+   "total": 16384,
+   "done": 1536,
+   "code": 0,
+   "fill": 0,
+   "data": 1536,
+   "incbin": 14848
+  },
+  {
+   "bank": 19,
+   "total": 16384,
+   "done": 1471,
+   "code": 0,
+   "fill": 0,
+   "data": 1471,
+   "incbin": 14913
+  },
+  {
+   "bank": 20,
+   "total": 16384,
+   "done": 376,
+   "code": 0,
+   "fill": 0,
+   "data": 376,
+   "incbin": 16008
+  },
+  {
+   "bank": 21,
+   "total": 16384,
+   "done": 2057,
+   "code": 0,
+   "fill": 0,
+   "data": 2057,
+   "incbin": 14327
+  },
+  {
+   "bank": 22,
+   "total": 16384,
+   "done": 43,
+   "code": 0,
+   "fill": 0,
+   "data": 43,
+   "incbin": 16341
+  },
+  {
+   "bank": 23,
+   "total": 16384,
+   "done": 1908,
+   "code": 0,
+   "fill": 0,
+   "data": 1908,
+   "incbin": 14476
+  },
+  {
+   "bank": 24,
+   "total": 16384,
+   "done": 2457,
+   "code": 0,
+   "fill": 0,
+   "data": 2457,
+   "incbin": 13927
+  },
+  {
+   "bank": 25,
+   "total": 16384,
+   "done": 516,
+   "code": 0,
+   "fill": 0,
+   "data": 516,
+   "incbin": 15868
+  },
+  {
+   "bank": 26,
+   "total": 16384,
+   "done": 975,
+   "code": 0,
+   "fill": 0,
+   "data": 975,
+   "incbin": 15409
+  },
+  {
+   "bank": 27,
+   "total": 16384,
+   "done": 289,
+   "code": 0,
+   "fill": 0,
+   "data": 289,
+   "incbin": 16095
+  },
+  {
+   "bank": 28,
+   "total": 16384,
+   "done": 696,
+   "code": 0,
+   "fill": 0,
+   "data": 696,
+   "incbin": 15688
+  },
+  {
+   "bank": 29,
+   "total": 16384,
+   "done": 1530,
+   "code": 0,
+   "fill": 0,
+   "data": 1530,
+   "incbin": 14854
+  },
+  {
+   "bank": 30,
+   "total": 16384,
+   "done": 2236,
+   "code": 0,
+   "fill": 0,
+   "data": 2236,
+   "incbin": 14148
+  },
+  {
+   "bank": 31,
+   "total": 16384,
+   "done": 1324,
+   "code": 0,
+   "fill": 0,
+   "data": 1324,
+   "incbin": 15060
+  },
+  {
+   "bank": 32,
+   "total": 16384,
+   "done": 4518,
+   "code": 0,
+   "fill": 0,
+   "data": 4518,
+   "incbin": 11866
+  },
+  {
+   "bank": 33,
+   "total": 16384,
+   "done": 11841,
+   "code": 0,
+   "fill": 0,
+   "data": 11841,
+   "incbin": 4543
+  },
+  {
+   "bank": 34,
+   "total": 16384,
+   "done": 1152,
+   "code": 0,
+   "fill": 0,
+   "data": 1152,
+   "incbin": 15232
+  },
+  {
+   "bank": 35,
+   "total": 16384,
+   "done": 650,
+   "code": 0,
+   "fill": 0,
+   "data": 650,
+   "incbin": 15734
+  },
+  {
+   "bank": 36,
+   "total": 16384,
+   "done": 7696,
+   "code": 0,
+   "fill": 0,
+   "data": 7696,
+   "incbin": 8688
+  },
+  {
+   "bank": 37,
+   "total": 16384,
+   "done": 1999,
+   "code": 0,
+   "fill": 0,
+   "data": 1999,
+   "incbin": 14385
+  },
+  {
+   "bank": 38,
+   "total": 16384,
+   "done": 1442,
+   "code": 0,
+   "fill": 0,
+   "data": 1442,
+   "incbin": 14942
+  },
+  {
+   "bank": 39,
+   "total": 16384,
+   "done": 9865,
+   "code": 0,
+   "fill": 0,
+   "data": 9865,
+   "incbin": 6519
+  },
+  {
+   "bank": 40,
+   "total": 16384,
+   "done": 2583,
+   "code": 0,
+   "fill": 0,
+   "data": 2583,
+   "incbin": 13801
+  },
+  {
+   "bank": 41,
+   "total": 16384,
+   "done": 11910,
+   "code": 0,
+   "fill": 0,
+   "data": 11910,
+   "incbin": 4474
+  },
+  {
+   "bank": 42,
+   "total": 16384,
+   "done": 3215,
+   "code": 0,
+   "fill": 0,
+   "data": 3215,
+   "incbin": 13169
+  },
+  {
+   "bank": 43,
+   "total": 16384,
+   "done": 3492,
+   "code": 0,
+   "fill": 0,
+   "data": 3492,
+   "incbin": 12892
+  },
+  {
+   "bank": 44,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 45,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 46,
+   "total": 16384,
+   "done": 10685,
+   "code": 0,
+   "fill": 0,
+   "data": 10685,
+   "incbin": 5699
+  },
+  {
+   "bank": 47,
+   "total": 16384,
+   "done": 13106,
+   "code": 0,
+   "fill": 0,
+   "data": 13106,
+   "incbin": 3278
+  },
+  {
+   "bank": 48,
+   "total": 16384,
+   "done": 16370,
+   "code": 6177,
+   "fill": 7683,
+   "data": 2510,
+   "incbin": 14
+  },
+  {
+   "bank": 49,
+   "total": 16384,
+   "done": 512,
+   "code": 0,
+   "fill": 0,
+   "data": 512,
+   "incbin": 15872
+  },
+  {
+   "bank": 50,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 51,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 52,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 53,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 54,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 55,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 56,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 57,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 58,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 59,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 60,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 61,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 62,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 63,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 64,
+   "total": 16384,
+   "done": 1024,
+   "code": 0,
+   "fill": 0,
+   "data": 1024,
+   "incbin": 15360
+  },
+  {
+   "bank": 65,
+   "total": 16384,
+   "done": 15859,
+   "code": 0,
+   "fill": 0,
+   "data": 15859,
+   "incbin": 525
+  },
+  {
+   "bank": 66,
+   "total": 16384,
+   "done": 12305,
+   "code": 0,
+   "fill": 0,
+   "data": 12305,
+   "incbin": 4079
+  },
+  {
+   "bank": 67,
+   "total": 16384,
+   "done": 7684,
+   "code": 0,
+   "fill": 0,
+   "data": 7684,
+   "incbin": 8700
+  },
+  {
+   "bank": 68,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 64,
+   "data": 16320,
+   "incbin": 0
+  },
+  {
+   "bank": 69,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 64,
+   "data": 16320,
+   "incbin": 0
+  },
+  {
+   "bank": 70,
+   "total": 16384,
+   "done": 6548,
+   "code": 0,
+   "fill": 0,
+   "data": 6548,
+   "incbin": 9836
+  },
+  {
+   "bank": 71,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 72,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 73,
+   "total": 16384,
+   "done": 3064,
+   "code": 0,
+   "fill": 0,
+   "data": 3064,
+   "incbin": 13320
+  },
+  {
+   "bank": 74,
+   "total": 16384,
+   "done": 1321,
+   "code": 0,
+   "fill": 0,
+   "data": 1321,
+   "incbin": 15063
+  },
+  {
+   "bank": 75,
+   "total": 16384,
+   "done": 2086,
+   "code": 0,
+   "fill": 0,
+   "data": 2086,
+   "incbin": 14298
+  },
+  {
+   "bank": 76,
+   "total": 16384,
+   "done": 10727,
+   "code": 0,
+   "fill": 0,
+   "data": 10727,
+   "incbin": 5657
+  },
+  {
+   "bank": 77,
+   "total": 16384,
+   "done": 3265,
+   "code": 0,
+   "fill": 0,
+   "data": 3265,
+   "incbin": 13119
+  },
+  {
+   "bank": 78,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 79,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 80,
+   "total": 16384,
+   "done": 16352,
+   "code": 0,
+   "fill": 0,
+   "data": 16352,
+   "incbin": 32
+  },
+  {
+   "bank": 81,
+   "total": 16384,
+   "done": 16363,
+   "code": 0,
+   "fill": 0,
+   "data": 16363,
+   "incbin": 21
+  },
+  {
+   "bank": 82,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 83,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 84,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 85,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 86,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 87,
+   "total": 16384,
+   "done": 14336,
+   "code": 0,
+   "fill": 0,
+   "data": 14336,
+   "incbin": 2048
+  },
+  {
+   "bank": 88,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 89,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 90,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 91,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 92,
+   "total": 16384,
+   "done": 12288,
+   "code": 0,
+   "fill": 0,
+   "data": 12288,
+   "incbin": 4096
+  },
+  {
+   "bank": 93,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 94,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 95,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 96,
+   "total": 16384,
+   "done": 14768,
+   "code": 0,
+   "fill": 0,
+   "data": 14768,
+   "incbin": 1616
+  },
+  {
+   "bank": 97,
+   "total": 16384,
+   "done": 16296,
+   "code": 0,
+   "fill": 0,
+   "data": 16296,
+   "incbin": 88
+  },
+  {
+   "bank": 98,
+   "total": 16384,
+   "done": 16382,
+   "code": 0,
+   "fill": 0,
+   "data": 16382,
+   "incbin": 2
+  },
+  {
+   "bank": 99,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 100,
+   "total": 16384,
+   "done": 16380,
+   "code": 0,
+   "fill": 0,
+   "data": 16380,
+   "incbin": 4
+  },
+  {
+   "bank": 101,
+   "total": 16384,
+   "done": 14556,
+   "code": 0,
+   "fill": 0,
+   "data": 14556,
+   "incbin": 1828
+  },
+  {
+   "bank": 102,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 103,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 104,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 105,
+   "total": 16384,
+   "done": 13612,
+   "code": 0,
+   "fill": 0,
+   "data": 13612,
+   "incbin": 2772
+  },
+  {
+   "bank": 106,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 107,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 108,
+   "total": 16384,
+   "done": 14314,
+   "code": 0,
+   "fill": 0,
+   "data": 14314,
+   "incbin": 2070
+  },
+  {
+   "bank": 109,
+   "total": 16384,
+   "done": 15418,
+   "code": 0,
+   "fill": 0,
+   "data": 15418,
+   "incbin": 966
+  },
+  {
+   "bank": 110,
+   "total": 16384,
+   "done": 16383,
+   "code": 0,
+   "fill": 0,
+   "data": 16383,
+   "incbin": 1
+  },
+  {
+   "bank": 111,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 112,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 113,
+   "total": 16384,
+   "done": 16381,
+   "code": 0,
+   "fill": 0,
+   "data": 16381,
+   "incbin": 3
+  },
+  {
+   "bank": 114,
+   "total": 16384,
+   "done": 15729,
+   "code": 0,
+   "fill": 0,
+   "data": 15729,
+   "incbin": 655
+  },
+  {
+   "bank": 115,
+   "total": 16384,
+   "done": 14014,
+   "code": 0,
+   "fill": 0,
+   "data": 14014,
+   "incbin": 2370
+  },
+  {
+   "bank": 116,
+   "total": 16384,
+   "done": 15356,
+   "code": 0,
+   "fill": 0,
+   "data": 15356,
+   "incbin": 1028
+  },
+  {
+   "bank": 117,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 118,
+   "total": 16384,
+   "done": 15163,
+   "code": 0,
+   "fill": 0,
+   "data": 15163,
+   "incbin": 1221
+  },
+  {
+   "bank": 119,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 120,
+   "total": 16384,
+   "done": 14565,
+   "code": 0,
+   "fill": 0,
+   "data": 14565,
+   "incbin": 1819
+  },
+  {
+   "bank": 121,
+   "total": 16384,
+   "done": 15907,
+   "code": 0,
+   "fill": 0,
+   "data": 15907,
+   "incbin": 477
+  },
+  {
+   "bank": 122,
+   "total": 16384,
+   "done": 14166,
+   "code": 0,
+   "fill": 0,
+   "data": 14166,
+   "incbin": 2218
+  },
+  {
+   "bank": 123,
+   "total": 16384,
+   "done": 14950,
+   "code": 0,
+   "fill": 0,
+   "data": 14950,
+   "incbin": 1434
+  },
+  {
+   "bank": 124,
+   "total": 16384,
+   "done": 7731,
+   "code": 0,
+   "fill": 0,
+   "data": 7731,
+   "incbin": 8653
+  },
+  {
+   "bank": 125,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 126,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  },
+  {
+   "bank": 127,
+   "total": 16384,
+   "done": 16384,
+   "code": 0,
+   "fill": 0,
+   "data": 16384,
+   "incbin": 0
+  }
+ ]
+}

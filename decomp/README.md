@@ -6,6 +6,8 @@ Matching disassembly of the retail Game Boy Color game **Magi Nation** (USA), de
 
 The cartridge image is not in this repository. Put your own dump at `roms/magination.gbc`. [roms/README.md](roms/README.md) has the No-Intro hash. Keeper's Quest can sit beside it and is not part of the build.
 
+**What is published here.** MagiRecomp carries only the code part of the disassembly: routines lifted to assembly, the macros, the link scaffold, and the tools. Every range that assembles game data (graphics, dialogue, event and sprite scripts, maps, music, palettes, tables) is left out, and the scaffold reads those ranges from your ROM with `INCBIN` instead. The build still matches the retail image byte for byte. `make progress` in this tree therefore counts only the published part; the project figure in the MagiRecomp README comes from `progress.json`, measured on the full working tree.
+
 The local ROM is the oracle. `src/scaffold.asm` includes it with `INCBIN` until a range is replaced by source that assembles to the same bytes. `make progress` counts only those replaced bytes. Rules for what may be committed are in [AGENTS.md](AGENTS.md).
 
 ## Tools
@@ -46,6 +48,6 @@ A model is used for one thing: naming a placeholder from a short context pack (`
 
 `make report` writes `out/report.json` (objdiff report version 2). `decomp.yaml` names the USA ROM, and `config/categories.txt` tags banks: bank `$30` is audio, a section that is mostly instructions is code, and everything else, including what is still `INCBIN`, is data. The header stays out of the totals. In MagiRecomp, `.github/workflows/decomp-report.yml` (at the repository root) builds the report on a runner that receives the ROM through the `BASEROM_B64` secret and uploads `usa_report`. decomp.dev has no Game Boy platform yet, so the project is not listed there yet.
 
-The public figure is the DONE count from `make progress` (INCBIN counts as 0). It is drawn in the MagiRecomp README by `scripts/progress_visual.py`; `.github/workflows/decomp-progress.yml` republishes the images to the `progress` branch on every push to `master`. On 2026-10-19 it was 835,317 of 2,097,072 bytes, **39.83%** (code 86,132 B, data 749,185 B).
+The public figure is the DONE count from `make progress` (INCBIN counts as 0) on the full working tree, committed as `progress.json` (`scripts/progress_visual.py --dump progress.json` there). `make readme` draws it into the MagiRecomp README, and `.github/workflows/decomp-progress.yml` republishes the images to the `progress` branch whenever `progress.json` changes on `master`. On 2026-10-21 it was 1,505,462 of 2,097,072 bytes, **71.79%** (code 86,159 B, data 1,419,303 B).
 
 `disassembly/` and `out/` are gitignored. `make notes` is a reading aid. The build does not use it.
