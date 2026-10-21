@@ -48,7 +48,7 @@ local function bump(t, k, n) t[k] = (t[k] or 0) + (n or 1) end
 
 local function setupFor(sc)
   return {
-    magi = sc.magi, party = sc.party, summons = sc.summons, spells = sc.spells, items = sc.items, ffa9 = sc.ffa9,
+    magi = sc.magi, magiEnergy = sc.magiEnergy, party = sc.party, summons = sc.summons, spells = sc.spells, items = sc.items, ffa9 = sc.ffa9,
   }
 end
 
@@ -86,6 +86,7 @@ local function account(m)
       if ev.t == "act" then
         local p = moveByHandler[ev.handler]
         if p then bump(cov.moves, p) end
+        if ev.group then bump(cov.groups, ev.group) end
         if ev.slot >= 1 and ev.slot <= 8 then
           local c = cov.creatures[ev.species] or { acted = 0, seen = 0 }
           c.acted = c.acted + 1; cov.creatures[ev.species] = c
@@ -108,7 +109,7 @@ local function runOne(sc, seed, sideName)
     local m = Match.new(data, setupFor(sc), opts)
     if sc.unlockAll then
       for slot = 1, 8 do for k = 0, 3 do Engine.wr(m.state, Engine.recAddr(slot) + 0x20 + k, 0xFF) end end
-      for _, sv in pairs(m.state.party) do for k = 0, 3 do sv.flags[k] = 0xFF end end
+      for _, sv in pairs(m.state.party) do for k = 0, 3 do sv[0x1E + k] = 0xFF end end
     end
     local r = 0
     while not m:over() and r < MAXR do
@@ -130,7 +131,7 @@ local function runOne(sc, seed, sideName)
         enemy = sc.mirror and Sides.scripted(rounds) or nil })
       if sc.unlockAll then
         for slot = 1, 8 do for k = 0, 3 do Engine.wr(m2.state, Engine.recAddr(slot) + 0x20 + k, 0xFF) end end
-        for _, sv in pairs(m2.state.party) do for k = 0, 3 do sv.flags[k] = 0xFF end end
+        for _, sv in pairs(m2.state.party) do for k = 0, 3 do sv[0x1E + k] = 0xFF end end
       end
       local i = 0
       while not m2:over() and i < r do
@@ -159,7 +160,7 @@ local scenarios = {}
 scenarios[#scenarios + 1] = { name = "Glade: wild Magi + Weebo", kind = "story", magi = 0x6C,
   party = { { species = 0x1C, spends = 1, energy = 22 } },
   summons = { { slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } }, replay = true, keepHashes = true, hashLog = {} }
-scenarios[#scenarios + 1] = { name = "Korg duel: Korg + BlackAgovo", kind = "story", magi = 0x5D,
+scenarios[#scenarios + 1] = { name = "Korg duel: Korg + BlackAgovo", kind = "story", magi = 0x5D, magiEnergy = 1,
   party = { { species = 0x1C, spends = 3, energy = 22 } },
   summons = { { slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 2 } }, replay = true, keepHashes = true, hashLog = {} }
 -- every creature on the player side against a rotating wild opponent, and every
@@ -199,7 +200,7 @@ local function runAll()
   return os.clock() - t0
 end
 
-local oracle = { moves = {}, creatures = {}, battles = {} }
+local oracle = { moves = {}, creatures = {}, battles = {}, groups = {} }
 if args.oracle then
   local f = io.open(args.oracle, "r")
   if f then
@@ -207,6 +208,7 @@ if args.oracle then
     -- tiny reader for the oracle summary: "move:5F1E": true, "creature:53": true
     for k in txt:gmatch('"move:(%x+)"%s*:%s*true') do oracle.moves[tonumber(k, 16)] = true end
     for k in txt:gmatch('"creature:(%x+)"%s*:%s*true') do oracle.creatures[tonumber(k, 16)] = true end
+    for k in txt:gmatch('"group:(%x+)"%s*:%s*true') do oracle.groups[tonumber(k, 16)] = true end
     for name, res in txt:gmatch('"battle:([^"]+)"%s*:%s*"([^"]*)"') do oracle.battles[name] = res end
   end
 end
@@ -282,14 +284,18 @@ local function report(elapsed)
     mdCre[#mdCre + 1] = ("| %s | %s | %s | %d | %s | %d | %s |"):format(hex(id, 2), data.names[id], table.concat(names, ", "),
       data.entries[id][15], impl and "yes" or "**no**", c.acted, match and "yes" or "-")
   end
-  local gt = { spell = { total = 0, impl = 0 }, item = { total = 0, impl = 0 } }
+  local gt = { spell = { total = 0, impl = 0, tested = 0, match = 0 }, item = { total = 0, impl = 0, tested = 0, match = 0 } }
   for _, p in ipairs(data.groupList) do
     local g = data.groups[p]
     local impl = (Engine.GROUP and Engine.GROUP[g.handler]) and true or false
     local bucket = g.kind == "spell" and "spells" or "items"
-    J[bucket][#J[bucket] + 1] = { ptr = hex(p), name = g.name, handler = hex(g.handler), cost = g.cost, target = hex(g.target, 2), implemented = impl }
+    local uses, match = cov.groups[p] or 0, oracle.groups[p] and true or false
+    J[bucket][#J[bucket] + 1] = { ptr = hex(p), name = g.name, handler = hex(g.handler), cost = g.cost, target = hex(g.target, 2),
+      implemented = impl, uses = uses, matching = match }
     local t = gt[g.kind == "spell" and "spell" or "item"]
     t.total = t.total + 1; if impl then t.impl = t.impl + 1 end
+    if impl and uses > 0 then t.tested = t.tested + 1 end
+    if match then t.match = t.match + 1 end
   end
   local rt = { total = 0, impl = 0 }
   for i = 1, #data.relics do
@@ -319,8 +325,8 @@ local function report(elapsed)
   w("|---|---|---|---|---|")
   w(("| creature moves + commands | %d | %d | %d | %d |"):format(mt.total, mt.impl, mt.tested, mt.match))
   w(("| creatures | %d | %d | %d | %d |"):format(ct.total, ct.impl, ct.tested, ct.match))
-  w(("| spells | %d | %d | - | - |"):format(gt.spell.total, gt.spell.impl))
-  w(("| items | %d | %d | - | - |"):format(gt.item.total, gt.item.impl))
+  w(("| spells | %d | %d | %d | %d |"):format(gt.spell.total, gt.spell.impl, gt.spell.tested, gt.spell.match))
+  w(("| items | %d | %d | %d | %d |"):format(gt.item.total, gt.item.impl, gt.item.tested, gt.item.match))
   w(("| relics | %d | %d | - | - |"):format(rt.total, rt.impl))
   w("")
   w("## Results")
@@ -349,7 +355,16 @@ local function report(elapsed)
   w("## Story battles (oracle)")
   w("")
   if next(oracle.battles) then
-    for k, v in pairs(oracle.battles) do w(("- %s: %s"):format(k, v)) end
+    -- named traces one per line; the per-move / per-group sweeps are summed up
+    local keys, sweeps = {}, { n = 0, ok = 0 }
+    for k, v in pairs(oracle.battles) do
+      if k:find("move_") or k:find("spell_") or k:find("item_") then
+        sweeps.n = sweeps.n + 1; if v:find("^all rounds match") then sweeps.ok = sweeps.ok + 1 end
+      else keys[#keys + 1] = k end
+    end
+    table.sort(keys)
+    for _, k in ipairs(keys) do w(("- %s: %s"):format(k, oracle.battles[k])) end
+    if sweeps.n > 0 then w(("- move/spell/item sweep runs: %d/%d with every round matching"):format(sweeps.ok, sweeps.n)) end
   else
     w("- no oracle file given")
   end

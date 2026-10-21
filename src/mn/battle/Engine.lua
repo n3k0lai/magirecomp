@@ -14,7 +14,7 @@
 --   Engine.hash(st)                              -- state hash for lockstep
 -- No call blocks or draws; presentation consumes the returned event list.
 local bit = require("bit")
-local band, bor, bxor, lshift, rshift = bit.band, bit.bor, bit.bxor, bit.lshift, bit.rshift
+local band, bor, bxor, bnot, lshift, rshift = bit.band, bit.bor, bit.bxor, bit.bnot, bit.lshift, bit.rshift
 local Data = require("mn.battle.Data")
 
 local E = {}
@@ -64,6 +64,12 @@ local function anim(s, script)
   if rd(s, 0xD0B6) == rd(s, 0xD103) then return end
   emit(s, { t = "anim", script = script, actor = rd(s, 0xD0DB), target = rd(s, 0xD112),
     actorSlot = rd(s, 0xD0B6), targetSlot = rd(s, 0xD103) })
+end
+-- ApplyIndexedIdRecord (5:$57BA) parameters: which portrait shows which face.
+-- Only the UI reads them, but they are battle WRAM, so they are kept exact.
+local function portrait(s, face, slotCode, species)
+  wr(s, 0xD0C0, face); wr(s, 0xD0C1, slotCode); wr(s, 0xD0C2, species)
+  if species < 0x6C then emit(s, { t = "portrait", face = face, who = slotCode, species = species }) end
 end
 local function unimpl(s, what)
   s.unimplemented[what] = (s.unimplemented[what] or 0) + 1
@@ -231,31 +237,54 @@ function E.new(data, setup, rng)
     items = {}, chosen = {}, hashes = {}, rounds = 0 }, E)
   for a = 0xD000, 0xD3FF do s.m[a] = 0 end
   for i, it in ipairs(setup.items or {}) do s.items[i] = { ptr = it.ptr, count = it.count or 1 } end
-  -- party creatures live in SRAM in the game; here they are generated once with
-  -- the same template routine the enemy side uses
+  -- party creatures live in SRAM in the game ($25-byte records after Tony's at
+  -- $A000, so the first is $A025) and $D107 holds that SRAM address. Generated
+  -- ones use the same template routine the enemy side uses.
   for i, p in ipairs(setup.party or {}) do
-    if p.saved then s.party[i] = p.saved
+    local addr = E.PARTY_BASE + (i - 1) * E.SAVED_LEN
+    if p.saved then s.party[addr] = p.saved
     else
       E.fillFromEntry(s, p.species, p.spends or 1, p.energy or 10)
-      local t = { flags = {} }
-      for k = 0, 29 do t[k] = rd(s, 0xD112 + k) end
-      for k = 0, 3 do t.flags[k] = rd(s, 0xD130 + k) end
-      s.party[i] = t
+      local t = {}
+      for k = 0, E.SAVED_LEN - 1 do t[k] = rd(s, 0xD112 + k) end
+      s.party[addr] = t
     end
   end
   E.init(s)
   return s
 end
 
+E.PARTY_BASE, E.SAVED_LEN = 0xA025, 0x25
+
+-- the party as the save holds it: $25-byte records from $A025 until an $FF species
+function E.partyFromSram(bytes, base)
+  base = base or 0xA000
+  local party = {}
+  for addr = E.PARTY_BASE, E.PARTY_BASE + 40 * E.SAVED_LEN, E.SAVED_LEN do
+    local o = addr - base
+    local sp = bytes:byte(o + 1)
+    if not sp or sp == 0xFF or sp == 0 then break end
+    local t = {}
+    for k = 0, E.SAVED_LEN - 1 do t[k] = bytes:byte(o + 1 + k) end
+    party[addr] = t
+  end
+  return party
+end
+
 -- InitWram7BeforeReset ($6xxx, init_wram7_before_reset.asm)
 function E.init(s)
   local setup = s.setup
-  ww(s, 0xD06D, 0)
+  wp(s, 0xD06D, 0) -- round counter, little endian
   for a = 0xD0D9, 0xD0D9 + 0x294 - 1 do s.m[a] = 0 end
   loadSaved(s, 0, setup.tony or E.tonySaved())
   wr(s, 0xD091, 1)
   loadSaved(s, 9, E.magiSaved(s.data, setup.magi or 0x6C))
+  -- the story sets some Magi's energy before the battle (PyBoy: Korg starts the duel
+  -- with 1, "still too weak from fighting Orwin"); where the game does that is not
+  -- traced yet, so callers pass it
+  if setup.magiEnergy then ww(s, recAddr(9) + 7, setup.magiEnergy) end
   wr(s, 0xD09A, rd(s, 0xD339) == 0x0E and 0 or 1)
+  portrait(s, 0, 0x0C, rd(s, 0xD338))
   wr(s, 0xD15C, 0); wr(s, 0xD34B, 0); wr(s, 0xD016, 0); wr(s, 0xD06C, 0)
   wr(s, 0xD0CD, 0xFF)
   for a = 0xD092, 0xD099 do s.m[a] = 0 end
@@ -282,6 +311,7 @@ function E.opcode2E(s, sm)
   for t = 6, 8 do if rd(s, 0xD091 + t) == 0 and rd(s, 0xD07D + t) == 0 then slot = t; break end end
   if slot == 5 and (rd(s, 0xD096) ~= 0 or rd(s, 0xD082) ~= 0) then return false end
   wr(s, 0xD103, slot)
+  portrait(s, 2, 0x0C, rd(s, 0xD338))
   E.fillFromEntry(s, sm.species, sm.spends or 1, sm.energy or 1)
   copy37(s, recAddr(slot), 0xD110)
   wr(s, 0xD07D + slot, (sm.delay or 0) + 1)
@@ -300,6 +330,7 @@ function E.rank(s)
     if rd(s, 0xD092 + c) ~= 0 then
       local r = recAddr(c + 1)
       local spd = rd(s, r + 0x0D)
+      wr(s, 0xD015, spd)
       local a = jitter(s, 0x0A, rd(s, r + 0x10))
       local v = spd + a
       if v > 0xFF then v = 0 end
@@ -316,9 +347,11 @@ function E.rank(s)
       if a >= b then -- `cp [hl]; jr c, .noSwap` swaps on a >= b
         wr(s, 0xD000 + e, b); wr(s, 0xD000 + e - 1, a)
         local x, y = rd(s, 0xD008 + e), rd(s, 0xD008 + e - 1)
+        wr(s, 0xD010, x) -- the swap's scratch byte
         wr(s, 0xD008 + e, y); wr(s, 0xD008 + e - 1, x)
       end
     end
+    wr(s, 0xD074, d074)
     if d074 == 6 then break end
     d074 = d074 + 1
   end
@@ -815,37 +848,34 @@ SPECIAL[0x504A] = function(s) -- Focus
   if rd(s, 0xD0B6) == 9 then countFlag()
   else
     wr(s, 0xD073, maskDiv(s, 7) + 1); wr(s, 0xD070, 1)
-    if rd(s, 0xD017) == 0 then plant(s, 0x4386) else countFlag() end
+    if rd(s, 0xD017) == 0 then portrait(s, 5, 0x0B, E.TONY_ID); plant(s, 0x4386) else countFlag() end
   end
   wr(s, 0xD071, 1)
   s.planted.subs = names(s)
 end
-SPECIAL[0x5272] = function(s) -- Summon (player): bring a party creature into slot D103
+SPECIAL[0x5272] = function(s) -- Summon (player): LoadD107EntryThenScript4AE0
   local slot = rd(s, 0xD103)
   wr(s, 0xD075, bor(rd(s, 0xD075), lshift(1, slot - 1))); wr(s, 0xD091 + slot, 1) -- 5:$405C
   wr(s, 0xD385, rd(s, 0xD385) + 1)
-  local idx = rp(s, 0xD107)
-  local saved = s.party[idx]
+  local addr = rp(s, 0xD107)
+  local saved = s.party[addr]
   if not saved then unimpl(s, "summon without party creature"); wr(s, 0xD071, 2); return end
-  local d = 0xD110
-  wr(s, d, 0); wr(s, d + 1, 0)
-  for i = 0, 29 do wr(s, d + 2 + i, saved[i] or 0) end
-  for i = 32, 54 do wr(s, d + i, 0) end
-  for i = 32, 35 do wr(s, d + i, 0xFF) end
-  -- unlock flags travel with the saved creature
-  if saved.flags then for i = 0, 3 do wr(s, d + 0x20 + i, saved.flags[i]) end end
+  -- LoadD110Record: flag, 0, then the $25 saved bytes; energy starts full
+  wr(s, 0xD110, rd(s, 0xD017) ~= 0 and 1 or 0); wr(s, 0xD111, 0)
+  for i = 0, E.SAVED_LEN - 1 do wr(s, 0xD112 + i, saved[i] or 0) end
+  wr(s, 0xD117, rd(s, 0xD119)); wr(s, 0xD118, rd(s, 0xD11A))
   wr(s, 0xD125, 0)
   if rd(s, 0xD134) ~= 0 or rd(s, 0xD135) ~= 0 then unimpl(s, "creature relic script") end
   wr(s, 0xD125, bor(rd(s, 0xD126), rd(s, 0xD125)))
   wr(s, 0xD076, 1); wr(s, 0xD077, 0)
-  wp(s, 0xD36E + (slot - 1) * 2, idx)
+  wp(s, 0xD36E + (slot - 1) * 2, addr)
   wr(s, 0xD376 + slot - 1, rd(s, 0xD06F))
   wr(s, 0xD37A + rd(s, 0xD06F), 2)
   wp(s, 0xD07B, recAddr(slot))
   wr(s, 0xD071, 1)
   plant(s, 0x4AE0)
-  s.partyOut[idx] = slot
-  emit(s, { t = "summon", slot = slot, species = rd(s, 0xD112), party = idx })
+  s.partyOut[addr] = slot
+  emit(s, { t = "summon", slot = slot, species = rd(s, 0xD112), party = addr })
 end
 SPECIAL[0x5331] = function(s) -- SummonX (enemy, in battle)
   local slot = rd(s, 0xD103)
@@ -856,26 +886,150 @@ SPECIAL[0x5331] = function(s) -- SummonX (enemy, in battle)
   plant(s, rd(s, 0xD09A) ~= 0 and 0x4AF5 or 0x4B0A)
   emit(s, { t = "summon", slot = slot, species = rd(s, 0xD112) })
 end
-SPECIAL[0x50E6] = function(s) -- Item
+SPECIAL[0x50E6] = function(s) -- Item: CopyD107GroupThenScript446D
   local g = s.data.groups[rp(s, 0xD107)]
   say(s, 0x446D, { nameOf(s, rd(s, 0xD0DB)), g and g.name or "?" })
   E.groupEffect(s, g)
-  if rd(s, 0xD017) == 0 and g then
+  if rd(s, 0xD017) ~= 0 then return end
+  -- the save's item count at $A3A7 + index goes down by one
+  if g then
     for _, it in ipairs(s.items) do if it.ptr == g.ptr and it.count > 0 then it.count = it.count - 1; break end end
   end
-  wr(s, 0xD107, 0)
+  wr(s, 0xD107, 0) -- only the low byte, as the game does
 end
-SPECIAL[0x5207] = function(s) -- Spell
+SPECIAL[0x5207] = function(s) -- Spell: CopyD107GroupThenScript4A40
   local g = s.data.groups[rp(s, 0xD107)]
   say(s, 0x4A40, { nameOf(s, rd(s, 0xD0DB)), g and g.name or "?" })
+  -- the record's +$1F..+$21 animation is staged unless the caster targets itself (UI only)
+  if g and rd(s, 0xD0B6) ~= rd(s, 0xD103) then
+    emit(s, { t = "anim", script = g.raw[0x20] + g.raw[0x21] * 256, group = g.ptr })
+  end
   E.groupEffect(s, g)
 end
 E.SPECIAL = SPECIAL
 
--- bank-7 item / spell effects are not ported yet: they count as unimplemented
+---------------------------------------------------------------------------
+-- bank-7 item / spell effects. The group record is copied to $CD91; the fields
+-- used are +2 ($CD93) amount, +3 ($CD94) stat index and +$19..$1B ($CDAA) the
+-- message script that gets planted.
+local GROUP = {}
+local function cd(g, addr) return g.raw[addr - 0xCD91] or 0 end
+local function plantCDAA(s, g)
+  plant(s, cd(g, 0xCDAB) + cd(g, 0xCDAC) * 256)
+end
+-- the saved creature the target slot came from, for the permanent (SRAM) changes
+local function savedOf(s, slot)
+  if slot < 1 or slot > 4 then return nil end
+  return s.party[rp(s, 0xD36E + (slot - 1) * 2)]
+end
+GROUP[0x64B5] = function(s, g) -- lower a stat by CD93, or plain damage CD93
+  local k = cd(g, 0xCD94)
+  if k ~= 0 then
+    local a = 0xD110 + 0x0A + k
+    local old = rd(s, a)
+    local v = old - cd(g, 0xCD93); if v < 0 then v = 0 end
+    wr(s, a, v)
+    wr(s, 0xD077, u8(old - v)); wr(s, 0xD076, 2)
+  else
+    wr(s, 0xD077, cd(g, 0xCD93)); wr(s, 0xD076, 1)
+  end
+  wr(s, 0xD071, 1)
+  plantCDAA(s, g)
+end
+GROUP[0x6551] = function(s, g) -- raise a stat by CD93 (cap $63), or heal CD93
+  local k = cd(g, 0xCD94)
+  if k ~= 0 then
+    local a = 0xD110 + 0x0A + k
+    local old = rd(s, a)
+    local v = u8(old + cd(g, 0xCD93)); if v >= 0x63 then v = 0x63 end
+    wr(s, a, v)
+    wr(s, 0xD077, u8(v - old)); wr(s, 0xD076, 2)
+  else
+    wr(s, 0xD077, cd(g, 0xCD93)); wr(s, 0xD076, 1); wr(s, 0xD070, 1)
+  end
+  wr(s, 0xD071, 1)
+  plantCDAA(s, g)
+end
+GROUP[0x650F] = function(s, g) -- 64B5, and the saved creature loses it for good
+  GROUP[0x64B5](s, g)
+  local sv = savedOf(s, rd(s, 0xD103))
+  if sv then local i = 8 + cd(g, 0xCD94); sv[i] = u8((sv[i] or 0) - cd(g, 0xCD93)) end
+end
+GROUP[0x65AF] = function(s, g) -- 6551, and the saved creature keeps it
+  GROUP[0x6551](s, g)
+  local sv = savedOf(s, rd(s, 0xD103))
+  if sv then
+    local i = 8 + cd(g, 0xCD94)
+    local v = u8((sv[i] or 0) + cd(g, 0xCD93)); if v >= 0x63 then v = 0x63 end
+    sv[i] = v
+  end
+end
+GROUP[0x66D2] = function(s) -- cure: statuses back to the creature's own
+  wr(s, 0xD076, 1); wr(s, 0xD077, 0); wr(s, 0xD071, 1)
+  plant(s, 0x4A4E)
+  wr(s, 0xD125, rd(s, 0xD126))
+end
+GROUP[0x6701] = function(s, g) -- full energy
+  wr(s, 0xD076, 1); wr(s, 0xD077, 0)
+  wr(s, 0xD117, rd(s, 0xD119)); wr(s, 0xD118, rd(s, 0xD11A))
+  wr(s, 0xD071, 1)
+  plantCDAA(s, g)
+end
+GROUP[0x6739] = function(s, g) -- karmic: a permanent raise, and a random stat pays for it
+  GROUP[0x65AF](s, g)
+  local a = divStep(s)
+  local rem = a % 5
+  local base = rp(s, 0xD36E + (rem - 1) * 2)
+  if rd(s, 0xD103) < 5 then
+    local sv = s.party[base]
+    if sv then
+      local i = rem + 9
+      local v = u8((sv[i] or 0) - 1); if v == 0 then v = 1 end
+      sv[i] = v
+    end
+  end
+  s.karmicStat = rem
+end
+GROUP[0x6791] = function(s, g) -- master rune: +2 to all five stats, for good
+  for k = 1, 5 do
+    local fake = { raw = {} }
+    for i, v in pairs(g.raw) do fake.raw[i] = v end
+    fake.raw[2], fake.raw[3] = 2, k
+    GROUP[0x65AF](s, fake)
+  end
+  plantCDAA(s, g)
+end
+local function rotateStatus(s, g, left)
+  wr(s, 0xD076, 1); wr(s, 0xD077, 0)
+  local v = rd(s, 0xD125)
+  if left then v = u8(bor(lshift(v, 1), rshift(v, 7))) else v = u8(bor(rshift(v, 1), lshift(band(v, 1), 7))) end
+  v = bor(v, rd(s, 0xD126))
+  v = band(v, u8(bnot(rd(s, 0xD124))))
+  wr(s, 0xD125, v)
+  wr(s, 0xD111, 0x33); wr(s, 0xD071, 1)
+  plantCDAA(s, g)
+end
+GROUP[0x67E3] = function(s, g) rotateStatus(s, g, true) end
+GROUP[0x6824] = function(s, g) rotateStatus(s, g, false) end
+GROUP[0x729D] = function(s, g) -- fixed damage CD93
+  wr(s, 0xD076, 1); wr(s, 0xD077, cd(g, 0xCD93))
+end
+GROUP[0x72B1] = function(s, g) -- executioner: 10 + FFA9 mod 30
+  wr(s, 0xD076, 1)
+  local a = divStep(s)
+  wr(s, 0xD077, a % 0x1E + 0x0A)
+  wr(s, 0xD071, 1)
+  plantCDAA(s, g)
+end
+GROUP[0x72F0] = function(s) -- cunning blow: the target is eliminated unless it is a magi
+  if rd(s, 0xD113) ~= 0x0C then wr(s, 0xD0B4, 1) end
+  divStep(s)
+end
+E.GROUP = GROUP
+
 function E.groupEffect(s, g)
   if not g then unimpl(s, "group record"); wr(s, 0xD071, 2); return end
-  local f = E.GROUP and E.GROUP[g.handler]
+  local f = GROUP[g.handler]
   if f then return f(s, g) end
   unimpl(s, ("%s %s (handler 7:%04X)"):format(g.kind, g.name, g.handler))
   wr(s, 0xD071, 2)
@@ -945,6 +1099,9 @@ end
 -- ContinueAfterC71BPlant ($4593 / $459B)
 local function afterPlant(s, show)
   if show then showPlanted(s) end
+  if rd(s, 0xD016) == 0 then
+    portrait(s, 0, 0x0C, rd(s, 0xD338)); portrait(s, 0, 0x0B, E.TONY_ID)
+  end
   if rd(s, 0xD0B2) == 0 then return end
   emit(s, { t = "eliminated", slot = rd(s, 0xD103), species = rd(s, 0xD112) })
   wr(s, 0xD076, 0)
@@ -961,7 +1118,7 @@ function E.finishLow(s)
   if rd(s, 0xD01A) == 0 and actor ~= 0 and actor ~= 9 and rd(s, 0xD0FF) == 0 and t < 0x0A then
     local subs = { nameOf(s, rd(s, 0xD0DB)), moveName(s), nameOf(s, rd(s, 0xD112)) }
     if t == actor then say(s, 0x4B44, subs)
-    elseif handler == 0x517D then say(s, 0x4366, names(s))
+    elseif handler == 0x517D then say(s, 0x4366, subs)
     else say(s, 0x4B32, subs) end
   end
   if rd(s, 0xD107) ~= 0 and passHit(s) then
@@ -1022,6 +1179,7 @@ function E.finishLow(s)
         wr(s, 0xD37A + k, 1)
         local idx = rp(s, 0xD36E + (tt - 1) * 2)
         if s.party[idx] then s.partyOut[idx] = nil; s.partyLost[idx] = true end
+        portrait(s, 1, 0x0C, rd(s, 0xD338))
         wp(s, 0xD36E + (tt - 1) * 2, 0)
         wr(s, 0xD0D2, 0)
       else
@@ -1152,20 +1310,38 @@ local function groupCovers(s, code, slot, actor)
 end
 E.groupCovers = groupCovers
 
+function E.groupAny(s, code, actor)
+  if ((actor < 5) and GROUP_TONY.low or GROUP_TONY.high)[code] then return true end
+  for slot = 1, 9 do if groupCovers(s, code, slot, actor) then return true end end
+  return false
+end
+
 function E.groupHit(s)
   local code = rd(s, 0xD103)
   wr(s, 0xD0B0, code)
   local actor = rd(s, 0xD0B6)
+  -- each check leaves its answer in $D019; $D074 is the slot counter, $D018 the slot
+  local function hit(slot, f)
+    wr(s, 0xD019, f and 1 or 0)
+    if f then wr(s, 0xD103, slot); E.refreshSlot(s) end
+  end
   -- the Tony check uses the code band test only (FlagD019ForCopiedD0B0)
-  local low = actor < 5
-  if (low and GROUP_TONY.low or GROUP_TONY.high)[code] then
-    wr(s, 0xD103, 0); E.refreshSlot(s)
+  hit(0, ((actor < 5) and GROUP_TONY.low or GROUP_TONY.high)[code] and true or false)
+  wr(s, 0xD074, 0)
+  while true do
+    local v = rd(s, 0xD074) + 1; wr(s, 0xD074, v)
+    if v == 5 then break end
+    wr(s, 0xD018, v)
+    hit(v, groupCovers(s, code, v, actor))
   end
-  for slot = 1, 8 do
-    wr(s, 0xD018, slot)
-    if groupCovers(s, code, slot, actor) then wr(s, 0xD103, slot); E.refreshSlot(s) end
+  wr(s, 0xD074, 4)
+  while true do
+    local v = rd(s, 0xD074) + 1; wr(s, 0xD074, v)
+    if v == 9 then break end
+    wr(s, 0xD018, v)
+    hit(v, groupCovers(s, code, v, actor))
   end
-  if groupCovers(s, code, 9, actor) then wr(s, 0xD103, 9); E.refreshSlot(s) end
+  hit(9, groupCovers(s, code, 9, actor))
 end
 
 ---------------------------------------------------------------------------
@@ -1230,6 +1406,7 @@ local function expireCountdowns(s)
       v = v - 1; wr(s, a, v)
       if v == 0 then
         local slot = k + 1
+        portrait(s, 0, 0x0C, rd(s, 0xD338))
         wr(s, 0xD112, rd(s, recAddr(slot) + 2))
         wr(s, 0xD103, slot)
         wr(s, 0xD075, bor(rd(s, 0xD075), lshift(1, slot - 1))); wr(s, 0xD091 + slot, 1)
@@ -1239,6 +1416,7 @@ local function expireCountdowns(s)
       end
     end
   end
+  wr(s, 0xD074, 0) -- the slot counter runs 8 down to 0
   local m = rd(s, 0xD075)
   for i = 0, 7 do
     if m == 0 then break end
@@ -1325,7 +1503,8 @@ function E.walkSlots(s)
           emit(s, { t = "tired", slot = slot })
         end
         copy37(s, rec, 0xD0D9)
-        emit(s, { t = "act", slot = slot, handler = rp(s, 0xD100), target = rd(s, 0xD103), species = rd(s, 0xD0DB) })
+        emit(s, { t = "act", slot = slot, handler = rp(s, 0xD100), target = rd(s, 0xD103), species = rd(s, 0xD0DB),
+      group = (rp(s, 0xD100) == 0x5207 or rp(s, 0xD100) == 0x50E6) and rp(s, 0xD107) or nil })
         if rd(s, 0xD103) < 0x14 then
           wr(s, 0xD01A, 0)
           E.refreshSlot(s)
@@ -1348,14 +1527,14 @@ function E.walkSlots(s)
         if eliminateActor(s, slot) then return end
       end
     end
-    local r = rw(s, 0xD06D)
+    local r = rp(s, 0xD06D)
     if r ~= 0 and r ~= 1 then setD016WhenSlotsClosed(s) end
     if rd(s, 0xD016) ~= 0 then return end
     wr(s, 0xD017, idx + 1)
     if idx + 1 > 9 then break end
   end
   expireCountdowns(s)
-  ww(s, 0xD06D, rw(s, 0xD06D) + 1)
+  wp(s, 0xD06D, rp(s, 0xD06D) + 1)
 end
 
 ---------------------------------------------------------------------------
@@ -1442,16 +1621,23 @@ function E.legal(s, slot)
       local mv = s.data.moves[p]
       if mv and rd(s, rec + 0x20 + k - 1) == 0xFF and p >= 0x5F1E then
         local c = { kind = "move", k = k, ptr = p, cost = mv.cost }
-        if mv.target >= 0x14 then c.code = mv.target else c.targets = targets(mv.target) end
-        if en > mv.cost or mv.cost == 0 then add(c) end
+        local ok = true
+        if mv.target >= 0x14 then
+          c.code = mv.target
+          -- PyBoy: a creature cannot pick an all-enemy-creatures move while no enemy
+          -- creature is out (the menu does not take it); inferred rule: the code
+          -- must cover at least one present slot
+          ok = E.groupAny(s, mv.target, slot)
+        else c.targets = targets(mv.target) end
+        if ok and (en > mv.cost or mv.cost == 0) then add(c) end
       end
     end
   end
   return out
 end
 
--- a creature costs Tony its own energy to summon (and pays it back +1 on a win)
-function E.summonCost(saved) return band(saved[6] or 0, 0xFF) end
+-- a creature costs Tony its full energy to summon (and pays it back +1 on a win)
+function E.summonCost(saved) return saved[8] or 0 end -- the menu shows max energy
 
 -- write a chosen command into the slot's record (what the menus at $5FDF do)
 function E.choose(s, slot, c, target)
@@ -1545,6 +1731,23 @@ local function enemyAI(s)
   copy37(s, recAddr(9), 0xD0D9)
 end
 
+-- the engine half of a round (ApplyFourD096Slots .. ClearMarksAndWalkSlots), the
+-- span the PyBoy oracle brackets
+function E.resolve(s)
+  enemyAI(s)
+  E.rank(s)
+  E.walkSlots(s)
+end
+
+-- a state from a WRAM dump (oracle replays): bytes = 1024-byte string for $D000-$D3FF
+function E.load(data, bytes, ffa9, rng, party)
+  local s = setmetatable({ data = data, rng = rng, m = {}, ffa9 = ffa9 or 0, events = {}, unimplemented = {},
+    setup = {}, party = party or {}, partyOut = {}, partyLost = {}, spells = {}, items = {}, chosen = {},
+    hashes = {}, rounds = 0 }, E)
+  for i = 0, 0x3FF do s.m[0xD000 + i] = bytes:byte(i + 1) end
+  return s
+end
+
 -- one round of LoopWhileD0D5 ($6591) after the player side has chosen
 function E.round(s)
   s.events = {}
@@ -1565,6 +1768,7 @@ function E.finish(s)
   local code = rd(s, 0xD016)
   s.result = code == E.WIN and "win" or code == E.LOSS and "loss" or code == E.ESCAPE and "escape" or ("code" .. code)
   if code == E.WIN then
+    portrait(s, 4, 0x0C, rd(s, 0xD338)); portrait(s, 3, 0x0B, E.TONY_ID)
     for k = 0, 3 do
       local idx = rp(s, 0xD36E + 2 * k)
       if idx ~= 0 and s.party[idx] then
@@ -1585,6 +1789,7 @@ function E.finish(s)
     end
     say(s, 0x4B5B, {})
   elseif code == E.LOSS then
+    portrait(s, 3, 0x0C, rd(s, 0xD338)); portrait(s, 4, 0x0B, E.TONY_ID)
     say(s, 0x45AB, {})
   elseif code == E.ESCAPE then
     say(s, 0x4A17, {})

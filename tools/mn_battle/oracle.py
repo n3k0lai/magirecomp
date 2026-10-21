@@ -33,6 +33,12 @@ ap.add_argument('--out', required=True)
 ap.add_argument('--round', action='append', default=[], help='space separated buttons for one round')
 ap.add_argument('--max-frames', type=int, default=60 * 60 * 3)
 ap.add_argument('--settle', type=int, default=150, help='frames to wait for a menu to take input')
+ap.add_argument('--poke', action='append', default=[],
+                help='ADDR=HEXBYTES written into WRAM bank 7 before the first menu input, '
+                     'e.g. D196=2E62 to give slot 1 a different first move')
+ap.add_argument('--poke-sram', action='append', default=[],
+                help='ADDR=HEXBYTES written into the save RAM bank wSRAMBank ($C727) + 0, e.g. A3A8=02 for two of item 1')
+ap.add_argument('--save-end', default=None, help='save a PyBoy state where the run stops (at a menu)')
 ap.add_argument('--shots', default=None, help='directory for a screenshot per round')
 a = ap.parse_args()
 
@@ -40,6 +46,19 @@ pb = PyBoy(a.rom, window='null', sound_emulated=False, cgb=True)
 pb.set_emulation_speed(0)
 with open(a.state, 'rb') as f:
     pb.load_state(f)
+
+for spec in a.poke:
+    addr, data = spec.split('=')
+    addr = int(addr, 16)
+    for i, b in enumerate(bytes.fromhex(data)):
+        pb.memory[7, addr + i] = b
+
+for spec in a.poke_sram:
+    addr, data = spec.split('=')
+    addr = int(addr, 16)
+    bank = pb.memory[0xC727]
+    for i, b in enumerate(bytes.fromhex(data)):
+        pb.memory[bank, addr + i] = b
 
 def wram7():
     return bytes(pb.memory[7, 0xD000:0xD400])
@@ -151,6 +170,9 @@ while frames < a.max_frames and not st['ended']:
 
 if a.shots:
     pb.tick(1, True); pb.screen.image.save('%s/oracle_end.png' % a.shots)
+if a.save_end:
+    with open(a.save_end, 'wb') as f:
+        pb.save_state(f)
 json.dump({'rounds': st['rounds'], 'ended': st['ended'], 'inputs': rounds}, open(a.out, 'w'))
 print('rounds', len(st['rounds']), 'ended', st['ended'], 'frames', frames)
 for i, r in enumerate(st['rounds']):

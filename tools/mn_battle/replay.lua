@@ -37,7 +37,12 @@ local function where(a)
   return ("%04X"):format(a)
 end
 
-local summary = { rounds = 0, matched = 0, moves = {}, creatures = {}, mismatchMoves = {}, battles = {} }
+-- battle-WRAM bytes that only the drawing code touches; the engine does not
+-- emulate them, so they are left out of the diff
+--   $D0CC  CopyThreePlaceDigitGlyphs' leading-digit latch (5:$4430)
+local UI_ONLY = { [0xD0CC] = true }
+
+local summary = { rounds = 0, matched = 0, moves = {}, creatures = {}, mismatchMoves = {}, battles = {}, groups = {} }
 for _, f in ipairs(files) do
   local fh = assert(io.open(f, "r")); local t = json.decode(fh:read("*a")); fh:close()
   local okAll = true
@@ -59,7 +64,7 @@ for _, f in ipairs(files) do
     local diffs = {}
     for a = 0, 0x3FF do
       local want, got = post:byte(a + 1), s.m[0xD000 + a]
-      if want ~= got then diffs[#diffs + 1] = ("%s want %02X got %02X"):format(where(0xD000 + a), want, got) end
+      if want ~= got and not UI_ONLY[0xD000 + a] then diffs[#diffs + 1] = ("%s want %02X got %02X"):format(where(0xD000 + a), want, got) end
     end
     if s.ffa9 ~= rd.post.ffa9 then diffs[#diffs + 1] = ("FFA9 want %02X got %02X"):format(rd.post.ffa9, s.ffa9) end
     if rng.i ~= #list then diffs[#diffs + 1] = ("draws used %d of %d"):format(rng.i, #list) end
@@ -67,7 +72,7 @@ for _, f in ipairs(files) do
     if not ok then diffs[#diffs + 1] = "error " .. tostring(err) end
     local acts = {}
     for _, ev in ipairs(s.events) do
-      if ev.t == "act" then acts[#acts + 1] = { handler = ev.handler, species = ev.species, slot = ev.slot } end
+      if ev.t == "act" then acts[#acts + 1] = { handler = ev.handler, species = ev.species, slot = ev.slot, group = ev.group } end
     end
     local names = {}
     for _, x in ipairs(acts) do
@@ -83,16 +88,22 @@ for _, f in ipairs(files) do
         if match then summary.moves[p] = true else summary.mismatchMoves[p] = true end
       end
       if x.slot >= 1 and x.slot <= 8 and match then summary.creatures[x.species] = true end
+      if x.group then
+        if match then summary.groups[x.group] = summary.groups[x.group] or true else summary.groups[x.group] = false end
+      end
     end
     print(("%s round %d: %s  [%s]"):format(f, r, match and "MATCH" or ("%d diffs"):format(#diffs), table.concat(names, ", ")))
     for k = 1, math.min(#diffs, 14) do print("    " .. diffs[k]) end
   end
-  summary.battles[f:match("([^/]+)$")] = okAll and "all rounds match" or "mismatch"
+  -- traces are named <dir>/<file>.json; the directory says which battle it is
+  local name = f:gsub("%.json$", ""):match("([^/]+/[^/]+)$") or f
+  summary.battles[name] = ("%s (%d rounds)"):format(okAll and "all rounds match" or "mismatch", #t.rounds)
 end
 print(("%d/%d rounds match"):format(summary.matched, summary.rounds))
 if out then
   local L = {}
   for p in pairs(summary.moves) do if not summary.mismatchMoves[p] then L[#L + 1] = ('"move:%04X": true'):format(p) end end
+  for g, v in pairs(summary.groups) do if v then L[#L + 1] = ('"group:%04X": true'):format(g) end end
   for id in pairs(summary.creatures) do L[#L + 1] = ('"creature:%02X": true'):format(id) end
   for k, v in pairs(summary.battles) do L[#L + 1] = ('"battle:%s": "%s"'):format(k, v) end
   L[#L + 1] = ('"rounds": %d, "matched": %d'):format(summary.rounds, summary.matched)
