@@ -36,14 +36,14 @@ per-category figures.
 <img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/chart.svg" width="838" alt="DONE over time" />
 <img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/banks.svg" width="838" alt="DONE per ROM bank" />
 
-`████████░░░░░░░░░░░░` **39.83% DONE**: 835,317 / 2,097,072 bytes (measured 2026-10-19 at `d80f43b3`)
+`██████████████░░░░░░` **71.79% DONE**: 1,505,462 / 2,097,072 bytes (measured 2026-10-21 at `59b48ab5`)
 
 | | Bytes | Share of the image |
 | --- | ---: | ---: |
-| **DONE** | **835,317** | **39.83%** |
-| DONE code | 86,132 | 4.11% |
-| DONE data | 749,185 | 35.73% |
-| still INCBIN | 1,261,755 | 60.17% |
+| **DONE** | **1,505,462** | **71.79%** |
+| DONE code | 86,159 | 4.11% |
+| DONE data | 1,419,303 | 67.68% |
+| still INCBIN | 591,610 | 28.21% |
 <!-- decomp-progress:end -->
 
 The bar, chart and bank map are redrawn on every push to `master` that touches
@@ -52,6 +52,11 @@ published to the [`progress`](https://github.com/n3k0lai/magirecomp/tree/progres
 branch, which also keeps the running `history.tsv` the chart is drawn from. No
 ROM is needed for that: the count reads only the committed source. The table
 above is refreshed with `make readme` in `decomp/`.
+
+The figures above are measured on the full working tree of the disassembly.
+The source published in `decomp/` is an older snapshot of it (39.83%): newer
+work converts graphics, dialogue text and script data from the cartridge, and
+those files stay out of this repository because they are copied from the ROM.
 
 ## What is in this repository
 
