@@ -521,6 +521,13 @@ function VM:run(bank, ptr)
       local cnt = r:u8(off(base + love.math.random(0, 15), 1))
       if not self.init then coroutine.yield("wait", 4 * (cnt + 1)) end
     elseif op == 0x45 then jump(r:u8(o + 1), r:u16(o + 2)) -- EnterScriptFromLookup
+    elseif op == 0xAA or op == 0xAB then
+      -- StoreScriptByteInWramBank ($2801) / StoreScriptWordInWramBank: addr, WRAM bank,
+      -- value. A battle script uses it on battle WRAM (bank 7 $D000-$D3FF), e.g. Korg's
+      -- duel sets his starting energy; those writes go to the battle engine in order
+      local args = {}; for i = 1, n - 1 do args[i] = r:u8(o + i) end
+      if h.battleOp and not self.init then h.battleOp(op, args) end
+      o = o + n
     elseif op == 0xAC then self:wr8(r:u16(o + 1), r:u8(o + 3)); o = o + n -- StoreScriptByteInSram
     elseif op == 0x43 then -- SRAMLookupInstallScript: nonzero lookup enters (bank, ptr)
       local v, q = self:expr(o + 1)

@@ -48,7 +48,7 @@ local function bump(t, k, n) t[k] = (t[k] or 0) + (n or 1) end
 
 local function setupFor(sc)
   return {
-    magi = sc.magi, magiEnergy = sc.magiEnergy, party = sc.party, summons = sc.summons, spells = sc.spells, items = sc.items, ffa9 = sc.ffa9,
+    magi = sc.magi, magiEnergy = sc.magiEnergy, arg3 = sc.arg3, script = sc.script, party = sc.party, summons = sc.summons, spells = sc.spells, items = sc.items, ffa9 = sc.ffa9,
   }
 end
 
@@ -160,9 +160,12 @@ local scenarios = {}
 scenarios[#scenarios + 1] = { name = "Glade: wild Magi + Weebo", kind = "story", magi = 0x6C,
   party = { { species = 0x1C, spends = 1, energy = 22 } },
   summons = { { slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } }, replay = true, keepHashes = true, hashLog = {} }
-scenarios[#scenarios + 1] = { name = "Korg duel: Korg + BlackAgovo", kind = "story", magi = 0x5D, magiEnergy = 1,
+-- Korg's duel script (14:$4184) stores $00 $19 at $D33D with op $AA (he starts
+-- with 25 energy), then summons BlackAgovo for 20 with op $2E
+scenarios[#scenarios + 1] = { name = "Korg duel: Korg + BlackAgovo", kind = "story", magi = 0x5D, arg3 = 5,
   party = { { species = 0x1C, spends = 3, energy = 22 } },
-  summons = { { slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 2 } }, replay = true, keepHashes = true, hashLog = {} }
+  script = { { op = 0xAA, addr = 0xD33D, bank = 7, value = 0x00 }, { op = 0xAA, addr = 0xD33E, bank = 7, value = 0x19 },
+    { op = 0x2E, slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 2 } }, replay = true, keepHashes = true, hashLog = {} }
 -- every creature on the player side against a rotating wild opponent, and every
 -- creature on the enemy side (its own ROM AI) against a rotating ally
 local roster = Data.creatures(data)

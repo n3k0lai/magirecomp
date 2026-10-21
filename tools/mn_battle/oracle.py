@@ -37,7 +37,8 @@ ap.add_argument('--poke', action='append', default=[],
                 help='ADDR=HEXBYTES written into WRAM bank 7 before the first menu input, '
                      'e.g. D196=2E62 to give slot 1 a different first move')
 ap.add_argument('--poke-sram', action='append', default=[],
-                help='ADDR=HEXBYTES written into the save RAM bank wSRAMBank ($C727) + 0, e.g. A3A8=02 for two of item 1')
+                help='[BANK:]ADDR=HEXBYTES written into save RAM, bank wSRAMBank ($C727) unless BANK is given, '
+                     'e.g. A3A8=02 for two of item 1, 1:A047=0C00 for a relic on the first party creature')
 ap.add_argument('--save-end', default=None, help='save a PyBoy state where the run stops (at a menu)')
 ap.add_argument('--shots', default=None, help='directory for a screenshot per round')
 a = ap.parse_args()
@@ -55,8 +56,11 @@ for spec in a.poke:
 
 for spec in a.poke_sram:
     addr, data = spec.split('=')
+    if ':' in addr:
+        bank, addr = addr.split(':'); bank = int(bank, 16)
+    else:
+        bank = pb.memory[0xC727]
     addr = int(addr, 16)
-    bank = pb.memory[0xC727]
     for i, b in enumerate(bytes.fromhex(data)):
         pb.memory[bank, addr + i] = b
 

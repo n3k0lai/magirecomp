@@ -82,14 +82,21 @@ end
 -- op $25 / $2E arguments -> engine setup
 function M.setupFrom(ow, setup, data)
   local magi = setup.args and setup.args[2] or 0x6C
-  local summons = {}
+  -- the battle script's engine ops in script order: $AA/$AB battle-WRAM stores
+  -- (Korg's duel sets his starting energy this way) and $2E summons
+  local script, summoned = {}, false
   for _, o in ipairs(setup.ops or {}) do
+    local a = o.args
     if o.op == 0x2E then
-      local a = o.args
-      summons[#summons + 1] = { slot = a[1], species = a[2], spends = a[3] or 1, energy = a[4] or 3, delay = a[5] or 1 }
+      script[#script + 1] = { op = 0x2E, slot = a[1], species = a[2], spends = a[3] or 1, energy = a[4] or 3, delay = a[5] or 1 }
+      summoned = true
+    elseif o.op == 0xAA then
+      script[#script + 1] = { op = 0xAA, addr = a[1] + a[2] * 256, bank = a[3], value = a[4] }
+    elseif o.op == 0xAB then
+      script[#script + 1] = { op = 0xAB, addr = a[1] + a[2] * 256, bank = a[3], lo = a[4], hi = a[5] }
     end
   end
-  if #summons == 0 then summons[1] = { slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } end
+  if not summoned then script[#script + 1] = { op = 0x2E, slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } end
   local energy = tonumber(os.getenv("MN_TONY_START") or "") or ow.tonyEnergy or 100
   local spells, items = {}, {}
   local vm = ow.vm
@@ -100,10 +107,8 @@ function M.setupFrom(ow, setup, data)
       if n > 0 then items[#items + 1] = { ptr = 0x5DFF + id * 0x22, count = n, id = id } end
     end
   end
-  -- PyBoy: Korg enters the duel with 1 energy (the scene says he is still weak)
-  local magiEnergy = magi == 0x5D and 1 or nil
-  return { magi = magi, magiEnergy = magiEnergy, tony = Engine.tonySaved({ energy = math.min(energy, 999), max = 100 }),
-    party = M.party(ow, data), summons = summons, spells = spells, items = items }
+  return { magi = magi, arg3 = setup.args and setup.args[3], tony = Engine.tonySaved({ energy = math.min(energy, 999), max = 100 }),
+    party = M.party(ow, data), script = script, spells = spells, items = items }
 end
 
 function M.new(ow, setup)

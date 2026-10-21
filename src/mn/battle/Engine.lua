@@ -137,38 +137,48 @@ local function growth(s)
   return c11, c12, c13, c14, c15
 end
 
--- SpendMeasureHundred ($2:? in bank 2, spend_measure_hundred.asm): one level up
+-- SpendMeasureHundred (2:$57F1, spend_measure_hundred.asm): one level up. Its
+-- scratch bytes are battle WRAM and are kept exact: D38B rank roll, D388 energy
+-- step, D38A level roll, D38C..D390 the five stat contributions, D389 flags.
 function E.spendMeasureHundred(s, rec, creating)
-  local d38b = maskDiv(s, 3) * 5
+  wr(s, 0xD38B, maskDiv(s, 3) * 5)
   local d388 = maskDiv(s, 3) + 1
-  if not creating then ww(s, rec + 5, rw(s, rec + 5) - 0x64) end -- MEASURE_UNDER
+  wr(s, 0xD388, d388)
+  if not creating then ww(s, rec + 5, rw(s, rec + 5) - 0x64) end -- MEASURE_UNDER (D389 bit 0 clear)
   local rank = rd(s, rec + 4)
+  wr(s, 0xD38A, rank)
   if rank == 0x63 then return end
   rank = rank + 1
   wr(s, rec + 4, rank)
-  local _ = d38b -- rank roll ($D38B) only feeds a level-up message
+  if rank >= 0x3E then wr(s, 0xD38B, 0) end
   local c = { growth(s) }
   for i = 1, 5 do
+    wr(s, 0xD38B + i, c[i])
     local v = c[i] + rd(s, rec + 10 + i)
     if v >= 0x63 then v = 0x63 end
     wr(s, rec + 10 + i, v)
   end
-  local e = rd(s, rec + 0x11) + d388
+  local e = u8(rd(s, rec + 0x11) + d388)
   local mx = rw(s, rec + 9) + e
   if mx >= 0xFA then mx = 0xFA end
   ww(s, rec + 9, mx)
   local d38a = u8(rank - 1 + 1 + jitter(s, 0x0A, rd(s, rec + 0x10)))
+  wr(s, 0xD38A, d38a)
   -- ClaimFirstMeasureThreshold ($5657): unlock the first command whose level is reached
   for k = 0, 3 do
     local f = rd(s, rec + 0x20 + k)
     if f ~= 0xFF then
       if d38a >= f then
         wr(s, rec + 0x20 + k, 0xFF)
+        wr(s, 0xD389, bor(rd(s, 0xD389), 0x80))
         if not creating then emit(s, { t = "learn", slot = rec, move = rd(s, rec + 0x18 + 2 * k) + rd(s, rec + 0x19 + 2 * k) * 256 }) end
       end
       break
     end
   end
+  -- RunFlaggedMeasureScript ($58FF): with D389 bit 1 (show the level-up) it
+  -- clears bit 7 again after the "learned" message
+  if band(rd(s, 0xD389), 0x02) ~= 0 then wr(s, 0xD389, band(rd(s, 0xD389), 0x7F)) end
 end
 
 -- FillD110FromIndexedEntry ($4653): build a creature into D110 from its template
@@ -180,6 +190,7 @@ function E.fillFromEntry(s, species, spends, energy)
   for i = 0, 9 do wr(s, d + 0x0B + i, e[4 + i]) end
   wr(s, d + 0x15, 0); wr(s, d + 0x16, e[14]); wr(s, d + 0x17, e[15])
   for i = 0, 11 do wr(s, d + 0x18 + i, e[18 + i]) end
+  wr(s, 0xD389, 1) -- `set 0, a; res 1, a; ld [$D389], a` before the spend loop
   local n = spends == 0 and 256 or spends
   for _ = 1, n do E.spendMeasureHundred(s, d, true) end
   wr(s, d + 8, energy); wr(s, d + 10, energy)
@@ -279,9 +290,13 @@ function E.init(s)
   loadSaved(s, 0, setup.tony or E.tonySaved())
   wr(s, 0xD091, 1)
   loadSaved(s, 9, E.magiSaved(s.data, setup.magi or 0x6C))
-  -- the story sets some Magi's energy before the battle (PyBoy: Korg starts the duel
-  -- with 1, "still too weak from fighting Orwin"); where the game does that is not
-  -- traced yet, so callers pass it
+  -- Opcode25 (0:$0EC5) operands that land in battle WRAM
+  wr(s, 0xD391, setup.magi or 0x6C); wr(s, 0xD0D3, (setup.magi or 0x6C) == 0x6C and 1 or 0)
+  wr(s, 0xD36D, setup.arg3 or 0)
+  -- a Magi starts with its template energy (ExpandD391Record); a story battle
+  -- changes it from its battle script with op $AA (Korg's duel, 14:$4184, stores
+  -- $00 $19 at $D33D: he starts with 25). setup.magiEnergy is kept for callers
+  -- that set it by hand.
   if setup.magiEnergy then ww(s, recAddr(9) + 7, setup.magiEnergy) end
   wr(s, 0xD09A, rd(s, 0xD339) == 0x0E and 0 or 1)
   portrait(s, 0, 0x0C, rd(s, 0xD338))
@@ -293,33 +308,11 @@ function E.init(s)
   for a = 0xD0B8, 0xD0BF do s.m[a] = 0xFF end
   ww(s, 0xD35D, 0); wr(s, 0xD35D, 0xC2); wr(s, 0xD35E, 0x51) -- magi command = default $51C2
   wr(s, 0xD16E, 0xC2); wr(s, 0xD16F, 0x51)                    -- Tony command = default
+  for _, o in ipairs(setup.script or {}) do E.scriptOp(s, o) end
   for _, sm in ipairs(setup.summons or {}) do E.opcode2E(s, sm) end
   E.rank(s)
   E.walkSlots(s)
   s.round0 = s.events; s.events = {}
-end
-
--- FinishOpcode2D / ApplySummonXRecordThenPickSlot ($748B): a pre-battle summon
--- by the enemy Magi (script op $2E slot species spends energy delay)
-function E.opcode2E(s, sm)
-  local magi = sm.slot or 9
-  copy37(s, 0xD0D9, recAddr(magi))
-  local cost = sm.energy or 1
-  local en = rw(s, 0xD0E0)
-  if not (en >= cost and en - cost ~= 0) and cost ~= 0 then return false end
-  local slot = 5
-  for t = 6, 8 do if rd(s, 0xD091 + t) == 0 and rd(s, 0xD07D + t) == 0 then slot = t; break end end
-  if slot == 5 and (rd(s, 0xD096) ~= 0 or rd(s, 0xD082) ~= 0) then return false end
-  wr(s, 0xD103, slot)
-  portrait(s, 2, 0x0C, rd(s, 0xD338))
-  E.fillFromEntry(s, sm.species, sm.spends or 1, sm.energy or 1)
-  copy37(s, recAddr(slot), 0xD110)
-  wr(s, 0xD07D + slot, (sm.delay or 0) + 1)
-  ww(s, 0xD0E0, en - cost)
-  wr(s, 0xD100, 0xC2); wr(s, 0xD101, 0x51)
-  copy37(s, recAddr(magi), 0xD0D9)
-  emit(s, { t = "summon", slot = slot, species = sm.species, pending = true })
-  return true
 end
 
 ---------------------------------------------------------------------------
@@ -413,6 +406,88 @@ local function showPlanted(s)
 end
 
 -- LoadSelectedRecordToD100 (5:$56AF): CCA7 0 = Fight/Focus, 1..4 = command k
+-- Relic routines, bank 7 $6BD5-$6FCE, translated mechanically from the matching
+-- source by tools/mn_battle/audit/relics.py. A relic record (7:$6916, 19 bytes)
+-- holds three bank-7 pointers: +0 runs from LoadSelectedRecordToD100 for the
+-- actor's D0FD/D0FE ids (every relic points it at the bare `ret` at $6BD5), +2
+-- runs from RunPairIdScripts (5:$4109) on the summoned creature's D134/D135 ids,
+-- and +4 runs from FinishLowD103Refresh after the move handler for D0FD/D0FE.
+--   up off n   AddACapByteAtBc on $D110+off (cap $63)
+--   dn off n   SubAFloorByteAtBc on $D110+off (floor 1)
+--   or a m     [a] |= m;  orfrom a b: [a] |= [b] (A still holds the byte just stored)
+--   maxe n     max energy D119 += n and current D117 = the new max
+--   set a v / andor a m o
+local RELIC_OPS = {
+  [0x6BD5] = {  },
+  [0x6BD6] = { { "up", 0xC, 0xA } },
+  [0x6BE4] = { { "up", 0xE, 0xC } },
+  [0x6BF2] = { { "up", 0xB, 0x8 } },
+  [0x6C00] = { { "up", 0xE, 0x4 } },
+  [0x6C0E] = { { "up", 0xC, 0x6 } },
+  [0x6C1C] = { { "up", 0xC, 0xF }, { "up", 0xF, 0xF }, { "dn", 0xB, 0xF } },
+  [0x6C42] = { { "up", 0xB, 0x6 }, { "up", 0xC, 0x6 }, { "up", 0x10, 0x14 }, { "dn", 0xE, 0xA }, { "dn", 0xF, 0xA } },
+  [0x6C80] = { { "or", 0xD122, 0x1 }, { "up", 0xF, 0xF }, { "up", 0xE, 0xF }, { "dn", 0xD, 0x19 } },
+  [0x6CAD] = { { "maxe", 0x19 }, { "up", 0xB, 0x19 }, { "up", 0xE, 0x19 }, { "up", 0xF, 0x19 }, { "up", 0xC, 0x19 }, { "up", 0xD, 0x19 }, { "or", 0xD125, 0x8 }, { "orfrom", 0xD126, 0xD125 }, { "andor", 0xD111, 0xF, 0x30 } },
+  [0x6D1F] = { { "maxe", 0x6 } },
+  [0x6D3B] = { { "or", 0xD122, 0x2 }, { "up", 0xC, 0xF }, { "up", 0xB, 0xF }, { "dn", 0xE, 0xF }, { "dn", 0xF, 0xF } },
+  [0x6D73] = { { "or", 0xD122, 0x1 }, { "or", 0xD123, 0x20 } },
+  [0x6D82] = { { "or", 0xD106, 0x2 } },
+  [0x6D8A] = { { "up", 0xE, 0x5 } },
+  [0x6D98] = { { "up", 0x10, 0xF } },
+  [0x6DA6] = { { "maxe", 0x4 } },
+  [0x6DC2] = { { "up", 0xB, 0x5 } },
+  [0x6DD0] = { { "or", 0xD122, 0x20 }, { "or", 0xD123, 0x8 } },
+  [0x6DDF] = { { "or", 0xD106, 0x10 } },
+  [0x6DE7] = { { "up", 0xC, 0xA } },
+  [0x6DF5] = { { "up", 0xB, 0xC } },
+  [0x6E03] = { { "up", 0xF, 0xA } },
+  [0x6E11] = { { "up", 0xD, 0xA }, { "up", 0xC, 0x5 }, { "up", 0xB, 0xA }, { "or", 0xD126, 0x4 } },
+  [0x6E40] = { { "or", 0xD122, 0x10 }, { "maxe", 0xF }, { "up", 0xE, 0xF }, { "dn", 0xB, 0xF } },
+  [0x6E7B] = { { "set", 0xD120, 0x0 } },
+  [0x6E80] = { { "up", 0xB, 0x2 }, { "up", 0xD, 0x2 } },
+  [0x6E9B] = { { "up", 0xF, 0x14 }, { "up", 0xE, 0x14 }, { "or", 0xD126, 0x40 } },
+  [0x6EBD] = { { "up", 0xE, 0xF } },
+  [0x6ECB] = { { "or", 0xD122, 0x8 }, { "or", 0xD123, 0x1 } },
+  [0x6EDA] = { { "or", 0xD106, 0x4 } },
+  [0x6EE2] = { { "maxe", 0x8 } },
+  [0x6EFE] = { { "or", 0xD126, 0x1 } },
+  [0x6F06] = { { "or", 0xD122, 0x4 }, { "or", 0xD123, 0x2 } },
+  [0x6F15] = { { "or", 0xD106, 0x1 } },
+  [0x6F1D] = { { "maxe", 0x8 }, { "or", 0xD124, 0xFF } },
+  [0x6F40] = { { "up", 0xB, 0xF } },
+  [0x6F4E] = { { "or", 0xD122, 0x10 }, { "or", 0xD123, 0x4 } },
+  [0x6F5D] = { { "or", 0xD106, 0x8 } },
+  [0x6F65] = { { "up", 0xB, 0x8 } },
+  [0x6F73] = { { "or", 0xD122, 0x8 }, { "or", 0xD126, 0x4 }, { "up", 0xE, 0x5 }, { "up", 0xB, 0x5 }, { "up", 0xC, 0x5 }, { "up", 0xF, 0x5 }, { "dn", 0xD, 0x5 } },
+  [0x6FC1] = { { "up", 0x10, 0x5 } },
+}
+E.RELIC_OPS = RELIC_OPS
+local function runRelic(s, id, field)
+  if id == 0 then return end
+  local r = s.data.relics and s.data.relics[id]
+  if not r then unimpl(s, ("relic id %02X"):format(id)); return end
+  local ptr = r[field]
+  local ops = RELIC_OPS[ptr]
+  if not ops then unimpl(s, ("relic routine 7:%04X"):format(ptr)); return end
+  emit(s, { t = "relic", id = id, name = r.name, field = field, routine = ptr })
+  for _, o in ipairs(ops) do
+    local k = o[1]
+    if k == "up" then
+      local a = 0xD110 + o[2]; local v = u8(rd(s, a) + o[3]); if v >= 0x63 then v = 0x63 end; wr(s, a, v)
+    elseif k == "dn" then
+      local a = 0xD110 + o[2]; local v = rd(s, a) - o[3]; if v <= 0 then v = 1 end; wr(s, a, v)
+    elseif k == "or" then wr(s, o[2], bor(rd(s, o[2]), o[3]))
+    elseif k == "orfrom" then wr(s, o[2], bor(rd(s, o[2]), rd(s, o[3])))
+    elseif k == "maxe" then
+      local v = band(rd(s, 0xD119) * 256 + rd(s, 0xD11A) + o[2], 0xFFFF)
+      wr(s, 0xD119, rshift(v, 8)); wr(s, 0xD117, rshift(v, 8)); wr(s, 0xD11A, band(v, 0xFF)); wr(s, 0xD118, band(v, 0xFF))
+    elseif k == "set" then wr(s, o[2], o[3])
+    elseif k == "andor" then wr(s, o[2], bor(band(rd(s, o[2]), o[3]), o[4]))
+    end
+  end
+end
+E.runRelic = runRelic
+
 local function loadSelected(s)
   wr(s, 0xD0D4, 0)
   local k = s.cca7 or 0 -- $CCA7 lives in bank-0 WRAM, outside the battle bank
@@ -432,7 +507,8 @@ local function loadSelected(s)
     for i = 0, 15 do wr(s, 0xD100 + i, s.data.moves[E.FIGHT].raw[i]) end
   end
   if rd(s, 0xD0D4) ~= 0 then wr(s, 0xD103, 0x0B) end
-  if rd(s, 0xD0FD) ~= 0 or rd(s, 0xD0FE) ~= 0 then unimpl(s, "relic command script") end
+  runRelic(s, rd(s, 0xD0FD), "onLoad")
+  runRelic(s, rd(s, 0xD0FE), "onLoad")
 end
 E.loadSelected = loadSelected
 
@@ -492,6 +568,60 @@ local function checkAffordable(s)
   local ok = legalForClass(s, cls)
   wr(s, 0xD0AF, ok)
   return ok
+end
+
+-- FinishOpcode2D ($752D) / ApplySummonXRecordThenPickSlot ($748B): a summon by
+-- the enemy Magi from the battle script, op $2E slot species spends energy delay
+-- (CopyScriptToD392 puts the five bytes at $D392). Returns true when it summoned.
+function E.opcode2E(s, sm)
+  local magi = sm.slot or 9
+  wr(s, 0xD392, magi); wr(s, 0xD393, sm.species); wr(s, 0xD394, sm.spends or 1)
+  wr(s, 0xD395, sm.energy or 1); wr(s, 0xD396, sm.delay or 0)
+  wr(s, 0xD0D8, 0)
+  -- $748B: the Magi's record into D0D9, the SummonX command record into D100
+  copy37(s, 0xD0D9, recAddr(magi)); wr(s, 0xD0B1, 0xFF)
+  local mv = s.data.moves[E.SUMMONX]
+  for i = 0, 15 do wr(s, 0xD100 + i, mv.raw[i]) end
+  wr(s, 0xD0B1, 0x89); wr(s, 0xD103, 0x0C); wr(s, 0xD102, rd(s, 0xD395))
+  if checkAffordable(s) == 0 then
+    -- $752D: an unaffordable summon leaves the D0D9 copy of the Magi at 1 energy
+    if rd(s, 0xD0D8) ~= 0 then ww(s, 0xD0E0, 1) end
+    return false
+  end
+  wr(s, 0xD068, rd(s, 0xD393)); wr(s, 0xD069, rd(s, 0xD394)); wr(s, 0xD06A, rd(s, 0xD395))
+  -- first free enemy slot 6..8 (present or arriving), else slot 5 unchecked
+  local slot = 5
+  for t = 6, 8 do
+    if u8(rd(s, 0xD091 + t) + rd(s, 0xD07D + t)) == 0 then slot = t; break end
+  end
+  wr(s, 0xD103, slot)
+  -- nothing is paid here: D102 keeps the cost and ClearMarksAndWalkSlots ($66DD)
+  -- takes it from the Magi when it walks the Magi's slot
+  copy37(s, recAddr(magi), 0xD0D9)
+  wr(s, 0xD0C1, slot); wr(s, 0xD0C0, 1) -- PlantSlot11WhenD0C0IsOne (panel only)
+  portrait(s, 2, 0x0C, rd(s, 0xD338))
+  E.fillFromEntry(s, rd(s, 0xD068), rd(s, 0xD069), rd(s, 0xD06A))
+  wp(s, 0xD07B, recAddr(slot))
+  copy37(s, recAddr(slot), 0xD110)
+  wr(s, 0xD07D + slot, rd(s, 0xD396) + 1)
+  wr(s, 0xD100, 0xC2); wr(s, 0xD101, 0x51)
+  copy37(s, recAddr(magi), 0xD0D9)
+  emit(s, { t = "summon", slot = slot, species = sm.species, pending = true })
+  return true
+end
+
+-- the battle script ops the engine understands, in script order (the script the
+-- op $25 record points at, run up to op $27):
+--   { op = 0xAA, addr = A, bank = B, value = V }  StoreScriptByteInWramBank (0:$2801)
+--   { op = 0x2E, slot =, species =, spends =, energy =, delay = }  opcode_2e.asm
+function E.scriptOp(s, o)
+  if o.op == 0xAA then
+    if (o.bank or 7) == 7 and o.addr >= 0xD000 and o.addr < 0xD400 then wr(s, o.addr, o.value) end
+  elseif o.op == 0xAB then -- StoreScriptWordInWramBank
+    if (o.bank or 7) == 7 and o.addr >= 0xD000 and o.addr < 0xD3FF then wr(s, o.addr, o.lo); wr(s, o.addr + 1, o.hi) end
+  elseif o.op == 0x2E then
+    E.opcode2E(s, o)
+  end
 end
 
 ---------------------------------------------------------------------------
@@ -566,16 +696,23 @@ local function scaleCount(de, bc)
   while hl < de do hl = band(hl + bc, 0xFFFF); cnt = cnt + 1; if bc == 0 then break end end
   return band(cnt, 0xFF)
 end
+-- ScaleFourRecordsIntoD3C4 ($7101) / CopyFourRawRecordWords ($712F): four
+-- big-endian words at $D3C4 (a scaled count is stored as count, 0), D074 counts down
 local function fourScores(s, base, scaled)
   local t = {}
   for k = 0, 3 do
     local r = base + k * E.STRIDE
-    if scaled then t[k + 1] = scaleCount(rw(s, r + 7), rw(s, r + 9))
-    else t[k + 1] = rw(s, r + 7) end
+    local v
+    if scaled then v = scaleCount(rw(s, r + 7), rw(s, r + 9)) * 256
+    else v = rw(s, r + 7) end
+    t[k + 1] = v
+    ww(s, 0xD3C4 + 2 * k, v)
   end
+  wr(s, 0xD074, 0)
   return t
 end
 -- PickLeast/GreatestNonzeroD3C4Slot ($7067/$700B): 1-based, 0 when none
+-- the scan keeps its pick in $D3CC and its countdown in $D074 (left 0)
 local function pickBy(s, t, least)
   local best, at = nil, 0
   for k = 1, 4 do
@@ -586,6 +723,8 @@ local function pickBy(s, t, least)
       elseif not least and v > best then best, at = v, k end
     end
   end
+  wr(s, 0xD074, 0)
+  if at ~= 0 then wr(s, 0xD3CC, at) end
   wr(s, 0xD103, at)
 end
 
@@ -595,6 +734,7 @@ AI[0] = function(s)
   local d074 = 0
   while true do
     d074 = band(d074 + 1, 0xFF)
+    wr(s, 0xD074, d074)
     local a = 0
     if d074 ~= 0 then
       local r = divStep(s) % 5
@@ -617,6 +757,7 @@ AI[3] = function(s)
   local d074 = 0
   while true do
     d074 = band(d074 + 1, 0xFF)
+    wr(s, 0xD074, d074)
     local a = 0
     if d074 ~= 0 then
       local r = divStep(s) % 6
@@ -797,11 +938,17 @@ local function runChain(s, chain)
     elseif k == UP then
       local a = 0xD110 + op[2]
       local v = u8(rd(s, a) + op[3]); if v >= 0x63 then v = 0x63 end
-      wr(s, a, v); statMsg(s, op[3], op[4])
+      wr(s, a, v)
+      -- `ld a,[$D112]; cp $58; ret nc`: a Magi target gets no message and the
+      -- handler ends here (Whirl's confusion roll is skipped against a Magi)
+      if rd(s, 0xD112) >= 0x58 then return end
+      statMsg(s, op[3], op[4])
     elseif k == DN then
       local a = 0xD110 + op[2]
       local v = rd(s, a) - op[3]; if v <= 0 then v = 1 end
-      wr(s, a, v); statMsg(s, op[3], op[4])
+      wr(s, a, v)
+      if rd(s, 0xD112) >= 0x58 then return end
+      statMsg(s, op[3], op[4])
     elseif k == BIT then if trySetBit(s, 0xD110, op[2]) then statusMsg(s, op[2]) end
     elseif k == IGNITE then
       if trySetBit(s, 0xD110, 0x08) then
@@ -865,7 +1012,8 @@ SPECIAL[0x5272] = function(s) -- Summon (player): LoadD107EntryThenScript4AE0
   for i = 0, E.SAVED_LEN - 1 do wr(s, 0xD112 + i, saved[i] or 0) end
   wr(s, 0xD117, rd(s, 0xD119)); wr(s, 0xD118, rd(s, 0xD11A))
   wr(s, 0xD125, 0)
-  if rd(s, 0xD134) ~= 0 or rd(s, 0xD135) ~= 0 then unimpl(s, "creature relic script") end
+  runRelic(s, rd(s, 0xD134), "onSummon") -- RunPairIdScripts
+  runRelic(s, rd(s, 0xD135), "onSummon")
   wr(s, 0xD125, bor(rd(s, 0xD126), rd(s, 0xD125)))
   wr(s, 0xD076, 1); wr(s, 0xD077, 0)
   wp(s, 0xD36E + (slot - 1) * 2, addr)
@@ -979,7 +1127,10 @@ GROUP[0x6739] = function(s, g) -- karmic: a permanent raise, and a random stat p
   GROUP[0x65AF](s, g)
   local a = divStep(s)
   local rem = a % 5
-  local base = rp(s, 0xD36E + (rem - 1) * 2)
+  -- `dec a; add a; ld c, a; ld b, $00`: a remainder of 0 indexes $D36E + $FE = $D46C,
+  -- past battle WRAM, so no saved creature is reached through it
+  local pa = 0xD36E + band((rem - 1) * 2, 0xFF)
+  local base = (s.m[pa] or 0) + (s.m[pa + 1] or 0) * 256
   if rd(s, 0xD103) < 5 then
     local sv = s.party[base]
     if sv then
@@ -1128,7 +1279,8 @@ function E.finishLow(s)
     wr(s, 0xD073, divideHL(base * rd(s, 0xD107), 0xFF) + 1)
   end
   runHandler(s)
-  if rd(s, 0xD0FD) ~= 0 or rd(s, 0xD0FE) ~= 0 then unimpl(s, "relic script") end
+  runRelic(s, rd(s, 0xD0FD), "onHit")
+  runRelic(s, rd(s, 0xD0FE), "onHit")
   if rd(s, 0xD073) ~= 0 then
     local el = rd(s, 0xD106)
     if band(el, rd(s, 0xD122)) ~= 0 then
@@ -1703,9 +1855,11 @@ local function enemyAI(s)
   for k = 0, 3 do
     local slot = 5 + k
     wr(s, 0xD0B1, bor(0x80, slot))
+    -- ApplyFourD096Slots ($6A01) walks D079 over all four enemy records,
+    -- present or not, and leaves it on slot 8 for the Magi's turn below
+    local rec = recAddr(slot)
+    wp(s, 0xD079, rec)
     if rd(s, 0xD096 + k) ~= 0 and not s.chosen[slot] then -- a chosen slot is driven from outside
-      local rec = recAddr(slot)
-      wp(s, 0xD079, rec)
       copy37(s, 0xD0D9, rec)
       wr(s, 0xD0FF, 0)
       if band(rd(s, 0xD0EE), 0x40) ~= 0 then
@@ -1724,8 +1878,7 @@ local function enemyAI(s)
   -- DispatchSlot9ByD0F0 ($6BBA)
   if s.chosen[9] then return end
   wr(s, 0xD0B1, 9)
-  wp(s, 0xD079, recAddr(9))
-  copy37(s, 0xD0D9, recAddr(9))
+  copy37(s, 0xD0D9, recAddr(9)) -- DispatchSlot9ByD0F0 does not touch D079
   runAI(s)
   wr(s, 0xD0FF, 0)
   copy37(s, recAddr(9), 0xD0D9)

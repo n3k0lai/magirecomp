@@ -76,8 +76,41 @@ end
 
 local GLADE = { magi = 0x6C, party = { { species = 0x1C, spends = 1, energy = 23 } },
   summons = { { slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } } }
-local KORG = { magi = 0x5D, magiEnergy = 1, party = { { species = 0x1C, spends = 3, energy = 23 } },
-  summons = { { slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 2 } } }
+-- the Korg duel's battle script (14:$4184): op $25 arg3 5, then $AA stores $00 $19
+-- at $D33D (Korg starts with 25) and $2E summons BlackAgovo, paying 20 of it
+local KORG = { magi = 0x5D, arg3 = 5, party = { { species = 0x1C, spends = 3, energy = 23 } },
+  script = { { op = 0xAA, addr = 0xD33D, bank = 7, value = 0x00 }, { op = 0xAA, addr = 0xD33E, bank = 7, value = 0x19 },
+    { op = 0x2E, slot = 9, species = 0x08, spends = 5, energy = 0x14, delay = 2 } } }
+
+do -- starting energy comes from the script, not a constant
+  local s = Engine.new(data, KORG, Rng.seeded(1))
+  local function w(a) return s.m[a] * 256 + s.m[a + 1] end
+  ok(w(0xD33D) == 5, ("Korg starts with 25 and pays 20 for BlackAgovo (got %d)"):format(w(0xD33D)))
+  ok(s.m[0xD36D] == 5, "op $25 arg3 lands in D36D")
+end
+
+do -- relic routines: every record pointer resolves to a translated routine
+  local n = 0
+  for id = 1, #data.relics do
+    local r = data.relics[id]
+    for _, f in ipairs({ "onLoad", "onSummon", "onHit" }) do
+      ok(Engine.RELIC_OPS[r[f]] ~= nil, ("relic %d %s 7:%04X ported"):format(id, f, r[f]))
+    end
+    n = n + 1
+  end
+  ok(n == 36, ("36 relics (got %d)"):format(n))
+  -- End Bringer on a fresh record: +25 max energy (current follows), +25 stats, D126 |= 8 | D125
+  local s = Engine.new(data, GLADE, Rng.seeded(1))
+  for a = 0xD110, 0xD146 do s.m[a] = 0 end
+  s.m[0xD119], s.m[0xD11A], s.m[0xD11B], s.m[0xD125], s.m[0xD111] = 0, 0x20, 0x50, 0x02, 0xC5
+  Engine.runRelic(s, 9, "onSummon")
+  ok(s.m[0xD117] == 0 and s.m[0xD118] == 0x39 and s.m[0xD11A] == 0x39, "End Bringer raises max and current energy to 57")
+  ok(s.m[0xD11B] == 0x63, "End Bringer caps a stat at 99")
+  ok(s.m[0xD125] == 0x0A and s.m[0xD126] == 0x0A and s.m[0xD111] == 0x35, "End Bringer status bits and D111 nibble")
+  -- Corf Pearl floors a stat at 1
+  s.m[0xD11B] = 5; Engine.runRelic(s, 6, "onSummon")
+  ok(s.m[0xD11B] == 1, "Corf Pearl floors at 1")
+end
 
 local function play(setup, seed)
   local m = Match.new(data, setup, { seed = seed, player = Sides.sweep(seed), enemy = Sides.random(seed + 1) })
