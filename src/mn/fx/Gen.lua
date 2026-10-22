@@ -96,7 +96,7 @@ end
 -- one run of the battle; onFrame(m, n) is for tools (frame dumps, block lists)
 function G.runOne(rom, blocks, name, st, out, onFrame)
   local R = G.RUNS[name]
-  local sram, sbank = Start.sram(Cgb, rom, blocks, { species = R.party })
+  local sram = Start.sram(Cgb, rom, blocks, { species = R.party })
   local m = Cgb.new(rom, blocks); Start.boot(m)
   local ev = events(R.focus, R.last)
   local done, cuts = false, {}

@@ -5,7 +5,7 @@ package.path = "./src/?.lua;" .. package.path
 local G = require("mn.fx.Gen")
 local f = assert(io.open(arg[1], "rb")); local rom = f:read("*a"); f:close()
 local real = dofile(arg[2])
-local used, owner = {}, nil
+local used = {}
 local function factory(env)
   local K = real(env)
   local owner = {}
