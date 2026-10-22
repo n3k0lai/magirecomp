@@ -14,6 +14,7 @@ SoundCommandSlideToward::
     ld a, c
     ld [hl+], a
     ld [hl], b
+SoundCommandSlideTowardFromSlot:: ; $4846, entered only by the unused tail at bank $30 $4FF8
     ld a, [wSlotStreamIndex]
     cp $03
     ret z

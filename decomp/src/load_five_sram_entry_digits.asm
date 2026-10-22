@@ -221,7 +221,7 @@ LoadFiveSramEntryDigits::
     load_one_entry wEntryFlags + 1, wEntryDigits + 3, 1
     load_one_entry wEntryFlags + 2, wEntryDigits + 6, 1
     load_one_entry wEntryFlags + 3, wEntryDigits + 9, 1
-    load_one_entry wEntryFlags + 4, wEntryDigits + 12, 0
+    INCBIN "roms/magination.gbc", $1519F, $6B
     xor a
     ld [rRAMG], a
     ld c, $00

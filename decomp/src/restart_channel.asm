@@ -31,7 +31,7 @@ RestartChannel::
     ld hl, wChannelFreqHigh
     add hl, bc
     ld a, [hl]
-    ld hl, unk_0C1153
+    ld hl, PeriodHighPort
     add hl, bc
     ld l, [hl]
     or $80
@@ -52,7 +52,7 @@ RestartChannel::
     ld hl, wChannelFreqHigh
     add hl, bc
     ld a, [hl]
-    ld hl, unk_0C1153
+    ld hl, PeriodHighPort
     add hl, bc
     ld c, [hl]
     or $80

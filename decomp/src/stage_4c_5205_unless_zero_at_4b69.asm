@@ -2,7 +2,7 @@
 ; bank $4C and pointer $5205 through StagePointerUnlessD0B6Matches,
 ; which compares [$D0B6] with [$D103] and returns on a match.
 ;
-; StagePointerUnlessD0B6Matches and Script5205 are already source.
+; StagePointerUnlessD0B6Matches and Script_4C_5205 are already source.
 ; The same pointer is also staged from $4D38.
 
 Stage4C5205UnlessZeroAt4B69::

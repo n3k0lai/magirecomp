@@ -11,7 +11,7 @@
 ; which sets [$D071] to 1, plants $4C $99 $42 $66 $0A at $C71B, and
 ; calls WriteIndexedNamesAndCount.
 ;
-; StagePointerUnlessD0B6Matches, CallBankedHL, Script57D0, and
+; StagePointerUnlessD0B6Matches, CallBankedHL, Script_4C_57D0, and
 ; SetD071PlantC71BScript4299 are already source.
 
 Stage4C57D0Store10sThenBank5At4FB3::

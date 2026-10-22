@@ -18,7 +18,7 @@ RunSoundStream:
     ld [hl], c
     inc hl
     ld [hl], b
-    ld hl, unk_0C0DA6
+    ld hl, SoundCommandTable
     sla a
     add l
     ld l, a

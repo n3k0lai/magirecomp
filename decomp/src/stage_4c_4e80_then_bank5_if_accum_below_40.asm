@@ -9,7 +9,7 @@
 ; CallBankedHL runs bank 5 at $4B45 (SetD0B4UnlessD113Is0C).
 ;
 ; StagePointerUnlessD0B6Matches, AddDividerStep, CallBankedHL,
-; SetD0B4UnlessD113Is0C, and bank $4C at $4E80 (Script4E80) are already
+; SetD0B4UnlessD113Is0C, and bank $4C at $4E80 (Script_4C_4E80) are already
 ; source. The same $4E80 pointer is also staged from $4865, $4929, and $4C40.
 
 Stage4C4E80ThenBank5IfAccumBelow40::

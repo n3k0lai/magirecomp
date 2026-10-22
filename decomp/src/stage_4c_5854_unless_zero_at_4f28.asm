@@ -3,7 +3,7 @@
 ; which compares [$D0B6] with [$D103] and returns on a match.
 ;
 ; StagePointerUnlessD0B6Matches is already source in this bank.
-; Bank $4C at $5854 is Script5854 (file $0131854) and is already source.
+; Bank $4C at $5854 is Script_4C_5854 (file $0131854) and is already source.
 ; The ten bytes match Stage4C5854UnlessZeroAt4F1E.
 
 Stage4C5854UnlessZeroAt4F28::

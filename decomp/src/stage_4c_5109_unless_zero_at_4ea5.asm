@@ -3,7 +3,7 @@
 ; which compares [$D0B6] with [$D103] and returns on a match.
 ;
 ; StagePointerUnlessD0B6Matches is already source in this bank.
-; Script5109 at bank $4C $5109 (file $0131109) is already source.
+; Script_4C_5109 at bank $4C $5109 (file $0131109) is already source.
 
 Stage4C5109UnlessZeroAt4EA5::
     ret z

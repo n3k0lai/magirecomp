@@ -1,10 +1,10 @@
 {
- "done": 1505462,
- "code": 86159,
- "data": 1419303,
+ "done": 2097072,
+ "code": 86173,
+ "data": 2010899,
  "total": 2097072,
- "commit": "59b48ab5",
- "measured": "2026-10-21",
+ "commit": "208e3f96",
+ "measured": "2026-10-22",
  "rows": [
   {
    "bank": 0,
@@ -18,11 +18,11 @@
   {
    "bank": 1,
    "total": 16384,
-   "done": 16306,
+   "done": 16384,
    "code": 9104,
    "fill": 0,
-   "data": 7202,
-   "incbin": 78
+   "data": 7280,
+   "incbin": 0
   },
   {
    "bank": 2,
@@ -81,11 +81,11 @@
   {
    "bank": 8,
    "total": 16384,
-   "done": 10027,
+   "done": 16384,
    "code": 0,
    "fill": 372,
-   "data": 9655,
-   "incbin": 6357
+   "data": 16012,
+   "incbin": 0
   },
   {
    "bank": 9,
@@ -117,290 +117,290 @@
   {
    "bank": 12,
    "total": 16384,
-   "done": 12288,
+   "done": 16384,
    "code": 0,
    "fill": 64,
-   "data": 12224,
-   "incbin": 4096
+   "data": 16320,
+   "incbin": 0
   },
   {
    "bank": 13,
    "total": 16384,
-   "done": 5568,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 5568,
-   "incbin": 10816
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 14,
    "total": 16384,
-   "done": 1921,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1921,
-   "incbin": 14463
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 15,
    "total": 16384,
-   "done": 400,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 400,
-   "incbin": 15984
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 16,
    "total": 16384,
-   "done": 616,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 616,
-   "incbin": 15768
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 17,
    "total": 16384,
-   "done": 790,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 790,
-   "incbin": 15594
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 18,
    "total": 16384,
-   "done": 1536,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1536,
-   "incbin": 14848
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 19,
    "total": 16384,
-   "done": 1471,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1471,
-   "incbin": 14913
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 20,
    "total": 16384,
-   "done": 376,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 376,
-   "incbin": 16008
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 21,
    "total": 16384,
-   "done": 2057,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 2057,
-   "incbin": 14327
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 22,
    "total": 16384,
-   "done": 43,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 43,
-   "incbin": 16341
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 23,
    "total": 16384,
-   "done": 1908,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1908,
-   "incbin": 14476
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 24,
    "total": 16384,
-   "done": 2457,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 2457,
-   "incbin": 13927
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 25,
    "total": 16384,
-   "done": 516,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 516,
-   "incbin": 15868
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 26,
    "total": 16384,
-   "done": 975,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 975,
-   "incbin": 15409
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 27,
    "total": 16384,
-   "done": 289,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 289,
-   "incbin": 16095
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 28,
    "total": 16384,
-   "done": 696,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 696,
-   "incbin": 15688
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 29,
    "total": 16384,
-   "done": 1530,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1530,
-   "incbin": 14854
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 30,
    "total": 16384,
-   "done": 2236,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 2236,
-   "incbin": 14148
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 31,
    "total": 16384,
-   "done": 1324,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1324,
-   "incbin": 15060
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 32,
    "total": 16384,
-   "done": 4518,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 4518,
-   "incbin": 11866
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 33,
    "total": 16384,
-   "done": 11841,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 11841,
-   "incbin": 4543
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 34,
    "total": 16384,
-   "done": 1152,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1152,
-   "incbin": 15232
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 35,
    "total": 16384,
-   "done": 650,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 650,
-   "incbin": 15734
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 36,
    "total": 16384,
-   "done": 7696,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 7696,
-   "incbin": 8688
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 37,
    "total": 16384,
-   "done": 1999,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1999,
-   "incbin": 14385
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 38,
    "total": 16384,
-   "done": 1442,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1442,
-   "incbin": 14942
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 39,
    "total": 16384,
-   "done": 9865,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 9865,
-   "incbin": 6519
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 40,
    "total": 16384,
-   "done": 2583,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 2583,
-   "incbin": 13801
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 41,
    "total": 16384,
-   "done": 11910,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 11910,
-   "incbin": 4474
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 42,
    "total": 16384,
-   "done": 3215,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 3215,
-   "incbin": 13169
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 43,
    "total": 16384,
-   "done": 3492,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 3492,
-   "incbin": 12892
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 44,
@@ -423,38 +423,38 @@
   {
    "bank": 46,
    "total": 16384,
-   "done": 10685,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 10685,
-   "incbin": 5699
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 47,
    "total": 16384,
-   "done": 13106,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 13106,
-   "incbin": 3278
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 48,
    "total": 16384,
-   "done": 16370,
-   "code": 6177,
+   "done": 16384,
+   "code": 6191,
    "fill": 7683,
    "data": 2510,
-   "incbin": 14
+   "incbin": 0
   },
   {
    "bank": 49,
    "total": 16384,
-   "done": 512,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 512,
-   "incbin": 15872
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 50,
@@ -585,38 +585,38 @@
   {
    "bank": 64,
    "total": 16384,
-   "done": 1024,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1024,
-   "incbin": 15360
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 65,
    "total": 16384,
-   "done": 15859,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15859,
-   "incbin": 525
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 66,
    "total": 16384,
-   "done": 12305,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 12305,
-   "incbin": 4079
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 67,
    "total": 16384,
-   "done": 7684,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 7684,
-   "incbin": 8700
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 68,
@@ -639,11 +639,11 @@
   {
    "bank": 70,
    "total": 16384,
-   "done": 6548,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 6548,
-   "incbin": 9836
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 71,
@@ -666,47 +666,47 @@
   {
    "bank": 73,
    "total": 16384,
-   "done": 3064,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 3064,
-   "incbin": 13320
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 74,
    "total": 16384,
-   "done": 1321,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 1321,
-   "incbin": 15063
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 75,
    "total": 16384,
-   "done": 2086,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 2086,
-   "incbin": 14298
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 76,
    "total": 16384,
-   "done": 10727,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 10727,
-   "incbin": 5657
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 77,
    "total": 16384,
-   "done": 3265,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 3265,
-   "incbin": 13119
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 78,
@@ -729,20 +729,20 @@
   {
    "bank": 80,
    "total": 16384,
-   "done": 16352,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16352,
-   "incbin": 32
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 81,
    "total": 16384,
-   "done": 16363,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16363,
-   "incbin": 21
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 82,
@@ -792,11 +792,11 @@
   {
    "bank": 87,
    "total": 16384,
-   "done": 14336,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14336,
-   "incbin": 2048
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 88,
@@ -837,11 +837,11 @@
   {
    "bank": 92,
    "total": 16384,
-   "done": 12288,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 12288,
-   "incbin": 4096
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 93,
@@ -873,65 +873,65 @@
   {
    "bank": 96,
    "total": 16384,
-   "done": 14768,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14768,
-   "incbin": 1616
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 97,
    "total": 16384,
-   "done": 16296,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16296,
-   "incbin": 88
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 98,
    "total": 16384,
-   "done": 16382,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16382,
-   "incbin": 2
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 99,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 100,
    "total": 16384,
-   "done": 16380,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16380,
-   "incbin": 4
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 101,
    "total": 16384,
-   "done": 14556,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14556,
-   "incbin": 1828
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 102,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 103,
@@ -945,65 +945,65 @@
   {
    "bank": 104,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 105,
    "total": 16384,
-   "done": 13612,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 13612,
-   "incbin": 2772
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 106,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 107,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 108,
    "total": 16384,
-   "done": 14314,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14314,
-   "incbin": 2070
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 109,
    "total": 16384,
-   "done": 15418,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15418,
-   "incbin": 966
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 110,
    "total": 16384,
-   "done": 16383,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16383,
-   "incbin": 1
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 111,
@@ -1026,38 +1026,38 @@
   {
    "bank": 113,
    "total": 16384,
-   "done": 16381,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 16381,
-   "incbin": 3
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 114,
    "total": 16384,
-   "done": 15729,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15729,
-   "incbin": 655
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 115,
    "total": 16384,
-   "done": 14014,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14014,
-   "incbin": 2370
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 116,
    "total": 16384,
-   "done": 15356,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15356,
-   "incbin": 1028
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 117,
@@ -1071,11 +1071,11 @@
   {
    "bank": 118,
    "total": 16384,
-   "done": 15163,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15163,
-   "incbin": 1221
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 119,
@@ -1089,47 +1089,47 @@
   {
    "bank": 120,
    "total": 16384,
-   "done": 14565,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14565,
-   "incbin": 1819
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 121,
    "total": 16384,
-   "done": 15907,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 15907,
-   "incbin": 477
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 122,
    "total": 16384,
-   "done": 14166,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14166,
-   "incbin": 2218
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 123,
    "total": 16384,
-   "done": 14950,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 14950,
-   "incbin": 1434
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 124,
    "total": 16384,
-   "done": 7731,
+   "done": 16384,
    "code": 0,
    "fill": 0,
-   "data": 7731,
-   "incbin": 8653
+   "data": 16384,
+   "incbin": 0
   },
   {
    "bank": 125,

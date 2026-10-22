@@ -15,6 +15,7 @@ SoundCommandSetEnvelopeFromMix::
     ld a, c
     ld [hl+], a
     ld [hl], b
+SoundCommandSetEnvelopeFromSlot:: ; $465B, entered only by the unused tail at bank $30 $4FFF
     ld a, [wSlotStreamIndex]
     ld c, a
     ld b, $00

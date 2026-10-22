@@ -36,14 +36,14 @@ per-category figures.
 <img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/chart.svg" width="838" alt="DONE over time" />
 <img src="https://raw.githubusercontent.com/n3k0lai/magirecomp/progress/banks.svg" width="838" alt="DONE per ROM bank" />
 
-`██████████████░░░░░░` **71.79% DONE**: 1,505,462 / 2,097,072 bytes (measured 2026-10-21 at `59b48ab5`)
+`████████████████████` **100.00% DONE**: 2,097,072 / 2,097,072 bytes (measured 2026-10-22 at `208e3f96`)
 
 | | Bytes | Share of the image |
 | --- | ---: | ---: |
-| **DONE** | **1,505,462** | **71.79%** |
-| DONE code | 86,159 | 4.11% |
-| DONE data | 1,419,303 | 67.68% |
-| still INCBIN | 591,610 | 28.21% |
+| **DONE** | **2,097,072** | **100.00%** |
+| DONE code | 86,173 | 4.11% |
+| DONE data | 2,010,899 | 95.89% |
+| still INCBIN | 0 | 0.00% |
 <!-- decomp-progress:end -->
 
 The figures are measured on the full working tree of the disassembly, which

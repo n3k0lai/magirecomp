@@ -69,9 +69,8 @@ class CatalogTests(unittest.TestCase):
         self.assertTrue(
             any(section.name == "Update sound" and section.matched_source for section in audio)
         )
-        bank_030 = next(section for section in sections if section.name == "ROM Bank 030")
+        bank_030 = next(section for section in sections if section.file_address == 30 * 0x4000)
         self.assertEqual(bank_030.category, "data")  # bank $1E: scripts and text
-        self.assertEqual(bank_030.file_address // 0x4000, 30)
         built = report.build(ROOT, require_map=False)
         measures = report.screen_measures(built)
         if built["compared"]:

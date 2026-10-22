@@ -33,7 +33,7 @@ WriteChannelEnvelope:
     add hl, de
     ld [hl], a
     ld c, a
-    ld hl, unk_0C10DA
+    ld hl, EnvelopeLowPort
     add hl, de
     bit 0, b
     ld b, c
@@ -92,7 +92,7 @@ WriteChannelEnvelope:
     ld b, $00
     srl c
     srl c
-    ld hl, unk_0C10E2
+    ld hl, WaveOutputLevel
     add hl, bc
     ld b, [hl]
     ldh a, [$FF1C]

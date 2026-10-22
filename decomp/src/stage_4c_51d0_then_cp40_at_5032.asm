@@ -9,7 +9,7 @@
 ; $5040 (RetNcElseCallBank5At4B45): return when A is $40 or more,
 ; otherwise call bank 5 at $4B45.
 ;
-; StagePointerUnlessD0B6Matches, AddDividerStep, and ScriptStaged51D0
+; StagePointerUnlessD0B6Matches, AddDividerStep, and Script_4C_51D0
 ; (bank $4C at $51D0) are already source. The same plant-and-compare
 ; sequence also lives at $497D, including the bank-5 tail in one routine.
 

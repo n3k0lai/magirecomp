@@ -10,7 +10,7 @@
 ; text and plants the $4C $C1 $41 $66 $0A script at $C71B.
 ;
 ; StagePointerUnlessD0B6Matches, TrySetBitPairAtPlus14,
-; StageNameTextAndScript41C1, and Script57D0 are already source.
+; StageNameTextAndScript41C1, and Script_4C_57D0 are already source.
 
 Stage4C57D0Bit01ThenName01::
     ret z

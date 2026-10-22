@@ -7,7 +7,7 @@ SoundCommandSetDf33Bit::
     inc bc
     ld e, a
     ld d, $00
-    ld hl, $4AE1
+    ld hl, Df33BitMasks
     add hl, de
     ld a, [$DF33]
     or [hl]
