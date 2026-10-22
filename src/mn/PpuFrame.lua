@@ -1,26 +1,25 @@
--- Minimal CGB PPU for captured battle scenes (src/mn/data_battle_scenes.lua, built by
--- out/mn/emu/build_scenes.py from PyBoy). A scene frame is: LCDC, both 32x32 tile maps, per-line
--- SCX/SCY/WX/WY runs, OAM, BG/OBJ palettes -- all tiles are ROM offsets, read from the user's ROM.
--- Validated against PyBoy screenshots with the Python twin out/mn/emu/ppu.py.
+-- Minimal CGB PPU for the battle scenes in the private cache (mn_cache/battle_scenes.lua, written by
+-- mn.fx.Gen from a run of the game's own code on the player's ROM). A scene frame is: LCDC, both 32x32
+-- tile maps, per-line SCX/SCY/WX/WY runs, OAM, BG/OBJ palettes; tiles are 16-byte strings (hex) in
+-- the cache. Validated against PyBoy screenshots.
 local M = {}
-local D, rom, px = nil, nil, {}
+local D, px = nil, {}
 
 local function load()
   if D then return D end
-  D = assert(love.filesystem.load("src/mn/data_battle_scenes.lua"))()
-  local Importer = require("mn.MnImporter")
-  rom = assert(love.filesystem.read(Importer.CACHE .. "/rom.bin"), "mn_cache/rom.bin missing (re-import)")
+  D = require("mn.fx.Gen").load()
   return D
 end
+function M.data() return load() end
+function M.reset() D, px = nil, {} end
 
 -- tile index (0-based into D.tiles) -> 64 colour indices
 local function tilepx(ti)
   local t = px[ti]; if t then return t end
   t = {}
-  local off = D.tiles[ti + 1]
+  local hex = D.tiles[ti + 1]
   for y = 0, 7 do
-    local lo, hi = 0, 0
-    if off >= 0 then lo, hi = rom:byte(off + y * 2 + 1), rom:byte(off + y * 2 + 2) end
+    local lo, hi = tonumber(hex:sub(y * 4 + 1, y * 4 + 2), 16), tonumber(hex:sub(y * 4 + 3, y * 4 + 4), 16)
     for x = 0, 7 do
       local b = 7 - x
       t[y * 8 + x] = (math.floor(lo / 2 ^ b) % 2) + 2 * (math.floor(hi / 2 ^ b) % 2)

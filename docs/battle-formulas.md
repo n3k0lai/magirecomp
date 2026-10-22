@@ -58,18 +58,22 @@ creature is acting (poking the slot record alone is undone when the round resolv
 | Run | "Tony escapes." → back to overworld; available in this battle | verified; refund on escape guessed |
 | Cursor memory | Tony's and Furok's menus reopen on the last choice | verified for Tony (Focus) |
 | Messages | the game's own line breaks (e.g. "Weebo / uses Heal / on itself"), typewriter 1 glyph/2 frames, 3rd line scrolls up | breaks verified; auto-scroll without A guessed |
-| Battle intro | none — starts at Tony's menu | not observed (captured states start mid-battle) |
+| Battle intro | none — starts at Tony's menu | not observed (the reference states start mid-battle) |
 | Damage text | none ("Weebo loses N" was invented in v12, removed) | verified |
 
-Graphics (all from PyBoy frame captures as ROM tile offsets, `src/mn/data_battle_scenes.lua`):
-Tony's small sprite (6 OAM tiles), hand cursor (menus, target, summon slot), summon sparkle,
-acting-creature brackets, Tony's portrait (5×4 cells, only on "Tony gains…" messages) and Furok's
-portrait (4×4, Furok's menu), the three attack animations (Furok→Weebo, Weebo→Furok, Weebo→Tony;
-120 frames each, per-line scroll) and the elimination sparkle. Renderer: `src/mn/PpuFrame.lua`,
-Python twin `out/mn/emu/ppu.py` (0 px diff on battle-screen frames; ~6% of pixels differ in the jungle
-bands of attack animations — a mid-frame effect not captured yet, see below).
+Graphics (generated at import from the player's ROM by `src/mn/fx/Gen.lua`, which runs the game's
+own battle code — translated to Lua, `src/mn/fx/Blocks.lua` — in a PyBoy-timed CGB machine
+(`src/mn/fx/Cgb.lua`) and records the frames into the private cache `mn_cache/battle_scenes.lua`;
+nothing is committed): the backdrop and creature pictures, Tony's small sprite (6 OAM tiles), hand
+cursor (menus, target, summon slot), summon sparkle, acting-creature brackets, Tony's portrait (5×4
+cells, only on "Tony gains…" messages) and Furok's portrait (4×4, Furok's menu), the three attack
+animations (Furok→Weebo, Weebo→Furok, Weebo→Tony; 120 frames each, per-line scroll) and the
+elimination sparkle. Every generated frame (VRAM, palettes, OAM, per-line scroll and window) equals
+the same frame of a PyBoy run from the same start, LCD-off frames aside. Renderer:
+`src/mn/PpuFrame.lua`. The earlier PyBoy captures left some tiles of the attack animations' jungle
+bands blank; the generated frames have them.
 
-Still missing / guessed: Scratch reuses the Fight animation (Scratch anim not captured); Weebo's
+Still missing / guessed: Scratch reuses the Fight animation (Scratch anim not generated yet); Weebo's
 Heal has no effect animation; Tony's defeated pose (his sprite changes before "Tony was defeated.");
 summon flash is a plain white fade; elimination sparkle on Furok's card reuses Weebo's offset by 48 px;
 box open/close slide not reproduced; post-loss recovery point (where Tony's energy is restored) unknown.

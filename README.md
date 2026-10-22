@@ -87,6 +87,24 @@ is a work in progress.
 3. Run `love . --mn` from the repository root. The first run imports the ROM
    into a private cache in LÖVE's save directory.
 
+### What is (and is not) in this repository
+
+No ROM image, and no graphics, tile maps, palettes, music or text taken from
+one, are committed here or shipped with the rebuild. Everything the rebuild
+shows is read from the ROM you supply at import time and kept in a private
+cache in LÖVE's save directory (`mn_cache/`), which is never uploaded. The
+battle screen's scenes (backdrop, creature pictures, Tony's sprite and
+portraits, attack and elimination animations) are produced the same way:
+`src/mn/fx/Gen.lua` runs the game's own battle code, translated instruction by
+instruction to Lua (`src/mn/fx/Blocks.lua`, built by `tools/mn_fx/`), on your
+ROM and records the frames it draws into `mn_cache/battle_scenes.lua`. The
+translated code holds the game's instructions only; the tiles, maps and
+palettes they copy come from your ROM. Earlier revisions carried PyBoy frame
+captures of those scenes (`src/mn/data_battle_scenes.lua`,
+`src/mn/data_battle_capture.json`); they have been removed from the whole
+history. Magi Nation is the property of its rights holders; this project is
+not affiliated with or endorsed by them.
+
 Running `love .` with no flags opens the MagiRecomp launcher.
 
 Progress on the story is tracked in [docs/story-checklist.md](docs/story-checklist.md);
