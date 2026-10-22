@@ -37,6 +37,11 @@ is kept unchanged.
   check now point at MagiRecomp, not the upstream project.
 - **Magi Nation**: the Magi Nation LÖVE rebuild (`src/mn/`) and a matching
   disassembly (`decomp/`) were added.
+- **Magi Nation battle scenes**: `src/mn/fx/` (a headless CGB machine, the
+  game's battle code translated to Lua, and the generator that runs it on the
+  player's ROM) and `tools/mn_fx/` (the translator) were added. The machine's
+  CPU/LCD/timer/DMA timing in `src/mn/fx/Cgb.lua`, and the opcode timing table
+  `tools/mn_fx/pyboy_timing.json`, are adapted from PyBoy (see below).
 
 ## Required credit
 
@@ -49,6 +54,15 @@ show, visibly:
 The string lives in `src/core/Attribution.lua`; use it rather than retyping it.
 
 ## Third-party content
+
+### PyBoy
+
+`src/mn/fx/Cgb.lua` and `tools/mn_fx/pyboy_timing.json` adapt the timing rules
+of PyBoy (https://github.com/Baekalfen/PyBoy), Copyright (C) Mads Ynddal and
+the PyBoy contributors, licensed under the GNU Lesser General Public License
+version 3 (LGPL-3.0-only). They are distributed here as part of MagiRecomp
+under the GNU General Public License version 3, as LGPL-3.0 section 2 allows.
+
 
 No ROM image is included, and the LÖVE engine ships no data extracted from a
 ROM; players supply their own ROM. `decomp/` holds disassembly source in the

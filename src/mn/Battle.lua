@@ -2,10 +2,10 @@
 -- the game's bank-2/5/7 battle code driven by data extracted from the user's ROM at
 -- runtime (mn.battle.Data; nothing from the ROM is committed). PyBoy traces replay
 -- through that engine byte for byte (tools/mn_battle/replay.lua).
--- Screen: backdrop + creature pictures captured from ROM tiles (data_battle_capture.json);
--- Tony's sprite, hand cursors, portraits and the captured attack/elimination animations
--- come from PyBoy frame captures (data_battle_scenes.lua via mn.PpuFrame). Creatures with
--- no captured picture are drawn as a name card.
+-- Screen: backdrop, creature pictures, Tony's sprite, hand cursors, portraits and the
+-- attack/elimination animations come from frames of the game's own battle code run on the
+-- player's ROM (mn.fx.Gen, cached privately; drawn via mn.PpuFrame). Creatures with no
+-- picture in that run are drawn as a name card.
 local Font = require("mn.Font")
 local Ppu = require("mn.PpuFrame")
 local Engine = require("mn.battle.Engine")
@@ -13,30 +13,6 @@ local Data = require("mn.battle.Data")
 local Rng = require("mn.battle.Rng")
 local M = {}
 M.__index = M
-
-local json_cache
-local function capture()
-  if json_cache then return json_cache end
-  local s = love.filesystem.read("src/mn/data_battle_capture.json")
-  local i = 1
-  local function ws() i = s:find("[^%s]", i) end
-  local val
-  function val()
-    ws(); local c = s:sub(i, i)
-    if c == "{" then local t = {}; i = i + 1; ws()
-      if s:sub(i, i) == "}" then i = i + 1; return t end
-      while true do ws(); local k = val(); ws(); i = i + 1; t[k] = val(); ws()
-        local d = s:sub(i, i); i = i + 1; if d == "}" then return t end end
-    elseif c == "[" then local t = {}; i = i + 1; ws()
-      if s:sub(i, i) == "]" then i = i + 1; return t end
-      while true do t[#t + 1] = val(); ws(); local d = s:sub(i, i); i = i + 1; if d == "]" then return t end end
-    elseif c == '"' then local j = s:find('"', i + 1, true); local r = s:sub(i + 1, j - 1); i = j + 1; return r
-    else local j = s:find("[,%]}%s]", i); local r = tonumber(s:sub(i, j - 1)); i = j; return r end
-  end
-  json_cache = val()
-  return json_cache
-end
-
 
 -- MN_GOD=1: dev-only test mode (off unless the env var is set). Tony and his creatures are
 -- topped up to 999 energy before every round and enemy creatures drop to 1, so any hit
@@ -138,41 +114,18 @@ end
 function M:L(s) if self.log then self.log[#self.log + 1] = ("[t%d] %s"):format(self.t, s) end end
 
 function M:buildImages()
-  local cap = capture()
-  local Importer = require("mn.MnImporter")
-  local hi = love.filesystem.read(Importer.CACHE .. "/battle.bin")
-  local lo = love.filesystem.read(Importer.CACHE .. "/battle_lo.bin")
-  local rom = { u8 = function(_, o)
-    if o >= 0x43 * 0x4000 then return hi:byte(o - 0x43 * 0x4000 + 1) or 0 end
-    return lo:byte(o + 1) or 0 end }
-  local pal = {}
-  for p, ws in ipairs(cap.backdrop.pal) do
-    pal[p - 1] = {}
-    for c = 0, 3 do local w = ws[c + 1]
-      pal[p - 1][c] = { (w % 32) / 31, (math.floor(w / 32) % 32) / 31, (math.floor(w / 1024) % 32) / 31 } end
-  end
-  local function tile(img, cell, px, py)
-    local off, p, xf, yf = cell[1], pal[cell[2]] or pal[0], cell[3] == 1, cell[4] == 1
-    for y = 0, 7 do
-      local sy = yf and 7 - y or y
-      local l, h = rom:u8(off + sy * 2), rom:u8(off + sy * 2 + 1)
-      for x = 0, 7 do
-        local bit = 7 - x; local sx = xf and 7 - x or x
-        local ci = (math.floor(l / 2 ^ bit) % 2) + 2 * (math.floor(h / 2 ^ bit) % 2)
-        local c = p[ci]; img:setPixel(px + sx, py + y, c[1], c[2], c[3], 1)
-      end
-    end
-  end
+  local function bgmap(f) return (math.floor(f.l / 8) % 2 == 1) and "1C00" or "1800" end
   local bd = love.image.newImageData(160, 144)
-  for r, row in ipairs(cap.backdrop.cells) do for c, cell in ipairs(row) do tile(bd, cell, (c - 1) * 8, (r - 1) * 8) end end
+  local bf = Ppu.scene("backdrop")[1]
+  Ppu.cells(bd, bf, bgmap(bf), 0, 0, 20, 18, 0, 0)
   self.bg = love.graphics.newImage(bd); self.bg:setFilter("nearest", "nearest")
   self.pics = {}
-  for k, rows in pairs(cap.pics) do
+  for k, p in pairs(Ppu.data().pics) do
     local im = love.image.newImageData(32, 40)
-    for r, row in ipairs(rows) do for c, cell in ipairs(row) do tile(im, cell, (c - 1) * 8, (r - 1) * 8) end end
+    Ppu.cells(im, p.frame, bgmap(p.frame), p.col, p.row, 4, 5, 0, 0)
     self.pics[k] = love.graphics.newImage(im); self.pics[k]:setFilter("nearest", "nearest")
   end
-  -- overlays from the captured frames (OAM layers / window cells), all 160x144 transparent
+  -- overlays from the generated frames (OAM layers / window cells), all 160x144 transparent
   local function layer(scene, fn)
     local img = love.image.newImageData(160, 144); fn(img, Ppu.scene(scene)[1])
     local im = love.graphics.newImage(img); im:setFilter("nearest", "nearest"); return im
@@ -183,7 +136,13 @@ function M:buildImages()
   self.imgs.sparkle = layer("menu", function(img, f) Ppu.oam(img, f, function(o) return o[1] < 50 end) end)
   self.imgs.target = layer("target", function(img, f) Ppu.oam(img, f, function(o) return o[1] <= 18 end) end)
   self.imgs.brackets = layer("target", function(img, f) Ppu.oam(img, f, function(o) return o[1] >= 48 and o[1] <= 80 and not isTony(o) end) end)
-  self.imgs.slot = layer("slot", function(img, f) Ppu.oam(img, f, function(o) return o[1] >= 59 and o[1] <= 67 end) end)
+  -- the slot marker bobs; it is drawn with its top at line 59 whatever the frame's phase
+  self.imgs.slot = layer("slot", function(img, f)
+    local mark = function(o) return o[1] >= 48 and o[1] <= 80 and o[2] >= 40 and o[2] <= 48 and not isTony(o) end
+    local top = 999
+    for _, o in ipairs(f.oam) do if mark(o) and o[1] < top then top = o[1] end end
+    Ppu.oam(img, f, mark, 0, 59 - top)
+  end)
   self.imgs.portraitTony = layer("tonymsg", function(img, f) Ppu.cells(img, f, "1C00", 0, 0, 5, 4, 0, 104) end)
   self.imgs.portraitFurok = layer("furokmenu300", function(img, f) Ppu.cells(img, f, "1C00", 0, 0, 4, 4, 0, 104) end)
 end

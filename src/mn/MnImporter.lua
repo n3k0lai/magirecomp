@@ -104,10 +104,10 @@ local function exportPlayer(rom)
   love.filesystem.write(M.CACHE .. "/player.lua", "return " .. ser({ frames = #order, anims = anims }))
   -- banks $00-$3C: script VM ($00-$30) + sound driver/song data ($30-$3C)
   love.filesystem.write(M.CACHE .. "/scripts.bin", rom.s:sub(1, 0x3D * 0x4000))
-  -- battle screen tiles: every 8x8 tile the captured layout references (banks $00-$45)
+  -- battle-screen font tiles (banks $43-$45) and the low banks
   love.filesystem.write(M.CACHE .. "/battle.bin", rom.s:sub(1, 0x46 * 0x4000):sub(0x43 * 0x4000 + 1))
   love.filesystem.write(M.CACHE .. "/battle_lo.bin", rom.s:sub(1, 0x0E * 0x4000))
-  -- battle scenes (src/mn/data_battle_scenes.lua) reference tiles anywhere in the ROM
+  -- the ROM copy the battle-scene generator (mn.fx.Gen) and battle data read
   love.filesystem.write(M.CACHE .. "/rom.bin", rom.s)
 end
 M.exportPlayer = exportPlayer
@@ -163,6 +163,8 @@ function M.import(bytes, log)
     index[#index + 1] = { i = i, w = W, h = H, n = #triggers }
   end
   exportPlayer(rom)
+  -- battle scenes: the game's own battle code run on this ROM (mn.fx.Gen) -> mn_cache/battle_scenes.lua
+  require("mn.fx.Gen").write(rom.s, log)
   -- font: bank 6 $4000, glyph = code * 16 (StripGlyphPointer $2BC8)
   local fimg = love.image.newImageData(128, 128)
   local shade = { [0] = { 0.97, 0.97, 0.94, 0 }, { 0.75, 0.75, 0.7, 0 }, { 0.45, 0.45, 0.5, 1 }, { 0.1, 0.1, 0.2, 1 } }
