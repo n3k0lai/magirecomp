@@ -234,11 +234,20 @@ function M:toggle(nxt)
   return nil
 end
 
--- StepSlotPair compare path. Modes other than the start screen (5), the
--- spell list (3) and the item list (4) are left untouched.
+-- StepSlotPair compare path. Mode 7 is the ring entry (DrawIndexedEntry).
+-- Modes other than the start screen (5), spells (3), items (4) and rings
+-- (7) are left untouched.
 function M:switchMode(cmd, nxt)
-  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 then
-    -- TODO(DrawIndexedEntry): mode 7, rings
+  -- Mode 7, command 6, $CCA4 set: store $14 at $C921 and keep the slot.
+  -- A clear $CCA4 would enter mode 6 (still TODO).
+  if self.cc47 == 7 and cmd == 6 and self.vm:rd8(0xCCA4) ~= 0 then
+    self.vm:wr8(0xC921, 0x14)
+    self:copySlot()
+    self:flush()
+    return nil
+  end
+  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 and cmd ~= 7 then
+    -- TODO(DrawIndexedSlots): mode 8, A on the ring cursor
     -- TODO(DrawIndex9Map): mode 9, glyph
     -- TODO(IndexedSetup): mode 6 ($A019) and mode $0B (the list at $A4A6)
     return nil
@@ -251,6 +260,7 @@ function M:switchMode(cmd, nxt)
   self:flush()
   if cmd == 3 then return "spell" end
   if cmd == 4 then return "items" end
+  if cmd == 7 then return "rings" end
   return "menu"
 end
 
