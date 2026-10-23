@@ -35,13 +35,25 @@ draws each count, and takes the 13-byte name from the matching bank-7 record.
 B once moves onto the row's label; B again returns to the top menu. Scrolling
 follows the same pointer walks as `FillGroupPointers`.
 
-A on Rings, Glyph, and List does nothing. Those modes are still to do.
+A on Rings and Glyph does nothing. Those modes are still to do. A on List
+opens the list (`IndexedSetup` index `$0B`). The child reads nonzero bytes
+from `$A4A6`. The byte is the count and the offset is the name id.
+`CopyIndexedName` (bank 6) supplies ten glyphs: id `$FF` is the blank
+record, and any other id is ten bytes at `$5AA6`. B once moves onto the
+List label; B again returns to the top menu. A latched A on a row clears
+the latch and stays there (`StepSlotPair` skips the plant when the mode
+is `$0B`). An empty row is the eleven-tile blank from `$9C66`. Select on
+slots `$1C` and `$1D` runs `RetargetSramSlotCount`: `$CCA0` is 0 or 1, a
+zero `$CCA1` takes the indexed byte from the next SRAM bank into the
+latch and increments `$A019` plus that byte, and a nonzero latch swaps
+that count with the byte already stored.
 Save is the slot to the right of the first row. A latches the cursor; A
 again plants the five-byte script record at `$C714` (`$CCA5` chooses which
 record) and writes the save file the way opcode `$92` does when its copy
 operand is zero: player cell, stamp, mirror, `mn_save/slot1.sav`.
 
-Harness names: `StartMenu`, `start.Items`, `start.Spell`, `start.Save`.
+Harness names: `StartMenu`, `start.Items`, `start.Spell`, `start.Save`,
+`start.List`.
 Do not run `start.Save` against the real save directory.
 
 ## Wiring
@@ -61,8 +73,7 @@ that bit is set the way `default_state` and `FinishFrame` set it.
 
 ## Left for later
 
-Rings (`DrawIndexedEntry`), Glyph (`DrawIndex9Map`), the list mode
-(`IndexedSetup` index `$0B`), mode 6, Select on slots `$1C` and `$1D`
-(`RetargetSramSlotCount`), the party pictures (`CopyIndex5VRAMTiles`), and
-one icon on the spell row. A latched A on any slot other than Save does not
-plant a script yet (`SetupCommand4D`).
+Rings (`DrawIndexedEntry`), Glyph (`DrawIndex9Map`), mode 6, the party
+pictures (`CopyIndex5VRAMTiles`), and one icon on the spell row. A latched
+A on any slot other than Save, and other than a list row, does not plant a
+script yet (`SetupCommand4D`).
