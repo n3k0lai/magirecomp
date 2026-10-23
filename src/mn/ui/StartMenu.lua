@@ -1,15 +1,16 @@
 -- Field Start menu. HandleStartPress (bank 6) runs only when $C6EE is 0,
 -- bit 1 of $FFAB is set, $C716 is 0 and $CCA6 is 0. The loop is AfterStartLoop
--- at 06:673B. This screen keeps a child for the spell list, the item list
--- and the glyph map, and forwards update/draw to it.
+-- at 06:673B. This screen keeps a child for the spell list, the item list,
+-- the ring entry (DrawIndexedEntry) and the glyph map, and forwards
+-- update/draw to it.
 --
--- A on Rings and List does nothing:
---   TODO(DrawIndexedEntry): mode 7
+-- A on List does nothing:
 --   TODO(IndexedSetup): mode $0B
 local bit = require("bit")
 local Machine = require("mn.ui.start.Machine")
 local Group = require("mn.ui.start.GroupList")
 local Glyph = require("mn.ui.start.Glyph")
+local Rings = require("mn.ui.start.Rings")
 local Draw = require("mn.ui.start.Draw")
 local Commit = require("mn.ui.start.Commit")
 
@@ -47,6 +48,7 @@ function M:update()
   if ev == "spell" then self.child = Group.new(self.ctx, Group.spell, self.mach) end
   if ev == "items" then self.child = Group.new(self.ctx, Group.items, self.mach) end
   if ev == "glyph" then self.child = Glyph.new(self.ctx, self.mach) end
+  if ev == "rings" then self.child = Rings.new(self.ctx, self.mach) end
   return nil
 end
 
