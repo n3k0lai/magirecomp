@@ -260,6 +260,7 @@ function M:host()
     choose = function(n) return s.textBox and Font.choice(s.textBox, n) end,
     boxClose = function() s.aCool = 20; if os.getenv("MN_THR") then print(("[txt] f%d close"):format(s.vm.tk or 0)) end; s.textBox = nil end,
     boxBusy = function() local b = s.textBox; return b ~= nil and not (b.done and not b.wait) end,
+    picture = function(pic) s.picture = pic end, -- $63/$6A travel cards (mn.Picture); nil on $65
   }
   require("mn.OpExt").extendHost(s, h) -- host callbacks added by src/mn/ops/*.lua
   Sfx.host(s, h) -- h.sfx / h.sfxSlot / h.sfxRequest / h.sfxSelect on s.sfxOut.sfx
@@ -560,6 +561,9 @@ function M:drawField()
   local W, H = self.def.w * 16, self.def.h * 16
   local cx, cy = self:cameraXY()
   love.graphics.clear(0, 0, 0)
+  if self.picture then
+    self.picture:draw() -- a travel card / title picture replaces the field until $65
+  else
   love.graphics.draw(self.def.image, -cx, -cy)
   for _, p in ipairs(self.patches) do
     love.graphics.draw(self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - cx, p.y * 16 - cy)
@@ -572,12 +576,13 @@ function M:drawField()
     if o.image and not o.dormant and not o.blank then love.graphics.draw(o.image, o.x * 16 - 24 + (o.ox or 0) - cx, o.y * 16 - 24 + (o.oy or 0) - cy) end
   end
   if not self.hidePlayer then love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - cx - 8, self.py - cy - 8) end
+  end
   -- title-card fade: while [$C6F3] == 0 the scene sits at palette black
   -- ((0,16,0) in PyBoy); when the director sets it to 1 it fades in over $40
   -- frames (the $6F $87,$0040 stage before FinishStartup).
   local f3 = self.vm.mem[0xC6F3]
   if f3 == 0 then self.fadeT = 0 elseif f3 == 1 and self.fadeT then self.fadeT = self.fadeT + 1; if self.fadeT > 64 then self.fadeT = nil end end
-  if self.fadeT then
+  if self.fadeT and not self.picture then -- the field's startup fade; cards use the $6E/$6F fades
     love.graphics.setColor(0, 16 / 255, 0, 1 - self.fadeT / 64)
     love.graphics.rectangle("fill", 0, 0, 160, 144)
     love.graphics.setColor(1, 1, 1, 1)

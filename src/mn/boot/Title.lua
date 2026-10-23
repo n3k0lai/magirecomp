@@ -70,8 +70,8 @@ function M.choose(getenv, opts)
   if getenv("MN_TITLE") == "1" then return "title" end
   if opts.test then return nil end
   if getenv("MN_NEWGAME") == "1" then return "continue" end
-  -- Opt-in until the slideshow pictures (host.picture) land: without them the
-  -- title is the bare map, so the keyboard default stays Continue for now.
+  -- Opt-in: the slideshow pictures render, but after Start the new-game
+  -- script (2A:73D8 -> $42) does not start yet, so the keyboard default stays Continue.
   return "continue"
 end
 
