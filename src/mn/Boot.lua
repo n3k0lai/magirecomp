@@ -24,6 +24,39 @@ end
 local stack = setmetatable({}, { __index = StateStack }); stack:init()
 local canvas, held
 
+-- Continue: check_save_signature.asm then LoadSRAMScriptAndDispatch. A valid file
+-- installs the active SRAM bank and starts the saved script triple. MN_NEWGAME=1
+-- skips that. data is the raw slot file; nil starts a new game.
+local function continueFromSave(ow, data)
+  if os.getenv("MN_NEWGAME") == "1" then return false end
+  if not data or data == "" then return false end
+  local SaveFile = require("mn.SaveFile")
+  local Save = require("mn.ops.Save")
+  local banks = SaveFile.decode(data)
+  if not banks then return false end
+  local accepted, w = SaveFile.accept(banks, Save.romStamp(ow.vm))
+  if not accepted then
+    ow.log[#ow.log + 1] = "save rejected"
+    return false
+  end
+  Save.install(ow.vm, accepted, w)
+  local b, p, x, y = Save.resume(ow.vm)
+  ow.vm.pair = { x, y }
+  ow.vm:wr8(0xC9A1, x)
+  ow.vm:wr8(0xC9A2, y)
+  if p == 0 then return false end
+  ow:runScript(b, p, "continue")
+  return true
+end
+
+local function readSaveFile(path)
+  local f = io.open(path, "rb")
+  if not f then return nil end
+  local data = f:read("*a")
+  f:close()
+  return data
+end
+
 local function ensureCache()
   if Importer.isCached() then print("[mn] cache ok"); return end
   local f = assert(io.open(opts.rom, "rb"), "no ROM at " .. opts.rom)
@@ -306,7 +339,10 @@ function love.load()
     planner = Planner.new(ow); Boot.planner = planner
     ow.vm.autoPick = not os.getenv("MN_CHOOSE") -- autopilot answers $9C menus itself
     if os.getenv("MN_TALK") then planner.phase = "talk" end
-    if not os.getenv("MN_LOAD") then ow:runScript(e.bank, e.ptr, "map entry") end
+    -- MN_SAVE_LOAD resumes a slot file the way Continue does. The autopilot is unchanged.
+    local saveLoad = os.getenv("MN_SAVE_LOAD")
+    local resumed = saveLoad and saveLoad ~= "" and continueFromSave(ow, readSaveFile(saveLoad))
+    if not resumed and not os.getenv("MN_LOAD") then ow:runScript(e.bank, e.ptr, "map entry") end
     stack:push(ow)
     local startMap = ow.map
     Boot.testDone = function(s)
@@ -333,6 +369,11 @@ function love.load()
       if kind == "a" or kind == "b" then local p = pressed[kind]; pressed[kind] = false; return p end
       for _, k in ipairs({ "up", "down", "left", "right" }) do if held[k] or love.keyboard.isDown(k) then return k end end
     end)
+    if not os.getenv("MN_LOAD") and not os.getenv("MN_BATTLE_TEST") then
+      local SaveFile = require("mn.SaveFile")
+      local data = love.filesystem and love.filesystem.read and love.filesystem.read(SaveFile.PATH)
+      continueFromSave(ow, data)
+    end
     stack:push(ow)
     if os.getenv("MN_BATTLE_TEST") then -- the map-3 Weebo encounter ($2E 09 53 01), straight into battle
       ow.battle = require("mn.Battle").new(ow, { ops = { { op = 0x2E, args = { 0x09, 0x53, 0x01 } } } })
