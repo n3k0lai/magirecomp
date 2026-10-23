@@ -8,6 +8,7 @@ local bit = require("bit")
 local Sprites = require("mn.Sprites")
 local Font = require("mn.Font")
 local Battle = require("mn.Battle")
+local StartMenu = require("mn.ui.StartMenu")
 local M = {}
 M.__index = M
 
@@ -21,6 +22,8 @@ function M.new(mapIndex, x, y, input)
   for i = 1, s.player.frames do s.quads[i] = love.graphics.newQuad((i - 1) * 32, 0, 32, 32, s.sheet:getDimensions()) end
   s.font = love.graphics.newFont(8); s.font:setFilter("nearest", "nearest")
   s.vm = VM.new(Importer.scriptRom(), s:host())
+  -- default_state: $FFAA/$FFAB start at 3 (bit 1 lets HandleStartPress open the menu)
+  if s.vm:rd8(0xFFAA) == 0 and s.vm:rd8(0xFFAB) == 0 then s.vm:wr8(0xFFAA, 3); s.vm:wr8(0xFFAB, 3) end
   s.items = assert(loadstring(love.filesystem.read(Importer.CACHE .. "/items.lua")))()
   s:enterMap(mapIndex, x, y)
   return s
@@ -457,6 +460,20 @@ function M:update()
   do -- a live dialogue record owns A (real: C71B busy, the A list is not polled)
     local th = self.vm.threads
     if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then return end
+  end
+  -- HandleStartPress (06): FinishFrame latches $FFAA into $FFAB, then the four gates
+  self.vm:wr8(0xFFAB, self.vm:rd8(0xFFAA))
+  if self.input("start") and StartMenu.canOpen(self.vm) then
+    self.log[#self.log + 1] = "start menu"
+    self.overlay = StartMenu.new({ rom = self.vm.rom, vm = self.vm, ow = self, input = self.input, log = self.log })
+    self.overlayDone = function(r)
+      if r.action == "save" and r.bank then
+        -- the planted $C714 record runs through the field script handler, then is consumed
+        for a = 0xC714, 0xC718 do self.vm:wr8(a, 0) end
+        self:runScript(r.bank, r.ptr, "start menu save")
+      end
+    end
+    return
   end
   if self.aCool and self.aCool > 0 then self.aCool = self.aCool - 1; self.input("a") end
   if (not self.aCool or self.aCool <= 0) and self.input("a") then
