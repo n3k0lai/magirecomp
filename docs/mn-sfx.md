@@ -65,8 +65,8 @@ into the driver. These still write the VM only:
 
 | site | bytes | hook |
 |---|---|---|
-| `ScriptVM` `$1F` | `$C920`, `$C91E`, `$C92A = 0`, `$C92C = $0F` (also `h.music`) | `request("active", id)` and `h.sfxSelect(0, 0, 0, 0x0F)` |
-| `ListChoice.commitCopied` | `$C91F = 1` on a buy, index, `$C92A = 0`, `$C92C = $0F` | `h.sfx(1)`, `request("active", id)`, `h.sfxSelect(0, 0, 0, 0x0F)` |
+| `ScriptVM` `$1F` | `$C920` / `$C91E` when the index changes, then `$C92A = 0`, `$C92C = $0F` (also `h.music`). It does not touch `$C928` / `$C929` | `request("active", id)` on change, then `sfx:wr` of `$C92A` and `$C92C` only |
+| `ListChoice.commitCopied` | `$C91F = 1` on a buy, index, `$C92A = 0`, `$C92C = $0F` | `h.sfx(1)`, `request("active", id)`, then the same two `sfx:wr`s |
 | `ListChoice.deny` | `$C921 = 2` | `h.sfxSlot(1, 2)` |
 | `ui/start/Machine.lua` `openBytes` and `leave` | `$C92C`, `$C928 = 0`, `$C929 = 0`, `$C92A = 4` | `h.sfxSelect(4, 0, 0, c92c)` |
 | `ui/start/Commit.lua` save tail | same mix restore, `$C92C = $0F` | `h.sfxSelect(4, 0, 0, 0x0F)` |
