@@ -30,6 +30,8 @@ function M.new(rom)
   local src
   if not muted then
     src = love.audio.newQueueableSource(RATE, 16, 1, BUFFERS)
+    -- quiet by default (full-scale square waves are harsh); MN_SFX_VOL=0..1
+    if src.setVolume then src:setVolume(tonumber(os.getenv("MN_SFX_VOL") or "") or 0.25) end
   end
   return setmetatable({ sfx = Sfx.new(rom), muted = muted, src = src, acc = 0 }, M)
 end
