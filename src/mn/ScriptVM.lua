@@ -8,6 +8,7 @@ local OPLOG = tonumber(os.getenv("MN_OPLOG") or "", 16) -- MN_OPLOG=14: print ev
 local bit = require("bit")
 local band, bor, lshift = bit.band, bit.bor, bit.lshift
 local Op = require("mn.Opcodes")
+local Ext = require("mn.OpExt").handlers
 
 local VM = {}
 VM.__index = VM
@@ -88,6 +89,7 @@ function VM:wr8(a, v)
 end
 
 local function off(ptr, bank) return bank * 0x4000 + ptr - 0x4000 end
+VM.off = off
 
 -- LookupWordAt1234 ($1397): index byte, then per-index operands (lookup_index_N.asm)
 function VM:expr(o)
@@ -566,6 +568,11 @@ function VM:run(bank, ptr)
       end
       o = o + n
       h.text(table.concat(t)); coroutine.yield("text")
+    elseif Ext[op] then
+      -- handlers from src/mn/ops/*.lua: (vm, o, n, cur) -> next flat offset, or nil to end the record
+      local nx = Ext[op](self, o, n, cur)
+      if not nx then return end
+      o = nx
     elseif Op.END[op] then
       if op == 0x9C then -- choice: (count, then count x (bank, ptr)); the window closes on pick
         local c = r:u8(o + 1); local k

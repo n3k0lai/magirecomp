@@ -28,7 +28,7 @@ end
 
 function M:host()
   local s = self
-  return {
+  local h = {
     loadMap = function(i)
       -- from an object/talk thread this is a scene change inside a cutscene:
       -- the area reloads but object records stay (map 40 second scene keeps slots 0,3,4,6,7,9)
@@ -242,6 +242,8 @@ function M:host()
     boxClose = function() s.aCool = 20; if os.getenv("MN_THR") then print(("[txt] f%d close"):format(s.vm.tk or 0)) end; s.textBox = nil end,
     boxBusy = function() local b = s.textBox; return b ~= nil and not (b.done and not b.wait) end,
   }
+  require("mn.OpExt").extendHost(s, h) -- host callbacks added by src/mn/ops/*.lua
+  return h
 end
 
 function M:snap() self.px, self.py = self.x * 16, self.y * 16 end
