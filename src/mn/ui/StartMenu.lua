@@ -4,13 +4,13 @@
 -- the ring entry (DrawIndexedEntry) and the glyph map, and forwards
 -- update/draw to it.
 --
--- A on List does nothing:
---   TODO(IndexedSetup): mode $0B
+-- A on List opens IndexedSetup index $0B (start/List.lua).
 local bit = require("bit")
 local Machine = require("mn.ui.start.Machine")
 local Group = require("mn.ui.start.GroupList")
 local Glyph = require("mn.ui.start.Glyph")
 local Rings = require("mn.ui.start.Rings")
+local List = require("mn.ui.start.List")
 local Draw = require("mn.ui.start.Draw")
 local Commit = require("mn.ui.start.Commit")
 
@@ -49,6 +49,7 @@ function M:update()
   if ev == "items" then self.child = Group.new(self.ctx, Group.items, self.mach) end
   if ev == "glyph" then self.child = Glyph.new(self.ctx, self.mach) end
   if ev == "rings" then self.child = Rings.new(self.ctx, self.mach) end
+  if ev == "list" then self.child = List.new(self.ctx, self.mach) end
   return nil
 end
 

@@ -4,6 +4,7 @@
 -- reads at $49EB + $CD81 * 8 (bank 3). A and B call StepSlotPair on the
 -- 4-byte records at $493B. Both tables are read from the ROM.
 local bit = require("bit")
+local SaveFile = require("mn.SaveFile")
 
 local M = {}
 M.__index = M
@@ -44,6 +45,9 @@ function M:openBytes()
   vm:wr8(0xCCB9, 1)
   vm:wr8(0xC6F0, 7)
   vm:wr8(0xC6F1, 0)
+  -- HandleStartPress clears the Select latch and the $A118 index before the loop.
+  vm:wr8(0xCCA1, 0)
+  vm:wr8(0xCC4C, 0)
   -- $CC4D is both the fill of selectable slots and, for a few indexes, a
   -- value copied from SRAM. Those copies are the skip flags for that slot.
   for i = 0, 0x2B do self.flags[i] = 1 end
@@ -144,10 +148,7 @@ function M:press(btn)
   if btn == "left" or btn == "right" then
     if self.cd81 == 0x1C or self.cd81 == 0x1D then btn = "select" end
   end
-  if btn == "select" then
-    -- TODO(RetargetSramSlotCount): $03:42F7 reorders SRAM only for those slots
-    return nil
-  end
+  if btn == "select" then return self:retarget() end
   if self.cd80 == 1 and btn ~= "a" and btn ~= "b" then return nil end
   if btn == "a" or btn == "b" then return self:action(btn == "a") end
   if btn == "start" then return "close" end
@@ -225,6 +226,13 @@ function M:toggle(nxt)
     return nil
   end
   self.cd80 = 0
+  -- StepSlotPair command $4D. Mode $0B reloads this slot and skips $6DDF
+  -- unless the slot is $24. Every other mode still falls through.
+  if self.cc47 == 0x0B and self.cd81 ~= 0x24 then
+    self:copySlot()
+    self:flush()
+    return nil
+  end
   self:flush()
   if self.cd81 == 0x24 then return "save" end
   -- TODO(SetupCommand4D): a latched A on any other slot plants $C714 from the group
@@ -235,8 +243,8 @@ function M:toggle(nxt)
 end
 
 -- StepSlotPair compare path. Mode 7 is the ring entry (DrawIndexedEntry),
--- mode 9 the glyph map. Modes other than the start screen (5), spells (3),
--- items (4), rings (7) and the glyph map (9) are left untouched.
+-- mode 9 the glyph map, $0B the list. Modes other than the start screen (5), spells (3),
+-- items (4), rings (7), the glyph map (9) and the list ($0B) are left untouched.
 function M:switchMode(cmd, nxt)
   -- Mode 7, command 6, $CCA4 set: store $14 at $C921 and keep the slot.
   -- A clear $CCA4 would enter mode 6 (still TODO).
@@ -246,9 +254,10 @@ function M:switchMode(cmd, nxt)
     self:flush()
     return nil
   end
-  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 and cmd ~= 7 and cmd ~= 9 then
+  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 and cmd ~= 7 and cmd ~= 9
+    and cmd ~= 0x0B then
     -- TODO(DrawIndexedSlots): mode 8, A on the ring cursor
-    -- TODO(IndexedSetup): mode 6 ($A019) and mode $0B (the list at $A4A6)
+    -- TODO(IndexedSetup): mode 6 ($A019)
     return nil
   end
   self.cca0 = bit.band(self.cd81 - 0x1C, 0xFF)
@@ -261,6 +270,7 @@ function M:switchMode(cmd, nxt)
   if cmd == 4 then return "items" end
   if cmd == 9 then return "glyph" end
   if cmd == 7 then return "rings" end
+  if cmd == 0x0B then return "list" end
   return "menu"
 end
 
@@ -269,6 +279,76 @@ function M:leave()
   self.vm:wr8(0xC928, 0)
   self.vm:wr8(0xC929, 0)
   self.vm:wr8(0xC92A, 4)
+end
+
+-- The live SRAM bank is vm.mem. Any other bank is the image in vm.sramBanks.
+local function sramGet(vm, bank, addr)
+  if addr < 0xA000 or addr > 0xBFFF then return vm:rd8(addr) end
+  if vm.sramBank == bank or not (vm.sramBanks and vm.sramBanks[bank]) then
+    return vm:rd8(addr)
+  end
+  return vm.sramBanks[bank]:byte(addr - 0xA000 + 1) or 0
+end
+
+local function sramSet(vm, bank, addr, val)
+  val = bit.band(val, 0xFF)
+  if addr < 0xA000 or addr > 0xBFFF then vm:wr8(addr, val); return end
+  if vm.sramBank == bank or not (vm.sramBanks and vm.sramBanks[bank]) then
+    vm:wr8(addr, val)
+    return
+  end
+  vm.sramBanks[bank] = SaveFile.poke(vm.sramBanks[bank], addr, val)
+end
+
+-- ($A118 + $CC4C) * $25 + $CCA0, then $A022, on the next SRAM bank.
+function M:slotByteAddr()
+  local vm = self.vm
+  local bank = vm:rd8(0xC727)
+  local idx = sramGet(vm, bank, 0xA118 + vm:rd8(0xCC4C))
+  return bit.band(0xA022 + idx * 0x25 + self.cca0, 0xFFFF)
+end
+
+-- RetargetSramSlotCount ($03:42F7). Select, and Left/Right rewritten into
+-- Select, reach it only while $CD81 is $1C or $1D. A zero $CCA1 takes the
+-- byte into the latch (TakeSramSlotIntoLatch, $03:436B).
+function M:retarget()
+  if self.cd81 ~= 0x1C and self.cd81 ~= 0x1D then return nil end
+  self.cca0 = self.cd81 - 0x1C
+  local latch = self.vm:rd8(0xCCA1)
+  if latch == 0 then self:takeLatch() else self:swapLatch(latch) end
+  self:flush()
+  return nil
+end
+
+function M:takeLatch()
+  local vm = self.vm
+  local bank = vm:rd8(0xC727)
+  local nextBank = bit.band(bank + 1, 0xFF)
+  local addr = self:slotByteAddr()
+  local got = sramGet(vm, nextBank, addr)
+  if got == 0 then return end
+  sramSet(vm, nextBank, addr, 0)
+  vm:wr8(0xCCA1, got)
+  local cnt = 0xA019 + got
+  sramSet(vm, bank, cnt, sramGet(vm, bank, cnt) + 1)
+  self.cc4b = 1
+end
+
+function M:swapLatch(latch)
+  local vm = self.vm
+  local bank = vm:rd8(0xC727)
+  local held = 0xA019 + latch
+  sramSet(vm, bank, held, sramGet(vm, bank, held) - 1)
+  local nextBank = bit.band(bank + 1, 0xFF)
+  local addr = self:slotByteAddr()
+  local old = sramGet(vm, nextBank, addr)
+  sramSet(vm, nextBank, addr, latch)
+  if old ~= 0 then
+    local back = 0xA019 + old
+    sramSet(vm, bank, back, sramGet(vm, bank, back) + 1)
+  end
+  vm:wr8(0xCCA1, 0)
+  self.cc4b = 1
 end
 
 -- FillGroupPointers + the name/count half of ScanGroupBytes / WriteGroupRowDigits.
@@ -318,9 +398,19 @@ function M:scanBackward(base)
 end
 
 function M:nameGlyphs(spec, id)
-  local addr = spec.addend + id * spec.scale + 12 -- $CD9D sits 12 into the $22
+  -- Index $0B: CopyIndexedName (bank 6 $5A60). The id is the SRAM offset.
+  -- $FF is the ten-byte blank record. Other indexes are the 13-byte names
+  -- that sit 12 bytes into the bank-7 record ($CD9D).
+  local bank, addr, n
+  if spec.nameAt then
+    bank, n = spec.bank, spec.nameLen
+    addr = (id == 0xFF) and spec.nameBlank or (spec.nameAt + id * n)
+  else
+    bank, n = spec.bank, 13
+    addr = spec.addend + id * spec.scale + 12
+  end
   local t = {}
-  for i = 0, 12 do t[i + 1] = string.char(rom8(self.rom, spec.bank, addr + i)) end
+  for i = 0, n - 1 do t[i + 1] = string.char(rom8(self.rom, bank, addr + i)) end
   return table.concat(t)
 end
 
@@ -361,8 +451,10 @@ function M:refreshList(spec, fresh)
   local vm = self.vm
   vm:wr8(0xCC82, spec.base % 256)
   vm:wr8(0xCC83, math.floor(spec.base / 256) % 256)
-  vm:wr8(0xCC84, spec.addend % 256)
-  vm:wr8(0xCC85, math.floor(spec.addend / 256) % 256)
+  -- Index $0B does not store an addend at $CC84. The other tails do.
+  local add = spec.addend or 0
+  vm:wr8(0xCC84, add % 256)
+  vm:wr8(0xCC85, math.floor(add / 256) % 256)
   vm:wr8(0xCC87, spec.home)
   vm:wr8(0xCC88, spec.scale)
   vm:wr8(0xCDD7, self.gate)
