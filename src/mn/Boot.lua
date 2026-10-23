@@ -235,7 +235,7 @@ function love.load()
       love.event.quit(0)
       return false
     end
-  elseif opts.test then
+  elseif opts.test and os.getenv("MN_TITLE") ~= "1" then
     local start = tonumber(os.getenv("MN_START") or "1")
     local def = Importer.loadMap(start); local e = def.entries[1]
     local planner
@@ -419,11 +419,31 @@ function love.load()
       for _, k in ipairs({ "up", "down", "left", "right" }) do if held[k] or love.keyboard.isDown(k) then return k end end
     end)
     if not os.getenv("MN_LOAD") and not os.getenv("MN_BATTLE_TEST") then
-      local SaveFile = require("mn.SaveFile")
-      local data = love.filesystem and love.filesystem.read and love.filesystem.read(SaveFile.PATH)
-      continueFromSave(ow, data)
+      -- Keyboard default, and --mn-test with MN_TITLE=1: Reset's script
+      -- 22:418E. MN_NEWGAME keeps today's Continue call (a no-op). A valid
+      -- slot is installed and not resumed; MN_SAVE_LOAD overrides the slot.
+      local Title = require("mn.boot.Title")
+      local data
+      if os.getenv("MN_NEWGAME") ~= "1" then
+        local alt = os.getenv("MN_SAVE_LOAD")
+        if alt and alt ~= "" then data = readSaveFile(alt) end
+        if not data and love.filesystem and love.filesystem.read then
+          data = love.filesystem.read(require("mn.SaveFile").PATH)
+        end
+      end
+      if Title.choose(os.getenv, opts) == "title" then
+        Title.start(ow, data)
+        Boot.title = true
+      else
+        continueFromSave(ow, data)
+      end
     end
     stack:push(ow)
+    if opts.test then
+      Boot.testDone = function()
+        return frame > tonumber(os.getenv("MN_FRAMES") or "600")
+      end
+    end
     if os.getenv("MN_BATTLE_TEST") then -- the map-3 Weebo encounter ($2E 09 53 01), straight into battle
       ow.battle = require("mn.Battle").new(ow, { ops = { { op = 0x2E, args = { 0x09, 0x53, 0x01 } } } })
     end
@@ -437,6 +457,7 @@ function love.load()
         if waitN > 0 then waitN = waitN - 1; return end
         local tok = q[qi]
         if not tok then
+          if opts.test then return end
           if not Boot.keysDone then Boot.keysDone = frame; print("[mn-keys] script done at frame " .. frame) end
           if frame - Boot.keysDone > tonumber(os.getenv("MN_KEYS_TAIL") or "120") then
             for _, l in ipairs(ow.log) do print("[mn-keys] " .. l) end
@@ -446,7 +467,12 @@ function love.load()
         end
         qi = qi + 1
         local n = tok:match("^w(%d+)$")
-        if n then waitN = tonumber(n) else love.event.push("keypressed", tok, tok, false); rel = { tok, 4 }; waitN = 6 end
+        if n then waitN = tonumber(n)
+        else
+          local alias = { a = "z", b = "x", start = "space", select = "rshift" }
+          tok = alias[tok] or tok
+          love.event.push("keypressed", tok, tok, false); rel = { tok, 4 }; waitN = 6
+        end
       end
     end
   end
@@ -466,6 +492,10 @@ function love.update()
     end
     for _, l in ipairs(s.log) do print("[mn-test] " .. l) end
     for _, l in ipairs(s.vm.log) do print("[mn-test] " .. l) end
+    if Boot.title then
+      print(("[mn-title] A017=%02X C921=%02X CCA6=%02X alive=%s"):format(
+        s.vm:rd8(0xA017), s.vm:rd8(0xC921), s.vm:rd8(0xCCA6), tostring(s.vm.co ~= nil)))
+    end
     love.event.quit(0)
   end
 end

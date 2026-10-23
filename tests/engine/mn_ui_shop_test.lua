@@ -73,6 +73,20 @@ do
   ok(vm:rd8(0xCCD5) == 0 and vm:rd8(0xCD81) == 3 and vm:rd8(0xCCCD) == 1, "$8C up arrow returns to the first row")
 end
 
+-- $7751 / $7777 / $779D: the pair at row 12 and the pair at row 1.
+do
+  local vm = fresh()
+  local scr = ListChoice.new(ctx(vm), "8c")
+  ok(vm:rd8(0xCCEB) == 0x0B, "$8C arrow tile is the staged mark")
+  ok(scr.over[0x9C29] == 0x80 and scr.over[0x9C2A] == 0x80, "$8C upper pair starts blank")
+  ok(scr.over[0x9D89] == 0x0B and scr.over[0x9D8A] == 0x0B, "$8C lower pair is the more-below tile")
+  toArrow(scr, vm)
+  tap(scr, "a")
+  ok(scr.over[0x9C29] == 0x0B and scr.over[0x9D89] == 0x80, "$8C last page flips the two pairs")
+  tap(scr, "a")
+  ok(scr.over[0x9C29] == 0x80 and scr.over[0x9D89] == 0x0B, "$8C first page restores the lower pair")
+end
+
 -- $8C: a pick commits and stays; a second pick requests the sound byte; B closes.
 do
   local vm = fresh()
@@ -120,6 +134,9 @@ do
   ok(vm:rd8(0xA4A6 + 4) == 3, "$8F buy subtracts the quantity from stock")
   ok(vm:rd8(0xCD17) == 2 and vm:rd8(0xCD50) == 2, "$8F advances the tier and notes the bought record")
   ok(vm:rd8(0xC921) == 0, "$8F a covered buy does not deny")
+  ok(vm:rd8(0xA027) == 2, "$8F one measure pass raises the rank byte")
+  ok(vm:rd8(0xD389) % 2 == 1 and math.floor(vm:rd8(0xD389) / 2) % 2 == 0, "$8F $D389 keeps bit 0 set and bit 1 clear")
+  ok(vm:rd8(0xA028) == 0 and vm:rd8(0xA029) == 0, "$8F the measure word stays put")
 end
 
 do
@@ -262,7 +279,43 @@ do
   ok(vm:rd8(0xCD81) == 0x0B, "$90 last page sits on the up arrow")
   tap(scr, "a")
   ok(vm:rd8(0xCCD5) == 0 and vm:rd8(0xCD81) == 3, "$90 up arrow returns to the first record")
+  ok(scr.over[0x9D89] == 0x04 and scr.over[0x9C29] == nil, "$90 first page keeps only the lower arrow")
   scr:draw()
+end
+
+-- $6CA8 / $76E0. A zero flag with a copied mark stays on the list.
+do
+  local vm = fresh()
+  local scr = ListChoice.new(ctx(vm), "90")
+  tap(scr, "a")
+  vm:wr8(0xCCE3, 0)
+  vm:wr8(0xCCD9, 1)
+  ok(tap(scr, "b") == nil and vm:rd8(0xCCE3) == 1 and vm:rd8(0xCD81) == 3, "$90 B with a copied mark arms the first row")
+  vm:wr8(0xCCE3, 0)
+  for i = 0, 9 do vm:wr8(0xCCD9 + i, 0) end
+  ok(tap(scr, "b") == nil and vm:rd8(0xCCE3) == 0, "$90 B with no copied mark stays on the zero flag")
+end
+
+-- Tilemap bytes are read from bank 3 at draw time. A planted corner stands in for the picture.
+do
+  local function plant(ptr)
+    local bytes = {}
+    bytes[MnRom.off(ptr, 3)] = 0x85
+    bytes[MnRom.off(ptr, 3) + 20] = 0x84
+    return bytes
+  end
+  local vm = fresh(plant(0x4B4B))
+  local scr = ListChoice.new(ctx(vm), "90")
+  ok(scr.over ~= nil, "$90 has a window map")
+  local corner = scr.rom:u8(MnRom.off(0x4B4B, 3))
+  ok(corner == 0x85, "$90 tilemap corner is the planted frame tile")
+  vm = fresh(plant(0x4E1B))
+  scr = ListChoice.new(ctx(vm), "8f")
+  ok(scr.rom:u8(MnRom.off(0x4E1B, 3) + 20) == 0x84, "$8F tilemap reads the planted second row")
+  vm = fresh(plant(0x4CB3))
+  scr = ListChoice.new(ctx(vm), "8c")
+  ok(scr.rom:u8(MnRom.off(0x4CB3, 3)) == 0x85, "$8C tilemap reads the planted corner")
+  ok(scr.over[0x9DC2] == 0xEE and scr.over[0x9DEE] == 0x80, "$8C bottom strips are painted")
 end
 
 local function image(bytes)

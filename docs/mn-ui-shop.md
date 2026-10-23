@@ -37,15 +37,42 @@ the ROM at draw time.
 
 Write: `$CCFC` (`$8C`), currency, counts, stock, the sound bytes `$C91E`
 `$C91F` `$C920` `$C921` `$C92A` `$C92C`, and the page / mark / cursor
-bytes the same routines update. `$8F` also stores the bought record
-address at `$CD52` and a pass count at `$CD50`.
+bytes the same routines update. `$8F` stores the bought record
+address at `$CD52`, the pass count 2 at `$CD50`, loads that record
+through `$D110` with `$D389` = 1, writes the body back, and restores
+`$C937`.
+
+## Window
+
+`$8C` copies the 18-by-20 map at `$4CB3`, `$8F` the map at `$4E1B`, and
+`$90` the map at `$4B4B` (`PlaceWindowCopyMap`, `$76FA`). Attribute flips
+come from `PaintMapAttrsSeedSlot` (`$7463`). `$8C` also paints the bottom
+strips from `$5627`. Tiles `$86` onward are the indexes `CopyRepeatedTileIndex`
+and `CopyIndexedBlocks` wrote; `$80`–`$85` are the frame in `Font`'s sheet.
+
+The scroll pairs are `$9C29` (row 1, column 9) and `$9D89` (row 12, column 9).
+`RefreshFrameMarkPair` (`$7751`) and `RefreshFrameMarkWindowPair` (`$7777`)
+write `[$CCEB]` into a pair. `RefreshFrameBlankMarkPair` (`$779D`) and
+`RefreshFrameWindowPair` (`$77C2`) write tile `$80`. `$CCEB` is `$0B` for
+`$8C`, `$F3` for `$8F`, and `$04` for `$90`.
+
+`$90` B follows `StepPrefixedBlockChoiceFE` (`$6CA8`). `$CCE3 == 0` calls
+`ScanArmedSlotMarks` (`$76E0`): a copied mark stores 3 at `$CD81` and 1 at
+`$CCE3`, and a miss only rearms. Any other flag except 3 forces the menu
+and blanks the three cells at `$76B1`. Flag 3 stores `$FF` at `$CCFC` and
+`$CCFD` and closes.
+
+`$8F` calls `SpendNewEntryMeasures` (bank 2 `$5B35`) with `$CD50` = 2, so
+one pass runs. The entry at `$CD52` is loaded to `$D110`, `$D389` is set
+to 1, and the body is written back. Bit 0 leaves the measure word alone.
+The pass uses the battle port of `SpendMeasureHundred`; the real divider
+is not sampled.
 
 ## Still open
 
-`SpendNewEntryMeasures` (bank 2) is not called; `$CD50` is set to 2 so a
-later port can. Scroll-arrow tiles (`$7751` / `$7777` / `$779D`) and the
-`$CCE3 == 0` step (`$76E0`) are not ported. The window frame is drawn as
-bars; the tilemap pictures at `$4B4B` and `$4E1B` are not.
+`ClampGroupSRAMByte` still does not stage the 13-byte tail at `$C949`.
+`$8F` does not draw the tier message. The measure pass does not read
+`rDIV`, so the stat rolls are a seeded stand-in.
 
 ## Harness
 

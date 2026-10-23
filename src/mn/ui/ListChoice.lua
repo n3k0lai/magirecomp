@@ -11,6 +11,8 @@
 local Font = require("mn.Font")
 local MnRom = require("mn.MnRom")
 local Slots = require("mn.ui.list.slots")
+local Spend = require("mn.ui.list.spend")
+local Win = require("mn.ui.list.window")
 
 local M = {}
 M.__index = M
@@ -255,31 +257,59 @@ local function collectBackward(vm)
   end
 end
 
--- sync_row_end_marks_then_scan.asm. An empty mark run sends the cursor home.
-local function syncMarks(vm)
-  local row, len = vm:rd8(0xCCC8), vm:rd8(0xCCCC)
-  vm:wr8(0xCCE2, row < len and 1 or 0)
-  local prev = (row - 1) % 256
-  vm:wr8(0xCCE1, prev < 8 and 0 or 1)
-  for i = 3, 12 do
-    if vm:rd8(0xCCD6 + i) ~= 0 then return end
+-- ScanArmedSlotMarks ($76E0). E starts at 3 and walks $CCD9-$CCE2.
+-- A byte of 1 returns 1. Walking off the end returns 0.
+local function scanMarks(vm)
+  local e, last = 3, 0x0D
+  while e ~= last do
+    if vm:rd8(0xCCD6 + e) == 1 then return 1 end
+    e = e + 1
   end
-  vm:wr8(0xCD81, 0)
-  vm:wr8(0xCCE3, 3)
+  return 0
 end
 
-local function repaint(vm)
+-- sync_row_end_marks_then_scan.asm ($6D1F). An empty mark run sends the cursor home.
+-- While the row is below the length, RefreshFrameMarkPair stamps [$CCEB]
+-- on the lower pair. Once the row is at least 8 past the start,
+-- RefreshFrameMarkWindowPair stamps the upper pair. Clearing a mark
+-- does not paint; RepaintPrefixedBlockWindow recopied the tilemap first.
+local function syncMarks(self)
+  local vm = self.vm
+  local row, len = vm:rd8(0xCCC8), vm:rd8(0xCCCC)
+  if row < len then
+    vm:wr8(0xCCE2, 1)
+    Win.markPair(self)
+  else
+    vm:wr8(0xCCE2, 0)
+  end
+  local prev = (row - 1) % 256
+  if prev < 8 then
+    vm:wr8(0xCCE1, 0)
+  else
+    vm:wr8(0xCCE1, 1)
+    Win.markWindow(self)
+  end
+  if scanMarks(vm) == 0 then
+    vm:wr8(0xCD81, 0)
+    vm:wr8(0xCCE3, 3)
+  end
+end
+
+local function repaint(self)
+  local vm = self.vm
+  Win.reset(self)
   stampRows(vm)
-  syncMarks(vm)
+  syncMarks(self)
   Slots.arm(vm)
   vm:wr8(0xCCA7, 0xFF)
   vm:wr8(0xCCC9, 0)
 end
 
-local function refreshList(vm)
+local function refreshList(self)
+  local vm = self.vm
   refreshLen(vm)
   if vm:rd8(0xCCCB) == 0 then fillBuyForward(vm) else collectForward(vm) end
-  repaint(vm)
+  repaint(self)
 end
 
 -- commit_copied_block_choice.asm ($55E3). The first pick leaves $C91F alone.
@@ -339,7 +369,8 @@ local function sellWord(vm, rom, id)
 end
 
 -- add_prefixed_choice_word.asm ($6930). A zero count clears that slot's mark.
-local function sellPrefixed(vm, rom, slot)
+local function sellPrefixed(self, rom, slot)
+  local vm = self.vm
   local id = vm:rd8(0xCCCD + (slot - 3) % 256)
   local price = sellWord(vm, rom, id)
   if price == 0 then deny(vm); return end
@@ -355,19 +386,22 @@ local function sellPrefixed(vm, rom, slot)
   end
   vm:wr8(0xCCD6 + slot, 0)
   vm:wr8(0xCCFB, 1)
-  syncMarks(vm)
+  syncMarks(self)
   Slots.arm(vm)
   vm:wr8(0xCCA7, 0xFF)
 end
 
--- commit_bought_sram_record.asm ($731C), then the price table is filled again.
--- TODO(SpendNewEntryMeasures): bank 2 still owns the measure pass ($CD50 = 2).
+-- commit_bought_sram_record.asm ($731C). $CD50 is 2, so
+-- SpendNewEntryMeasures runs one pass, then the price table is filled again.
 local function commitSram(vm, rom, slot)
   local idx = (vm:rd8(0xCCD5) + (slot - 3)) % 256
   local addr = 0xA025 + idx * 0x25
   vm:wr8(0xCD52, addr % 256)
   vm:wr8(0xCD53, math.floor(addr / 256))
   vm:wr8(0xCD50, 2)
+  local bank = vm:rd8(0xC937)
+  Spend.apply(vm, rom)
+  vm:wr8(0xC937, bank)
   local step = (slot - 3) % 256
   vm:wr8(0xCCC6, step)
   local v = (vm:rd8(0xCD17 + step) + 1) % 256
@@ -392,51 +426,75 @@ local function spendSram(vm, rom, slot)
   commitSram(vm, rom, slot)
 end
 
-local function scrollCopied(vm, slot, dir)
+-- step_copied_block_choice_0b.asm / step_copied_block_choice_0c.asm.
+-- Scroll up always restores the lower arrow ($7751). At the first page
+-- the upper pair is blank ($77C2); any later page stamps [$CCEB] ($7777).
+-- Scroll down stamps the upper arrow, then either keeps the lower arrow
+-- or blanks it ($779D) and parks the cursor on the up slot.
+local function scrollCopied(self, slot, dir)
+  local vm = self.vm
   if dir < 0 then
     vm:wr8(0xCCD5, (vm:rd8(0xCCD5) - 8) % 256)
     fillCopied(vm)
     stampRows(vm)
+    Win.markPair(self)
     vm:wr8(0xCCE2, 1)
-    if vm:rd8(0xCCD5) == 0 then vm:wr8(0xCCE1, 0) end
+    if vm:rd8(0xCCD5) == 0 then
+      vm:wr8(0xCCE1, 0)
+      Win.windowPair(self)
+    else
+      Win.markWindow(self)
+    end
     vm:wr8(0xCD81, slot)
   else
     vm:wr8(0xCCD5, (vm:rd8(0xCCD5) + 8) % 256)
     fillCopied(vm)
     stampRows(vm)
     vm:wr8(0xCD81, slot)
+    Win.markWindow(self)
     vm:wr8(0xCCE1, 1)
     local more = (vm:rd8(0xCCD5) + 8) % 256
     if more < vm:rd8(0xCCCC) then
-      -- TODO(Bank3_7751): more-below arrow tiles
+      Win.markPair(self)
     else
       vm:wr8(0xCCE2, 0)
       vm:wr8(0xCD81, 0x0B)
-      -- TODO(Bank3_779D): end-of-list arrow tiles
+      Win.blankMark(self)
     end
   end
   Slots.arm(vm)
   vm:wr8(0xCCA7, 0xFF)
 end
 
-local function scrollSram(vm, rom, slot, dir)
+-- step_sram_list_choice_0b.asm / step_sram_list_choice_0c.asm. Same arrow
+-- pairs as the copied-block steps. The floor test is $CCD5 < 8.
+local function scrollSram(self, rom, slot, dir)
+  local vm = self.vm
   if dir < 0 then
     vm:wr8(0xCCD5, (vm:rd8(0xCCD5) - 8) % 256)
     stageSram(vm, rom)
+    Win.markPair(self)
     vm:wr8(0xCCE2, 1)
-    if vm:rd8(0xCCD5) < 8 then vm:wr8(0xCCE1, 0) end
+    if vm:rd8(0xCCD5) < 8 then
+      vm:wr8(0xCCE1, 0)
+      Win.windowPair(self)
+    else
+      Win.markWindow(self)
+    end
     vm:wr8(0xCD81, slot)
   else
     vm:wr8(0xCCD5, (vm:rd8(0xCCD5) + 8) % 256)
     stageSram(vm, rom)
     vm:wr8(0xCD81, slot)
+    Win.markWindow(self)
     vm:wr8(0xCCE1, 1)
     local more = (vm:rd8(0xCCD5) + 8) % 256
     if more < vm:rd8(0xCCCC) then
-      -- TODO(Bank3_7751): more-below arrow tiles
+      Win.markPair(self)
     else
       vm:wr8(0xCCE2, 0)
       vm:wr8(0xCD81, 0x0B)
+      Win.blankMark(self)
     end
   end
   Slots.arm(vm)
@@ -444,7 +502,8 @@ local function scrollSram(vm, rom, slot, dir)
 end
 
 -- step_prefixed_block_choice_0b.asm / step_prefixed_block_choice_0c.asm.
-local function scrollPrefixed(vm, slot, dir)
+local function scrollPrefixed(self, slot, dir)
+  local vm = self.vm
   if dir < 0 then
     vm:wr8(0xCCFB, 0)
     refreshLen(vm)
@@ -455,7 +514,7 @@ local function scrollPrefixed(vm, slot, dir)
       collectBackward(vm)
     end
     vm:wr8(0xCCC8, (vm:rd8(0xCCC8) - 8) % 256)
-    repaint(vm)
+    repaint(self)
     return
   end
   if vm:rd8(0xCCFB) == 0 then
@@ -468,16 +527,17 @@ local function scrollPrefixed(vm, slot, dir)
   end
   vm:wr8(0xCCFB, 0)
   vm:wr8(0xCD81, slot)
-  refreshList(vm)
+  refreshList(self)
 end
 
 -- step_prefixed_block_choice_00.asm. A matching mode keeps the page.
-local function enterMode(vm, choice)
+local function enterMode(self, choice)
+  local vm = self.vm
   vm:wr8(0xCD81, 3)
   if vm:rd8(0xCCCB) == choice then
     vm:wr8(0xCCE3, 1)
     vm:wr8(0xCD81, 3)
-    syncMarks(vm)
+    syncMarks(self)
     Slots.arm(vm)
     vm:wr8(0xCCA7, 0xFF)
     return
@@ -490,11 +550,18 @@ local function enterMode(vm, choice)
   vm:wr8(0xCCE2, 1)
   vm:wr8(0xCCCB, choice)
   vm:wr8(0xCCD5, 0)
-  refreshList(vm)
+  refreshList(self)
 end
 
--- step_fe_choice_by_cce3.asm. $CCE3 == 3 leaves through ReloadChoiceFrame.
-local function stepFe(vm)
+-- step_prefixed_block_choice_fe.asm ($6CA8). $CCE3 == 3 leaves through
+-- ReloadChoiceFrame, which this screen reports as a close. The script
+-- reads $CCFC/$CCFD, so those are stored here the way StepFeChoiceByCce3
+-- does before the same exit. $CCE3 == 0 calls ScanArmedSlotMarks ($76E0):
+-- a copied mark arms slot 3 with $CCE3 = 1, and a miss only rearms.
+-- Any other flag forces the menu ($CCE3 = 3, $CD81 = 0) and blanks the
+-- three choice cells ($76B1).
+local function stepFe(self)
+  local vm = self.vm
   local flag = vm:rd8(0xCCE3)
   if flag == 3 then
     vm:wr8(0xCCFC, 0xFF)
@@ -502,10 +569,17 @@ local function stepFe(vm)
     return "fe"
   end
   if flag == 0 then
-    -- TODO(Bank3_76E0): the zero-flag step is still unknown. Back to the menu.
+    if scanMarks(vm) ~= 0 then
+      vm:wr8(0xCD81, 3)
+      vm:wr8(0xCCE3, 1)
+    end
+    Slots.arm(vm)
+    vm:wr8(0xCCA7, 0xFF)
+    return nil
   end
   vm:wr8(0xCCE3, 3)
   vm:wr8(0xCD81, 0)
+  Win.blankChoice(self)
   Slots.arm(vm)
   vm:wr8(0xCCA7, 0xFF)
   return nil
@@ -563,6 +637,7 @@ function M.demo(vm, mode)
     vm:wr8(0xCCE1, 0)
     vm:wr8(0xCCE2, 1)
     vm:wr8(0xCCE3, 3)
+    vm:wr8(0xCCEB, 0xF3)
     wr16(vm, 0xCCE4, 0xA118)
     arm(8, 3)
   elseif mode == "90" then
@@ -612,6 +687,7 @@ function M.demo(vm, mode)
     vm:wr8(0xCCE3, 0)
     vm:wr8(0xCCE1, 0)
     vm:wr8(0xCCE2, 1)
+    vm:wr8(0xCCEB, 0x0B)
     wr16(vm, 0xCCE6, 0xD001)
     arm(8, 3)
   end
@@ -632,11 +708,18 @@ end
 function M:open()
   local vm = self.vm
   seedMarks(vm)
+  Win.reset(self)
   if self.mode == "8c" then
     fillCopied(vm)
     stampRows(vm)
   elseif self.mode == "8f" then
     stageSram(vm, self.rom)
+  end
+  -- StageCopiedBlockArmSlot / StageSramListArmSlot blank the upper pair
+  -- ($77C2), then stamp or blank the lower pair from the length.
+  if self.mode == "8c" or self.mode == "8f" then
+    Win.windowPair(self)
+    if vm:rd8(0xCCE2) ~= 0 then Win.markPair(self) else Win.blankMark(self) end
   end
   Slots.arm(vm)
 end
@@ -651,29 +734,29 @@ function M:dispatch(slot)
   vm:wr8(0xCCA7, slot)
   if self.mode == "8c" then
     if slot == 0xFE or slot == 0x0D then return self:finish(slot == 0xFE and "fe" or "0d", slot) end
-    if slot == 0x0B then scrollCopied(vm, slot, -1); return nil end
-    if slot == 0x0C then scrollCopied(vm, slot, 1); return nil end
+    if slot == 0x0B then scrollCopied(self, slot, -1); return nil end
+    if slot == 0x0C then scrollCopied(self, slot, 1); return nil end
     commitCopied(vm, slot)
     return nil
   end
   if self.mode == "8f" then
     if slot == 0xFE then return self:finish("fe", slot) end
-    if slot == 0x0B then scrollSram(vm, rom, slot, -1); return nil end
-    if slot == 0x0C then scrollSram(vm, rom, slot, 1); return nil end
+    if slot == 0x0B then scrollSram(self, rom, slot, -1); return nil end
+    if slot == 0x0C then scrollSram(self, rom, slot, 1); return nil end
     vm:wr8(0xCCC9, 0xFF)
     spendSram(vm, rom, slot)
     return nil
   end
   if slot == 0xFE then
-    local why = stepFe(vm)
+    local why = stepFe(self)
     if why then return self:finish(why, slot) end
     return nil
   end
-  if slot == 0x0B then scrollPrefixed(vm, slot, -1); return nil end
-  if slot == 0x0C then scrollPrefixed(vm, slot, 1); return nil end
-  if slot == 0x00 or slot == 0x01 then enterMode(vm, slot); return nil end
+  if slot == 0x0B then scrollPrefixed(self, slot, -1); return nil end
+  if slot == 0x0C then scrollPrefixed(self, slot, 1); return nil end
+  if slot == 0x00 or slot == 0x01 then enterMode(self, slot); return nil end
   if slot == 0x02 then return self:finish("done", slot) end
-  if vm:rd8(0xCCCB) == 0 then spendPrefixed(vm, rom, slot) else sellPrefixed(vm, rom, slot) end
+  if vm:rd8(0xCCCB) == 0 then spendPrefixed(vm, rom, slot) else sellPrefixed(self, rom, slot) end
   return nil
 end
 
@@ -705,18 +788,17 @@ function M:draw()
   if not love or not love.graphics then return end
   local vm = self.vm
   local g = love.graphics
-  g.setColor(1, 1, 1)
-  g.rectangle("fill", 0, 0, 160, 144)
-  g.setColor(0, 0, 0)
-  g.rectangle("fill", 0, 0, 160, 8)
-  g.rectangle("fill", 0, 96, 160, 8)
-  g.rectangle("fill", 0, 136, 160, 8)
-  g.rectangle("fill", 0, 0, 8, 144)
-  g.rectangle("fill", 152, 0, 8, 144)
-  g.setColor(1, 1, 1)
-  -- TODO(Bank3_7751): arrow tiles are still unknown. A triangle stands in.
-  if vm:rd8(0xCCE1) ~= 0 then g.polygon("fill", 64, 16, 72, 8, 80, 16) end
-  if vm:rd8(0xCCE2) ~= 0 then g.polygon("fill", 64, 96, 72, 104, 80, 96) end
+  if not Win.draw(self) then
+    g.setColor(1, 1, 1)
+    g.rectangle("fill", 0, 0, 160, 144)
+    g.setColor(0, 0, 0)
+    g.rectangle("fill", 0, 0, 160, 8)
+    g.rectangle("fill", 0, 96, 160, 8)
+    g.rectangle("fill", 0, 136, 160, 8)
+    g.rectangle("fill", 0, 0, 8, 144)
+    g.rectangle("fill", 152, 0, 8, 144)
+    g.setColor(1, 1, 1)
+  end
   for row = 0, 7 do
     local id = vm:rd8(0xCCCD + row)
     if id ~= 0xFF and vm:rd8(0xCCD9 + row) ~= 0 then

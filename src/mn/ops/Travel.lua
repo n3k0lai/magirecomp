@@ -2,6 +2,7 @@
 -- and the bank-3 choice calls. See src/mn/OpExt.lua for the handler contract.
 local bit = require("bit")
 local ListChoice = require("mn.ui.ListChoice")
+local Picture = require("mn.Picture")
 local bor, lshift = bit.bor, bit.lshift
 
 local M = { handlers = {} }
@@ -130,11 +131,29 @@ M.handlers[0x86] = function(vm, o, n)
   return o + n
 end
 
+-- $6A and $63 share one picture. Later cards write over the same VRAM.
+-- TODO(LoadFiveBankedMapSources): opcode $65 returns to the field map and
+-- must call vm.host.picture(nil). That handler lives in ScriptVM.
+local function livePicture(vm)
+  local pic = vm.travelPicture
+  if not pic then pic = Picture.new(); vm.travelPicture = pic end
+  pic.vm = vm
+  return pic
+end
+
+local function publishPicture(vm, pic)
+  -- clamp_map_camera.asm stores SCX/SCY at $FF43/$FF42. draw() reads them.
+  pic.scx, pic.scy = vm:rd8(0xFF43), vm:rd8(0xFF42)
+  if vm.host.picture then vm.host.picture(pic) end
+end
+
 -- $63 call_banked_word_then_resume.asm ($17D7) -> UnpackScriptMapsAt9800 ($2D14).
 M.handlers[0x63] = function(vm, o, n)
   local ptr, bank = vm.rom:u16(o + 1), vm.rom:u8(o + 3)
   if vm.host.travelBg then vm.host.travelBg(bank, ptr) end
-  -- visual: two packed streams to the $9800 background map, not drawn yet
+  local pic = livePicture(vm)
+  pic:unpackMaps(vm.rom, bank, ptr)
+  publishPicture(vm, pic)
   return o + n
 end
 
@@ -143,7 +162,10 @@ M.handlers[0x6A] = function(vm, o, n)
   local p1, b1 = vm.rom:u16(o + 1), vm.rom:u8(o + 3)
   local p2, b2 = vm.rom:u16(o + 4), vm.rom:u8(o + 6)
   if vm.host.travelTiles then vm.host.travelTiles(b1, p1) end
-  -- visual: CopyMapRecords ($2FC0) tile lists into both VRAM banks, not drawn yet
+  local pic = livePicture(vm)
+  pic:copyRecords(vm.rom, b1, p1) -- CopyMapRecords ($2FC0), both VRAM banks
+  pic:loadPalettes(vm.rom, b2, p2) -- the $40 bytes copied onto $C7AB below
+  publishPicture(vm, pic)
   local src = b2 * 0x4000 + p2 - 0x4000
   for i = 0, 63 do
     local v = vm.rom:u8(src + i)

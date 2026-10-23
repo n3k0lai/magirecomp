@@ -173,8 +173,10 @@ function VM:run(bank, ptr)
     local function jump(b, p) o = off(p, b) end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
       if h.freshScene and not self.init then h.freshScene() end
+      self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
+      if h.picture then h.picture(nil) end -- back to the field map
       if r:u8(o + 3) == 0x4F then h.loadMap((r:u16(o + 1) - 0x4000) / 15) end; o = o + n
     elseif op == 0x64 then h.setTriggers(r:u16(o + 1)); o = o + n -- ReadBank21ByteThenResume
     elseif op == 0x69 then h.setAList(r:u16(o + 1)); o = o + n -- RunBank21ScriptList ($2C97)
@@ -257,7 +259,9 @@ function VM:run(bank, ptr)
         while h.boxBusy() and guard < 3600 do guard = guard + 1; coroutine.yield("wait", 1) end
       end
       if h.boxClose then h.boxClose() end; o = o + n
-    elseif op == 0x42 or op == 0x12 then return -- InstallParkedScript / Opcode12: park the record
+    elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
+      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
+      return
     elseif op == 0x6B then h.glyphCopy(r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)); o = o + n -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest, wGlyphVRAMBank; CopyGlyph moves 16 bytes per count
     elseif op == 0x56 or op == 0x57 or op == 0x58 then
       -- StoreScriptByteAtC6F8/A/C: mailbox post; stall while the box is full.
@@ -350,7 +354,7 @@ function VM:run(bank, ptr)
       if not self.init then coroutine.yield("wait", math.max(1, r:u8(o - 1))) end
     elseif op == 0x1B then self:wr8(0xC921, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(1, r:u8(o + 1)) end; o = o + n -- wSoundSlotA
     elseif op == 0x1C then self:wr8(0xC922, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(2, r:u8(o + 1)) end; o = o + n -- wSoundSlotB
-    elseif op == 0x21 then self:wr8(0xC91F, 1); o = o + n -- wSoundRequest = 1
+    elseif op == 0x21 then self:wr8(0xC91F, 1); if h.sfx then h.sfx(1) end; o = o + n -- wSoundRequest = 1 (opcode_21.asm)
     elseif op == 0x48 then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
     elseif op == 0x80 then -- WriteScriptBytesAcrossWramBanks: word, addr, bank-5 byte (collision), bank-3 byte (metatile)
       local a, col, mt = r:u16(o + 3), r:u8(o + 5), r:u8(o + 6)

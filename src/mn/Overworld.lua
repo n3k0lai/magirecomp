@@ -9,6 +9,8 @@ local Sprites = require("mn.Sprites")
 local Font = require("mn.Font")
 local Battle = require("mn.Battle")
 local StartMenu = require("mn.ui.StartMenu")
+local Sfx = require("mn.Sfx")
+local SfxOut = require("mn.SfxOut")
 local M = {}
 M.__index = M
 
@@ -16,12 +18,14 @@ local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0
 
 function M.new(mapIndex, x, y, input)
   local s = setmetatable({ input = input, log = {}, objects = {} }, M)
+  local rom = Importer.scriptRom()
+  s.sfxOut = SfxOut.new(rom)
   s.player = assert(loadstring(love.filesystem.read(Importer.CACHE .. "/player.lua")))()
   s.sheet = love.graphics.newImage(Importer.CACHE .. "/player.png"); s.sheet:setFilter("nearest", "nearest")
   s.quads = {}
   for i = 1, s.player.frames do s.quads[i] = love.graphics.newQuad((i - 1) * 32, 0, 32, 32, s.sheet:getDimensions()) end
   s.font = love.graphics.newFont(8); s.font:setFilter("nearest", "nearest")
-  s.vm = VM.new(Importer.scriptRom(), s:host())
+  s.vm = VM.new(rom, s:host())
   -- default_state: $FFAA/$FFAB start at 3 (bit 1 lets HandleStartPress open the menu)
   if s.vm:rd8(0xFFAA) == 0 and s.vm:rd8(0xFFAB) == 0 then s.vm:wr8(0xFFAA, 3); s.vm:wr8(0xFFAB, 3) end
   s.items = assert(loadstring(love.filesystem.read(Importer.CACHE .. "/items.lua")))()
@@ -256,8 +260,10 @@ function M:host()
     choose = function(n) return s.textBox and Font.choice(s.textBox, n) end,
     boxClose = function() s.aCool = 20; if os.getenv("MN_THR") then print(("[txt] f%d close"):format(s.vm.tk or 0)) end; s.textBox = nil end,
     boxBusy = function() local b = s.textBox; return b ~= nil and not (b.done and not b.wait) end,
+    picture = function(pic) s.picture = pic end, -- $63/$6A travel cards (mn.Picture); nil on $65
   }
   require("mn.OpExt").extendHost(s, h) -- host callbacks added by src/mn/ops/*.lua
+  Sfx.host(s, h) -- h.sfx / h.sfxSlot / h.sfxRequest / h.sfxSelect on s.sfxOut.sfx
   return h
 end
 
@@ -344,6 +350,8 @@ function M:flushInit()
 end
 
 function M:update()
+  -- vblank slice for the SFX driver, including frames a menu or battle owns
+  self.sfxOut:update(1 / 60)
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then
     local r = self.overlay:update()
@@ -553,6 +561,9 @@ function M:drawField()
   local W, H = self.def.w * 16, self.def.h * 16
   local cx, cy = self:cameraXY()
   love.graphics.clear(0, 0, 0)
+  if self.picture then
+    self.picture:draw() -- a travel card / title picture replaces the field until $65
+  else
   love.graphics.draw(self.def.image, -cx, -cy)
   for _, p in ipairs(self.patches) do
     love.graphics.draw(self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - cx, p.y * 16 - cy)
@@ -565,12 +576,13 @@ function M:drawField()
     if o.image and not o.dormant and not o.blank then love.graphics.draw(o.image, o.x * 16 - 24 + (o.ox or 0) - cx, o.y * 16 - 24 + (o.oy or 0) - cy) end
   end
   if not self.hidePlayer then love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - cx - 8, self.py - cy - 8) end
+  end
   -- title-card fade: while [$C6F3] == 0 the scene sits at palette black
   -- ((0,16,0) in PyBoy); when the director sets it to 1 it fades in over $40
   -- frames (the $6F $87,$0040 stage before FinishStartup).
   local f3 = self.vm.mem[0xC6F3]
   if f3 == 0 then self.fadeT = 0 elseif f3 == 1 and self.fadeT then self.fadeT = self.fadeT + 1; if self.fadeT > 64 then self.fadeT = nil end end
-  if self.fadeT then
+  if self.fadeT and not self.picture then -- the field's startup fade; cards use the $6E/$6F fades
     love.graphics.setColor(0, 16 / 255, 0, 1 - self.fadeT / 64)
     love.graphics.rectangle("fill", 0, 0, 160, 144)
     love.graphics.setColor(1, 1, 1, 1)

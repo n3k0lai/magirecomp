@@ -38,18 +38,38 @@ following bytes as the program. `RunSoundStream` stops on a zero cursor
 tick early. `snd_loop` with count 0 repeats forever (`SfxStream03`,
 `SfxStream21`).
 
+## Playback
+
+`src/mn/SfxOut.lua` owns one `Sfx`. The field builds it in `Overworld.new`
+(same ROM as the script VM; bank `$30` is inside `scripts.bin`) and
+`Sfx.host(ow, h)` from `Overworld:host`, so `ow.sfx` is `ow.sfxOut.sfx`.
+`Overworld:update` calls `sfxOut:update(1/60)` once. That renders the
+samples due at 44100 Hz and queues one mono 16-bit buffer on a
+`QueueableSource` with four slots. Do not also call `step`.
+
+Muted, and it never creates a source or calls `play`, when
+`SDL_AUDIODRIVER` is `dummy`, or `MN_NOMUSIC` or `MN_MUTE` is set, or
+`love.audio` / `love.sound` cannot build the queue. The driver still
+renders, so a request is consumed on the same vblank it would be with a
+device. `mn-headless` is always muted.
+
 ## What Ene wires
 
-`Sfx.host(ow, h)` sets `h.sfx`, `h.sfxSlot`, and `h.sfxRequest`. The
-overworld needs `ow.vm.rom` or `ow.rom`. Each audio callback should call
-`ow.sfx:render(n)` and queue the samples. Do not also call `step`.
+`Sfx.host` sets `h.sfx`, `h.sfxSlot`, `h.sfxRequest`, and `h.sfxSelect`.
+`h.sfxSelect(sel, c928, c929, c92c)` writes `$C928`, `$C929`, `$C92C`,
+then `request("select", sel)` for `$C92A`. The driver does not share the
+VM's memory, so a bare `vm:wr8` does not reach it.
 
-`ScriptVM` already calls `h.sfxSlot` for opcodes `$1B` and `$1C`, and
-`h.sfx(2)` for `$1D`. `$1E` (`wSoundRequest = 4`) and `$21`
-(`wSoundRequest = 1`) only write the VM's own RAM. Point those at
-`h.sfx(4)` and `h.sfx(1)`. Menus and battle that store `$C921` / `$C922`
-directly need `sfx:request("slotA"|"slotB", id)` at those sites. The
-call-site list is in the job report.
+Opcodes `$1B`, `$1C`, `$1D`, `$1E`, `$21`, `$22`, and `$23` already copy
+into the driver. These still write the VM only:
+
+| site | bytes | hook |
+|---|---|---|
+| `ScriptVM` `$1F` | `$C920` / `$C91E` when the index changes, then `$C92A = 0`, `$C92C = $0F` (also `h.music`). It does not touch `$C928` / `$C929` | `request("active", id)` on change, then `sfx:wr` of `$C92A` and `$C92C` only |
+| `ListChoice.commitCopied` | `$C91F = 1` on a buy, index, `$C92A = 0`, `$C92C = $0F` | `h.sfx(1)`, `request("active", id)`, then the same two `sfx:wr`s |
+| `ListChoice.deny` | `$C921 = 2` | `h.sfxSlot(1, 2)` |
+| `ui/start/Machine.lua` `openBytes` and `leave` | `$C92C`, `$C928 = 0`, `$C929 = 0`, `$C92A = 4` | `h.sfxSelect(4, 0, 0, c92c)` |
+| `ui/start/Commit.lua` save tail | same mix restore, `$C92C = $0F` | `h.sfxSelect(4, 0, 0, 0x0F)` |
 
 Music notes and SFX share channels in the ROM driver. This module does
 not drive `MnMusic`, so a slot does not steal a song channel. `sfx:routed()`
