@@ -12,7 +12,7 @@ The keyboard boot (no `MN_NEWGAME`, no `--mn-test`, no `MN_LOAD`, no `MN_BATTLE_
 - A file that passes the stamp check is installed into the VM and not resumed. The saved script at `$A012` stays for the title script.
 - A missing or rejected file leaves SRAM unread, so `$A017` is 0.
 
-`MN_NEWGAME=1` without `MN_TITLE` is unchanged: Continue is called and returns without starting a script. `--mn-test` without `MN_TITLE` is unchanged. `MN_TITLE=1` runs this same title boot under `--mn-test` (and on the keyboard path). `MN_LOAD` and `MN_BATTLE_TEST` still win.
+For now the keyboard default is still Continue: the title is opt-in with `MN_TITLE=1` until the slideshow pictures land. `MN_NEWGAME=1` without `MN_TITLE` is unchanged: Continue is called and returns without starting a script. `--mn-test` without `MN_TITLE` is unchanged. `MN_TITLE=1` runs this same title boot under `--mn-test` (and on the keyboard path). `MN_LOAD` and `MN_BATTLE_TEST` still win.
 
 ## Bytes
 

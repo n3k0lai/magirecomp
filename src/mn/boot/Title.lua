@@ -70,7 +70,9 @@ function M.choose(getenv, opts)
   if getenv("MN_TITLE") == "1" then return "title" end
   if opts.test then return nil end
   if getenv("MN_NEWGAME") == "1" then return "continue" end
-  return "title"
+  -- Opt-in until the slideshow pictures (host.picture) land: without them the
+  -- title is the bare map, so the keyboard default stays Continue for now.
+  return "continue"
 end
 
 -- check_save_signature.asm on bank 0, then mirror_accepted_save.asm.
