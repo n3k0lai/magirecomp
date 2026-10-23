@@ -198,7 +198,8 @@ do
   ok(tap(scr, keys, "b") == nil and scr.child == nil and vm:rd8(0xCD81) == 0, "second item B returns")
   tap(scr, keys, "down"); tap(scr, keys, "down"); tap(scr, keys, "down"); tap(scr, keys, "down")
   ok(scr.mach.cd81 == 4, "four downs reach glyph")
-  ok(tap(scr, keys, "a") == nil and scr.child == nil and vm:rd8(0xCC47) == 5, "glyph A does nothing")
+  ok(tap(scr, keys, "a") == nil and scr.child ~= nil and vm:rd8(0xCC47) == 9
+    and vm:rd8(0xCD81) == 0x14, "A on glyph opens the map")
   local closed = tap(scr, keys, "start")
   ok(closed and closed.action == "close", "Start closes from the top menu")
 end
