@@ -200,32 +200,39 @@ local function reenterReset(vm)
 end
 
 -- opcode_1e.asm: wSoundRequest ($C91F) = 4. SelectSoundCommand treats bit 2 as
--- SoundRequestBit2. audio: that command is not played yet.
+-- SoundRequestBit2 (the latch at $0709).
 local function soundRequest4(vm, o, n)
   vm:wr8(0xC91F, 4)
+  local h = vm.host
+  if h and h.sfx then h.sfx(4) end
   return o + n
 end
 
 -- opcode_22.asm: low nibble to $C92C, $C928 and $C929 cleared, wSoundSelect
--- ($C92A) = 4. SoundSelectOther passes $C92C to ApplyC92C ($4320, still the
--- sound driver). audio: not played yet.
+-- ($C92A) = 4. Bits 0 and 1 are clear, so SelectSoundCommand takes
+-- SoundSelectOther, which passes $C92C to ApplyC92C and clears the select.
 local function soundSelect4(vm, o, n)
-  local r = vm.rom
-  vm:wr8(0xC92C, band(r:u8(o + 1), 0x0F))
+  local v = band(vm.rom:u8(o + 1), 0x0F)
+  vm:wr8(0xC92C, v)
   vm:wr8(0xC928, 0)
   vm:wr8(0xC929, 0)
   vm:wr8(0xC92A, 4)
+  local h = vm.host
+  if h and h.sfxSelect then h.sfxSelect(4, 0, 0, v) end
   return o + n
 end
 
 -- opcode_23.asm: high nibble plus one to $C929, $C928 and $C92C cleared,
--- wSoundSelect = 2 (SoundSelectBit1 counts $C928 up to $C929). audio: not played yet.
+-- wSoundSelect = 2. SoundSelectBit1 counts $C928 up to $C929, then steps $C92C.
 local function soundSelect2(vm, o, n)
   local e = vm.rom:u8(o + 1)
-  vm:wr8(0xC929, band(rshift(e, 4), 0x0F) + 1)
+  local lim = band(rshift(e, 4), 0x0F) + 1
+  vm:wr8(0xC929, lim)
   vm:wr8(0xC928, 0)
   vm:wr8(0xC92C, 0)
   vm:wr8(0xC92A, 2)
+  local h = vm.host
+  if h and h.sfxSelect then h.sfxSelect(2, 0, lim, 0) end
   return o + n
 end
 

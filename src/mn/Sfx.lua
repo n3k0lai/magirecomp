@@ -101,17 +101,26 @@ function M:render(n)
   return out
 end
 
--- Overworld host hooks. ow.vm.rom or ow.rom. Ene calls this where the VM
--- host is built, then queues ow.sfx:render from the audio callback.
+-- Overworld host hooks. ow.vm.rom or ow.rom. Reuses SfxOut's driver when
+-- the field already built one, so requests and playback are the same Sfx.
+-- Driver WRAM is not the VM's: opcodes copy the bytes the selector reads.
 function M.host(ow, h)
   local rom = (ow.vm and ow.vm.rom) or ow.rom
-  local sfx = M.new(rom)
+  local sfx = (ow.sfxOut and ow.sfxOut.sfx) or M.new(rom)
   ow.sfx = sfx
   h.sfx = function(kind) sfx:request("request", kind) end
   h.sfxSlot = function(slot, id)
     sfx:request(slot == 1 and "slotA" or "slotB", id)
   end
   h.sfxRequest = function(id) sfx:request("request", id) end
+  -- opcode_22.asm / opcode_23.asm. SoundSelectOther and SoundSelectBit1
+  -- read $C928 / $C929 / $C92C; request("select") writes $C92A.
+  h.sfxSelect = function(sel, c928, c929, c92c)
+    sfx:wr(0xC928, c928 or 0)
+    sfx:wr(0xC929, c929 or 0)
+    sfx:wr(0xC92C, c92c or 0)
+    sfx:request("select", sel)
+  end
   return sfx
 end
 
