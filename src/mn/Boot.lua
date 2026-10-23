@@ -1,4 +1,4 @@
--- Magi-Nation boot: `love . --mn [--rom path] [--viewer] [--mn-test outdir]`.
+-- Magi-Nation boot: `love . --mn [--rom path] [--viewer] [--mn-test outdir [--mn-ui Name]]`.
 -- Uses gen1recomp's StateStack; renders into a 160x144 canvas scaled x4.
 package.path = "src/?.lua;" .. package.path
 local MnRom = require("mn.MnRom")
@@ -18,6 +18,7 @@ for i, a in ipairs(arg or {}) do
   if a == "--rom" then opts.rom = arg[i + 1] end
   if a == "--viewer" then opts.viewer = true end
   if a == "--mn-test" then opts.test = arg[i + 1] end
+  if a == "--mn-ui" then opts.ui = arg[i + 1] end
   if a == "--mn-music" then opts.music = tonumber(arg[i + 1]); opts.musicOut = arg[i + 2] end
 end
 
@@ -186,7 +187,55 @@ function love.load()
   end
   canvas = love.graphics.newCanvas(160, 144); canvas:setFilter("nearest", "nearest")
   local Overworld = require("mn.Overworld")
-  if opts.test then
+  if opts.ui and opts.test then
+    -- UI harness: `--mn-ui Name --mn-test outdir` runs src/mn/ui/Name.lua as the only
+    -- screen over an Overworld at MN_START (no entry script). MN_KEYS="w30,down,a,start"
+    -- feeds one key per token (wN waits N frames), held for one frame. Ends when the
+    -- screen's update returns a result or after MN_FRAMES (default 600) frames.
+    local def = Importer.loadMap(tonumber(os.getenv("MN_START") or "1"))
+    local sp = def.entries[1] and def.entries[1].spawn or { x = 1, y = 1 }
+    local q = {}
+    for tok in (os.getenv("MN_KEYS") or ""):gmatch("[^,]+") do q[#q + 1] = tok end
+    local qi, waitN, cur = 1, 0, nil
+    local DIR = { up = true, down = true, left = true, right = true }
+    local function input(kind)
+      if kind == "dir" then return DIR[cur] and cur or nil end
+      return cur == kind
+    end
+    local ow = Overworld.new(tonumber(os.getenv("MN_START") or "1"), sp.x, sp.y, input)
+    local ctx = { rom = ow.vm.rom, vm = ow.vm, ow = ow, input = input, log = ow.log }
+    local scr = require("mn.ui." .. opts.ui).new(ctx)
+    scr.map = scr.map or ow.map
+    local inner = scr.update
+    scr.update = function(self) local r = inner(self); if r ~= nil then self.result = r end; return r end
+    stack:push(scr)
+    Boot.keyTick = function()
+      cur = nil
+      if waitN > 0 then waitN = waitN - 1; return end
+      local tok = q[qi]
+      if not tok then return end
+      qi = qi + 1
+      local n = tok:match("^w(%d+)$")
+      if n then waitN = tonumber(n) else cur = tok; waitN = 6 end
+    end
+    local ended = false
+    Boot.testDone = function()
+      if ended then return false end
+      if scr.result == nil and frame <= tonumber(os.getenv("MN_FRAMES") or "600") then return false end
+      ended = true
+      local r = scr.result
+      if type(r) == "table" then
+        local t = {}
+        for k, v in pairs(r) do t[#t + 1] = tostring(k) .. "=" .. tostring(v) end
+        table.sort(t); r = "{" .. table.concat(t, " ") .. "}"
+      end
+      print(("[mn-ui] %s result %s at frame %d"):format(opts.ui, tostring(r), frame))
+      for _, l in ipairs(ow.log) do print("[mn-ui] " .. l) end
+      for _, l in ipairs(ow.vm.log) do print("[mn-ui] " .. l) end
+      love.event.quit(0)
+      return false
+    end
+  elseif opts.test then
     local start = tonumber(os.getenv("MN_START") or "1")
     local def = Importer.loadMap(start); local e = def.entries[1]
     local planner
@@ -361,12 +410,12 @@ function love.load()
     local startMap = tonumber(os.getenv("MN_BATTLE_TEST") and "3" or "0")
     local def = Importer.loadMap(startMap); local sp = def.entries[1] and def.entries[1].spawn or { x = 1, y = 1 }
     local pressed, held = {}, {}
-    local AK = { z = "a", ["return"] = "a", x = "b", backspace = "b" }
+    local AK = { z = "a", ["return"] = "a", x = "b", backspace = "b", space = "start", rshift = "select" }
     function love.keypressed(k) held[k] = true; if AK[k] then pressed[AK[k]] = true end end
     function love.keyreleased(k) held[k] = nil end
     local mkOw = os.getenv("MN_LOAD") and function(_, _, _, fn) return Overworld.load(os.getenv("MN_LOAD"), fn) end or Overworld.new
     local ow = mkOw(startMap, sp.x, sp.y, function(kind)
-      if kind == "a" or kind == "b" then local p = pressed[kind]; pressed[kind] = false; return p end
+      if kind == "a" or kind == "b" or kind == "start" or kind == "select" then local p = pressed[kind]; pressed[kind] = false; return p end
       for _, k in ipairs({ "up", "down", "left", "right" }) do if held[k] or love.keyboard.isDown(k) then return k end end
     end)
     if not os.getenv("MN_LOAD") and not os.getenv("MN_BATTLE_TEST") then

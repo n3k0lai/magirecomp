@@ -208,6 +208,18 @@ function M:host()
       s.battleSetup = { args = a, ops = {} }
       s.log[#s.log + 1] = ("battle setup C9E4=%02X D391=%02X D36D=%02X script %02X:%04X"):format(a[1], a[2], a[3], a[4], a[5])
     end,
+    -- open a UI screen over the field; done(result) runs when its update returns non-nil
+    overlay = function(scr, done) s.overlay, s.overlayDone = scr, done end,
+    -- from inside a VM coroutine (not the LCD-off init run): open scr, wait until it
+    -- closes, return its result. Map setup (vm.init) gets nil without opening anything.
+    runOverlay = function(scr)
+      if s.vm.init or not coroutine.running() then return nil end
+      local res
+      s.overlay, s.overlayDone = scr, function(r) res = r end
+      while s.overlay == scr do coroutine.yield("wait", 1) end
+      return res
+    end,
+    uiContext = function() return { rom = s.vm.rom, vm = s.vm, ow = s, input = s.input, log = s.log } end,
     battleOp = function(op, args)
       local t = {}; for i, v in ipairs(args) do t[i] = ("%02X"):format(v) end
       s.log[#s.log + 1] = ("battle op $%02X %s"):format(op, table.concat(t, " "))
@@ -329,6 +341,16 @@ function M:flushInit()
 end
 
 function M:update()
+  -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
+  if self.overlay then
+    local r = self.overlay:update()
+    if r ~= nil then
+      local done = self.overlayDone
+      self.overlay, self.overlayDone = nil, nil
+      if done then done(r) end
+    end
+    return
+  end
   if self.battle then
     local done = self.battle:update()
     if done then self.log[#self.log + 1] = ("battle end: %s"):format(tostring(done)); self.battle = nil; self.battleResult = done end
@@ -490,6 +512,7 @@ end
 
 function M:draw()
   if self.battle then self.battle:draw() else self:drawField() end
+  if self.overlay then self.overlay:draw() end
   if Battle.GOD then -- dev mode tag (MN_GOD=1), never shown in normal play
     love.graphics.setColor(1, 0.2, 0.2); love.graphics.rectangle("fill", 130, 0, 30, 11)
     love.graphics.setColor(1, 1, 1); love.graphics.print("GOD", 133, -2); love.graphics.setColor(1, 1, 1)
