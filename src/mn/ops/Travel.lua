@@ -177,7 +177,11 @@ M.handlers[0x8B] = function(vm, o, n)
   armSlot(vm, 0x08, 0xF3, 0xCCD6, 0x6B77, 0x42E3, 1)
   vm:wr8(0xCCE3, 0x03)
   vm:wr8(0xCCEB, 0xF9)
-  -- visual: tile window and DispatchArmedChoice, not drawn yet
+  -- DispatchArmedChoice ($4F83) runs the window, then the next opcode.
+  -- ChoiceWindow writes $CCFD (and $CCFC on cancel) the way that loop does.
+  if not vm.init and vm.host.runOverlay and vm.host.uiContext then
+    vm.host.runOverlay(require("mn.ui.ChoiceWindow").new(vm.host.uiContext()))
+  end
   return o + n
 end
 
@@ -216,7 +220,11 @@ M.handlers[0x8D] = function(vm, o, n)
   for i = 0, 3 do vm:wr8(0xCC56 + i, 1) end
   vm:wr8(0xCD81, 1)
   armSlot(vm, 0x07, 0xF3, 0xCC4D, 0x42E3, 0x42E3, 0)
-  -- visual: window tiles and ServiceWindowChoice, not drawn yet
+  -- ServiceWindowChoice ($58CB) runs the window, then the next opcode.
+  -- ChoiceWindow writes $CD74 the way that loop saves the choice.
+  if not vm.init and vm.host.runOverlay and vm.host.uiContext then
+    vm.host.runOverlay(require("mn.ui.ChoiceWindow").new(vm.host.uiContext()))
+  end
   return o + n
 end
 
