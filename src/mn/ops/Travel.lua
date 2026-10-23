@@ -1,6 +1,7 @@
 -- mn.ops.Travel: bank-$29 map-to-map travel cards, the bank-7 "take" twin of $87,
 -- and the bank-3 choice calls. See src/mn/OpExt.lua for the handler contract.
 local bit = require("bit")
+local ListChoice = require("mn.ui.ListChoice")
 local bor, lshift = bit.bor, bit.lshift
 
 local M = { handlers = {} }
@@ -95,6 +96,16 @@ local function fillChoice(vm)
     step, fill = nxt, (fill + 1) % 256
     if not padding and len == step then padding = true end
   end
+end
+
+-- The list window runs only once a script coroutine is waiting on it.
+-- vm.init (map setup) and a host with no overlay leave the staged bytes
+-- and let the script continue, which is what the opcode used to do.
+local function openList(vm, mode)
+  if vm.init or not vm.host or not vm.host.runOverlay then return end
+  local ctx = vm.host.uiContext and vm.host.uiContext()
+  ctx = ctx or { rom = vm.rom, vm = vm, input = function() end, log = {} }
+  vm.host.runOverlay(ListChoice.new(ctx, mode))
 end
 
 local function floorByte(vm, addr)
@@ -202,7 +213,7 @@ M.handlers[0x8C] = function(vm, o, n)
   vm:wr8(0xCCE2, vm:rd8(0xCCCC) > 8 and 1 or 0)
   vm:wr8(0xCD81, 3)
   armSlot(vm, 0x08, 0xF3, 0xCCD6, 0x6B77, 0x42E3, 1)
-  -- visual: the copied-block choice window, not drawn yet
+  openList(vm, "8c")
   return o + n
 end
 
@@ -241,7 +252,7 @@ M.handlers[0x8F] = function(vm, o, n)
   armSlot(vm, 0x08, 0xF3, 0xCCD6, 0x6B77, 0x42E3, 1)
   vm:wr8(0xCCE3, 0x03)
   vm:wr8(0xCCEB, 0xF3)
-  -- visual: SRAM-list window ($A118 names), not drawn yet
+  openList(vm, "8f")
   return o + n
 end
 
@@ -263,7 +274,7 @@ M.handlers[0x90] = function(vm, o, n)
   put16(vm, 0xCCE4, 0xA3A7) -- item counts, the list the choice walks
   vm:wr8(0xCCEA, 0x0D)
   armSlot(vm, 0x06, 0xF3, 0xCCD6, 0x6B77, 0x42E3, 1)
-  -- visual: prefixed-block choice window, not drawn yet
+  openList(vm, "90")
   return o + n
 end
 
