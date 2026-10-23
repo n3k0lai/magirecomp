@@ -35,13 +35,17 @@ draws each count, and takes the 13-byte name from the matching bank-7 record.
 B once moves onto the row's label; B again returns to the top menu. Scrolling
 follows the same pointer walks as `FillGroupPointers`.
 
-A on Rings, Glyph, and List does nothing. Those modes are still to do.
+A on Glyph opens the map (`DrawIndex9Map`). `$A3A4` chooses which stamp
+cells are added to the index-9 tilemap. The cursor record for that mode
+sits past the window, and every direction stays on it. B returns to the
+Glyph row. A on Rings and List does nothing. Those modes are still to do.
 Save is the slot to the right of the first row. A latches the cursor; A
 again plants the five-byte script record at `$C714` (`$CCA5` chooses which
 record) and writes the save file the way opcode `$92` does when its copy
 operand is zero: player cell, stamp, mirror, `mn_save/slot1.sav`.
 
-Harness names: `StartMenu`, `start.Items`, `start.Spell`, `start.Save`.
+Harness names: `StartMenu`, `start.Items`, `start.Spell`, `start.Glyph`,
+`start.Save`.
 Do not run `start.Save` against the real save directory.
 
 ## Wiring
@@ -61,7 +65,7 @@ that bit is set the way `default_state` and `FinishFrame` set it.
 
 ## Left for later
 
-Rings (`DrawIndexedEntry`), Glyph (`DrawIndex9Map`), the list mode
+Rings (`DrawIndexedEntry`), the list mode
 (`IndexedSetup` index `$0B`), mode 6, Select on slots `$1C` and `$1D`
 (`RetargetSramSlotCount`), the party pictures (`CopyIndex5VRAMTiles`), and
 one icon on the spell row. A latched A on any slot other than Save does not

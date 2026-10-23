@@ -234,12 +234,12 @@ function M:toggle(nxt)
   return nil
 end
 
--- StepSlotPair compare path. Modes other than the start screen (5), the
--- spell list (3) and the item list (4) are left untouched.
+-- StepSlotPair compare path. Mode 9 is the glyph map. Modes other than the
+-- start screen (5), the spell list (3), the item list (4) and that map are
+-- left untouched.
 function M:switchMode(cmd, nxt)
-  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 then
+  if cmd ~= 0 and cmd ~= 3 and cmd ~= 4 and cmd ~= 5 and cmd ~= 9 then
     -- TODO(DrawIndexedEntry): mode 7, rings
-    -- TODO(DrawIndex9Map): mode 9, glyph
     -- TODO(IndexedSetup): mode 6 ($A019) and mode $0B (the list at $A4A6)
     return nil
   end
@@ -251,6 +251,7 @@ function M:switchMode(cmd, nxt)
   self:flush()
   if cmd == 3 then return "spell" end
   if cmd == 4 then return "items" end
+  if cmd == 9 then return "glyph" end
   return "menu"
 end
 
