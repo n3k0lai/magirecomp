@@ -323,15 +323,17 @@ function love.load()
             if ow.farMap ~= nil or not ow.replan then visits[ow.map] = (visits[ow.map] or 0) + 1; ow.step = 1; ow.talkSeen = nil end
             ow.replan = nil
             ow.farMap = ow.map
-            local def, prev, q, h = ow.def, {}, { { ow.x, ow.y } }, 1
+            local def = ow.def
+            local function search(crossDoors)
+            local prev, q, h = {}, { { ow.x, ow.y } }, 1
             prev[ow.y * def.w + ow.x] = -1
-            local best, bd, dist = nil, -1, { [ow.y * def.w + ow.x] = 0 }
+            local best, bd, dist, hadGoal = nil, -1, { [ow.y * def.w + ow.x] = 0 }
             while h <= #q do
               local c = q[h]; h = h + 1
               local id = c[2] * def.w + c[1]
               local gl = goals[ow.map]; local vl = gl and gl[math.min(visits[ow.map] or 1, #gl)]
               local g = vl and vl[math.min(ow.step or 1, #vl)]
-              if g then ow.farFace = g.face; if c[1] == g[1] and c[2] == g[2] then best, bd = c, dist[id] end
+              if g then hadGoal = true; ow.farFace = g.face; if c[1] == g[1] and c[2] == g[2] then best, bd = c, dist[id] end
               elseif W.cell(def, c[1], c[2]) >= 0xC0 and dist[id] > bd then best, bd = c, dist[id] end
               for _, dd in ipairs({ { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } }) do
                 local nx, ny = c[1] + dd[1], c[2] + dd[2]; local nid = ny * def.w + nx
@@ -342,7 +344,7 @@ function love.load()
                 -- (277 37,8 runs the Shadow Geyser scene on every crossing while story is 3..5)
                 if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and not ob.dormant and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end
                 -- a goal route also steps around other doors (279 32,26 crossed the 74/75 door at 19-20,22)
-                if g and nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
+                if g and not crossDoors and nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
                   local v = W.cell(def, nx, ny)
                   local t = v >= 0xC0 and def.triggers[bit.band(v, 0x3F) + 1]
                   -- only map doors; event lines (to = -1, e.g. 110 5-9,17) must stay crossable
@@ -352,6 +354,15 @@ function love.load()
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 end
               end
+            end
+            return best, prev, hadGoal
+            end
+            -- other doors are stepped around; when one is the only connector (279 19-20,22 is the
+            -- town-74 icon, a kind-0 trigger that always enters 74) cross it as a last resort
+            local best, prev, hadGoal = search(false)
+            if not best and hadGoal then
+              best, prev = search(true)
+              if best then ow.log[#ow.log + 1] = "route far: goal only reachable across another door" end
             end
             ow.farPath = {}
             if best then

@@ -257,6 +257,11 @@ its real effect shows on the next load of map 20.
    only goes past 7 at 22:6498 in map 74, the one script that stores
    story 8. Map 74 picks it once $A224 = 6, after the 105-107 and 210-213
    phases above.
+   279's two halves only meet through the town-74 icon at 19-20,22, a
+   kind-0 door (2F:4496) that always enters 74, picking the arrival cell
+   by entry direction. Real play walks through the town: 74's east edge
+   (59,19-23, kind 3) returns to 279 at 21,22, its west edge to 18,22 and
+   its north edge to 19,21. Route: `279:19.22|32.26|34.21,74:59.21`.
 
 ### Harness notes
 

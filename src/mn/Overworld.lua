@@ -343,13 +343,27 @@ function M:triggerTo(idx)
 end
 
 function M:snapshot(b, p)
-  local want, file = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
-  if not (want and file) then return end
+  local want, files = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
+  if not (want and files) then return end
   local to = self:triggerTo(bit.band(World.cell(self.def, self.x, self.y), 0x3F))
-  local m, n = want:match("^(%d+):?(%d*)$")
-  if not to or to ~= tonumber(m) then return end
-  self.snapCount = (self.snapCount or 0) + 1
-  if self.snapCount ~= (tonumber(n) or 1) then return end
+  if not to then return end
+  -- comma lists pair up: MN_SNAP_TO=279,113 MN_SNAP_FILE=a.lua,b.lua (one checkpoint per map)
+  local fl = {}
+  for f in files:gmatch("[^,]+") do fl[#fl + 1] = f end
+  local i = 0
+  for spec in want:gmatch("[^,]+") do
+    i = i + 1
+    local m, n = spec:match("^(%d+):?(%d*)$")
+    local file = fl[i]
+    if file and m and to == tonumber(m) then
+      self.snapCount = self.snapCount or {}
+      self.snapCount[i] = (self.snapCount[i] or 0) + 1
+      if self.snapCount[i] == (tonumber(n) or 1) then self:writeSnapshot(file, b, p, to) end
+    end
+  end
+end
+
+function M:writeSnapshot(file, b, p, to)
   local parts = {}
   -- SRAM (story word, flags, items, saved script) and the title-card flag; other WRAM is per-scene
   for a, v in pairs(self.vm.mem) do
