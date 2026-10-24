@@ -249,6 +249,17 @@ function M:triggerList(ptr)
   return t, c
 end
 
+-- A plausible trigger list: 1..63 records, each a ROM bank and a
+-- $4000-$7FFF script pointer.
+function M:triggerListOk(ptr)
+  local t, c = self:triggerList(ptr)
+  if c < 1 or c > 63 then return false end
+  for i = 0, c - 1 do
+    if t[i].bank < 0x02 or t[i].bank > 0x7F or t[i].ptr < 0x4000 or t[i].ptr > 0x7FFF then return false end
+  end
+  return true
+end
+
 -- Follow a trigger script (straight line + far branches, BFS) to the first
 -- map-entry script. Opcode $02 before it rebases the player position:
 -- x' = x - b0 + b1, y' = y - b2 + b3 (wScriptPair from $C18E/$C18F).

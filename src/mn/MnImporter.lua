@@ -6,7 +6,7 @@ local M = {}
 
 M.SHA1 = "9972a7bca43210b4b6c0b3f6ee5d1957a865e12d" -- Magi-Nation (USA) GBC
 M.CACHE = "mn_cache"
-M.VERSION = 13
+M.VERSION = 14
 
 local function ser(v, ind)
   ind = ind or ""
@@ -145,9 +145,13 @@ function M.import(bytes, log)
     for k = 0, 255 do fake.map.cells[k + 1] = k end
     MnRom.render(fake, function(x, y, r, g, b) at:setPixel(x, y, r, g, b, 1) end)
     love.filesystem.write(("%s/maps/%03d_meta.png"):format(M.CACHE, i), at:encode("png"))
-    -- trigger list: first entry script for this map that sets one
+    -- trigger list: first entry script for this map whose $64 list parses
+    -- as real records (some entries match the 65 xx xx 4F scan by accident
+    -- and point at graphics: maps 40, 73, 198)
     local triggers, listPtr = {}, nil
-    for _, e in ipairs(byMap[i] or {}) do if e.list then listPtr = e.list; break end end
+    for _, e in ipairs(byMap[i] or {}) do
+      if e.list and rom:triggerListOk(e.list) then listPtr = e.list; break end
+    end
     if listPtr then
       local t, c = rom:triggerList(listPtr)
       for k = 0, c - 1 do
