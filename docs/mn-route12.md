@@ -197,17 +197,24 @@ its real effect shows on the next load of map 20.
    would store $A225 = 1 again. Done (legs to225/bracelet): 225's 8,4 NPC from
    9,4 facing left stores $A225 = 2, then 223's 22,22 NPC from 22,23 facing up
    runs 1D:465D (story word 7, $A3A3 = 2).
-7. First kick (engine check, not yet a route leg): map 229 has a two-cell-wide
+7. In progress (legs to229/kick): first bracelet kick. Map 229 has a two-cell-wide
    wall of $0B cells at 39-40,12-15 between the 44,24 arrival side and the west
-   half. With $A3A3 = 2, A from 41,13 facing left kicks 40,13, then A from 40,13
-   kicks 39,13, and the player walks through to 38,13 (Kick.try clears each cell).
-   Checked from a copy of in229.lua with $A3A3 = 2 and story 7 written in by hand,
-   route `229:41.13l>40.13l>38.13`. A kick now ends a `>` goal like a talk.
-   Open: the real path from out225.lua back to 229 goes 277 -> 3 -> 4 -> 5 -> 7 ->
-   the 277 enclosure, but room 10's door (277 37,7) is only reachable over 37,8,
-   the Shadow Geyser step-on (2F:4210), which always sends the player into 8.
-   Need to find whether the ROM skips that step-on after the Korg duel, or
-   another way into 10/229 (204's door lands on 229's west half).
+   half. With $A3A3 = 2, A from 41,13 facing left kicks 40,13, A from 40,13 kicks
+   39,13, and the player walks through to 38,13. A kick ends a `>` goal like a talk.
+   Route from out225.lua: 223 -> 277 -> 3 -> 4 -> 5 -> 7 -> the 277 enclosure,
+   over 37,8 to room 10's door (37,7), then 10's north door into 229.
+   Engine fix: 277's init (2F:4165) fills slot 2 at 37,8 as the Shadow Geyser
+   step-on ($65A4, tail 2F:4210 into 8), but 2F:41F4 only takes the slot
+   (Opcode0B) while the story word is 3..5. The port fired the step-on for the
+   untaken (dormant) record too, so at story 6 and 7 every crossing of 37,8 fell
+   into 8. Dormant $65A4 records no longer fire (Overworld) and the route
+   planner no longer avoids them (Boot). The a225 leg drops its 8 detour.
+   Checked: korg leg still wins at story 5; a225 and to229 cross 37,8 into
+   room 10 with no Geyser. No 204 route is needed.
+   Open: out225.lua is snapshotted on the door into 223, before the 22,22
+   bracelet talk, so it still has $A3A3 = 1 (enough for $09 cells, not $0B).
+   A to229 run from it reached 229 41,13 but A did not kick. to229 now talks
+   to the 223 NPC first; the kick leg is still to be confirmed.
 
 ### Harness notes
 

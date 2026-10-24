@@ -418,10 +418,12 @@ function M:update()
     self:runScript(m[1], m[2], "duel tail")
   end
   self.vm:tickThreads(self.textBox ~= nil and not self.textBox.done)
-  -- encounter records: a $65A4 handler fires the record's tail script when Tony shares its cell
+  -- encounter records: a $65A4 handler fires the record's tail script when Tony shares its cell.
+  -- Only a taken slot (Opcode0B) runs its handler: 277's init (2F:41F4) takes the Shadow
+  -- Geyser record (slot 2, 37,8) only while the story word is 3..5.
   if not self.moving and not self.textBox and not self.scriptWaiting then
     for slot, ob in pairs(self.objects) do
-      if ob.handler == 0x65A4 and ob.x == self.x and ob.y == self.y and ob.beh then
+      if ob.handler == 0x65A4 and not ob.dormant and ob.x == self.x and ob.y == self.y and ob.beh then
         ob.handler = 0x4A6B
         self.log[#self.log + 1] = ("encounter slot %d at %d,%d"):format(slot, ob.x, ob.y)
         self:runScript(ob.beh[1], ob.beh[2], "encounter"); break

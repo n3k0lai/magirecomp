@@ -175,9 +175,10 @@ run_bracelet() {
     229 "$BSNAP/in229.lua" \
     "$BSNAP/into25.lua"
   # a225: A on 229's $40 cell from 50,9 (13:7372, $A225 = 1), back through 10 and
-  # the Shadow Geyser revisit (8), out of the 277 enclosure into 7 (a225g7.lua).
+  # out of the 277 enclosure into 7 (a225g7.lua). The Geyser step-on at 37,8 is
+  # only live while the story word is 3..5 (2F:41F4), so it no longer fires here.
   MN_WATCH=A225 run_leg a225 16000 \
-    "229:50.9u>44.24,10:5.11,8:8.15,277:38.10" \
+    "229:50.9u>44.24,10:5.11,277:38.10" \
     7 "$BSNAP/a225g7.lua" \
     "$BSNAP/in229.lua"
   # to225: 7 -> 5 -> 4 -> 3 -> 277's west half -> 223 -> 225 (a225in225.lua).
@@ -191,10 +192,28 @@ run_bracelet() {
     "225:9.4l>7.11,223:22.23u" \
     223 "$BSNAP/out225.lua" \
     "$BSNAP/a225in225.lua"
+  # to229: out225.lua is written on the door into 223, before the bracelet talk
+  # ($A3A3 still 1), so talk to 223's 22,22 NPC first ($A3A3 = 2), then
+  # 223 -> 277 -> 3 -> 4 -> 5 -> 7 -> the 277 enclosure, over 37,8 (Geyser
+  # not taken at story 7) into room 10 (37,7), north door into 229 (to229in229.lua).
+  run_leg to229 36000 \
+    "223:22.23u>22.38,277:37.13|37.7,3:far,4:far,5:21.0u,7:far,10:5.4" \
+    229 "$BSNAP/to229in229.lua" \
+    "$BSNAP/out225.lua"
+  # kick: first bracelet kicks on 229's $0B wall: A from 41,13 facing left clears
+  # 40,13, A from 40,13 clears 39,13, then walk through to 38,13 (no snapshot).
+  run_leg kick 6000 \
+    "229:41.13l>40.13l>38.13" \
+    "" "" \
+    "$BSNAP/to229in229.lua"
+  grep -q "kick 39,13" "$SNAP/kick.log" && grep -q "final player 38,13 map 229" "$SNAP/kick.log" || {
+    echo "leg kick: the wall at 39-40,13 was not kicked through" >&2
+    exit 1
+  }
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
-  echo "bracelet legs: bracelet given"
+  echo "bracelet legs: bracelet given, first kick done"
   exit 0
 fi
 

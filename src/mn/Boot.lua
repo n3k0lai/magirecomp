@@ -294,7 +294,7 @@ function love.load()
         if ow.textBox or ow.moving then return nil end
         local W = require("mn.World")
         local tgt
-        for _, ob in pairs(ow.objects) do if ob.handler == 0x65A4 then tgt = ob end end
+        for _, ob in pairs(ow.objects) do if ob.handler == 0x65A4 and not ob.dormant then tgt = ob end end
         if not tgt then return nil end
         local def, prev, q, h = ow.def, { [ow.y * ow.def.w + ow.x] = -1 }, { { ow.x, ow.y } }, 1
         while h <= #q do
@@ -339,8 +339,8 @@ function love.load()
                 -- same rule as the player's own step (Overworld: $65A4 records and blank/imageless ones don't block)
                 for k, ob in pairs(ow.objects) do if k ~= 0 and not ob.dormant and not ob.blank and (ob.image or ob.anim) and ob.handler ~= 0x65A4 and ob.x == nx and ob.y == ny then occ = true end end
                 -- a goal route steps around a live $65A4 step-on record unless it is the goal
-                -- (277 37,8 re-runs the Shadow Geyser scene on every crossing)
-                if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end
+                -- (277 37,8 runs the Shadow Geyser scene on every crossing while story is 3..5)
+                if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and not ob.dormant and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and W.walkable(W.cell(def, nx, ny)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 end
