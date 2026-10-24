@@ -55,6 +55,17 @@ function M.party(ow, data)
   return ow.mnParty
 end
 
+-- one script op ($2E summon, $AA/$AB battle-WRAM store) -> engine op, or nil
+function M.engineOp(op, a)
+  if op == 0x2E then
+    return { op = 0x2E, slot = a[1], species = a[2], spends = a[3] or 1, energy = a[4] or 3, delay = a[5] or 1 }
+  elseif op == 0xAA then
+    return { op = 0xAA, addr = a[1] + a[2] * 256, bank = a[3], value = a[4] }
+  elseif op == 0xAB then
+    return { op = 0xAB, addr = a[1] + a[2] * 256, bank = a[3], lo = a[4], hi = a[5] }
+  end
+end
+
 -- op $25 / $2E arguments -> engine setup
 function M.setupFrom(ow, setup, data)
   local magi = setup.args and setup.args[2] or 0x6C
@@ -62,15 +73,8 @@ function M.setupFrom(ow, setup, data)
   -- (Korg's duel sets his starting energy this way) and $2E summons
   local script, summoned = {}, false
   for _, o in ipairs(setup.ops or {}) do
-    local a = o.args
-    if o.op == 0x2E then
-      script[#script + 1] = { op = 0x2E, slot = a[1], species = a[2], spends = a[3] or 1, energy = a[4] or 3, delay = a[5] or 1 }
-      summoned = true
-    elseif o.op == 0xAA then
-      script[#script + 1] = { op = 0xAA, addr = a[1] + a[2] * 256, bank = a[3], value = a[4] }
-    elseif o.op == 0xAB then
-      script[#script + 1] = { op = 0xAB, addr = a[1] + a[2] * 256, bank = a[3], lo = a[4], hi = a[5] }
-    end
+    local e = M.engineOp(o.op, o.args)
+    if e then script[#script + 1] = e; summoned = summoned or e.op == 0x2E end
   end
   if not summoned then script[#script + 1] = { op = 0x2E, slot = 9, species = 0x53, spends = 1, energy = 3, delay = 1 } end
   local energy = tonumber(os.getenv("MN_TONY_START") or "") or ow.tonyEnergy or 100
@@ -100,6 +104,41 @@ function M.new(ow, setup)
   b:buildImages()
   b.co = coroutine.create(function() return b:script() end)
   return b
+end
+
+-- director duel (opcode_25.asm then $2B): the script keeps running beside the battle.
+-- Each round the engine raises $D3C2 (self.d3c2) and waits until the script's next
+-- $2B clears it; the ops the script ran meanwhile reach the engine then.
+M.PASS_FRAMES = 600 -- a stuck director does not hold the battle forever
+function M:startDirector()
+  self.director, self.queue, self.d3c2 = true, self.queue or {}, 0
+  self.state.scriptPass = function() self:pass() end
+end
+
+function M:inject(op, args)
+  local e = M.engineOp(op, args)
+  if e and self.director then self.queue[#self.queue + 1] = e end
+end
+
+function M:applyQueue()
+  local q = self.queue or {}
+  self.queue = {}
+  for _, e in ipairs(q) do Engine.scriptOp(self.state, e) end
+  return #q
+end
+
+function M:pass()
+  self.d3c2 = 1
+  local n = 0
+  while self.d3c2 ~= 0 and n < M.PASS_FRAMES do n = n + 1; coroutine.yield() end
+  if self.d3c2 ~= 0 then self:L("battle director pass timed out") end
+  self.d3c2 = 0
+  coroutine.yield() -- records the director installed this pass run on the next frame
+  local k = self:applyQueue()
+  if k > 0 then
+    self:L(("battle director pass: %d op(s)"):format(k))
+    for slot = 0, 9 do self:refreshVis(slot) end
+  end
 end
 
 function M:refreshVis(slot)

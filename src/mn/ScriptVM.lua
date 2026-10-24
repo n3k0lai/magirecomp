@@ -11,6 +11,20 @@ local Op = require("mn.Opcodes")
 local Ext = require("mn.OpExt").handlers
 
 local VM = {}
+
+-- after a scripted duel the engine never resumes the battle's stream
+-- (dispatch_nonzero_d016.asm): a loss (mode 3) continues at the $31 record's second
+-- script ($D3D0), anything else at its first ($D3CD). Scripted duels use it (Korg
+-- 14:6EAD -> win 14:6B30); the port keeps the field through wild encounters, so the
+-- record is only followed when a $31 ran since the last battle. Returns {bank, ptr} or nil.
+local function duelTail(vm, h)
+  local lost = h.battleResult and h.battleResult() == "loss"
+  local k = lost and 0x7D3D0 or 0x7D3CD
+  local had = vm.duelTail
+  vm.duelTail = nil
+  if had and vm:rd8(k) ~= 0 then return { vm:rd8(k), vm:rd8(k + 1) + 256 * vm:rd8(k + 2) } end
+  return nil
+end
 VM.__index = VM
 
 -- rom: object with u8/u16/insn/exprSize (MnRom over the cached script banks)
@@ -222,33 +236,54 @@ function VM:run(bank, ptr)
       if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
       o = o + n
     elseif op == 0x25 then -- Opcode25: battle setup (C9E4, D391 kind, D36D, battle script record)
-      if h.battleBegin and not self.init then h.battleBegin({ r:u8(o + 1), r:u8(o + 2), r:u8(o + 3), r:u8(o + 4), r:u16(o + 5) }) end
+      if h.battleBegin and not self.init then
+        h.battleBegin({ r:u8(o + 1), r:u8(o + 2), r:u8(o + 3), r:u8(o + 4), r:u16(o + 5) })
+        self.dir = { seen = {} } -- the $2B stops passed since this setup (director duel check at $2B)
+      end
       o = o + n
     elseif op == 0x2E or op == 0x2C or op == 0x2D or op == 0x26 or op == 0x28 then
       -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant)
       local args = {}; for i = 1, n - 1 do args[i] = r:u8(o + i) end
       if h.battleOp and not self.init then h.battleOp(op, args) end
       o = o + n
-    elseif op == 0x2B then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- lets D3C2 wait finish
+    elseif op == 0x2B then -- Opcode2B: clear $D3C2; the stream steps again once the battle raises it
+      local at = o
+      o = o + n
+      if not self.init then
+        local d = self.dir
+        -- the port collects a battle script's ops until $27 and then runs the battle. A
+        -- director duel (opcode_25.asm starts the battle at once) never reaches $27: its
+        -- stream loops back to a $2B it already passed (map 25's guardian, 1A:603B). Then
+        -- the battle starts here with the ops so far and the stream runs one pass per
+        -- battle round, when the engine raises $D3C2 (WaitUntilD3C2Clears, bank 2 $5E5E).
+        if d and not d.live and d.seen[at] and h.battleRun and h.battleDirect then
+          d.live = true
+          h.battleRun(); h.battleDirect()
+        elseif d then
+          d.seen[at] = true
+        end
+        if d and d.live then
+          h.battleClear()
+          while h.battleActive() and not h.battleRaised() do coroutine.yield("wait", 1) end
+          if not h.battleActive() then
+            self.dir = nil
+            local k = duelTail(self, h)
+            if not k then return end
+            jump(k[1], k[2])
+          end
+        else
+          coroutine.yield("wait", 1)
+        end
+      end
     elseif op == 0x27 then -- Opcode27: run the battle until D3C2 clears
       o = o + n
       if h.battleRun and not self.init then
-        h.battleRun()
+        self.dir = nil
+        if not h.battleActive() then h.battleRun() end
         while h.battleActive() do coroutine.yield("wait", 1) end
-        -- the engine never resumes this stream (dispatch_nonzero_d016.asm): a loss
-        -- (mode 3) continues at the $31 record's second script ($D3D0), anything else
-        -- at its first ($D3CD). Scripted duels use it (Korg 14:6EAD -> win 14:6B30);
-        -- the port keeps the field through wild encounters, so the record is only
-        -- followed when a $31 ran since the last battle.
-        local lost = h.battleResult and h.battleResult() == "loss"
-        local k = lost and 0x7D3D0 or 0x7D3CD
-        if self.duelTail and self:rd8(k) ~= 0 then
-          self.duelTail = nil
-          jump(self:rd8(k), self:rd8(k + 1) + 256 * self:rd8(k + 2))
-        else
-          self.duelTail = nil
-          return
-        end
+        local k = duelTail(self, h)
+        if not k then return end
+        jump(k[1], k[2])
       end
     elseif op == 0x82 then -- CenterFineScrollOnScriptBase
       -- a door pair still pending here (entry had no $00) is the spawn cell

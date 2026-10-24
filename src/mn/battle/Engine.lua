@@ -1920,6 +1920,9 @@ function E.round(s)
   playerAuto(s)
   enemyAI(s)
   E.rank(s)
+  -- WaitUntilD3C2Clears (bank 2 $5E5E): a director duel's script gets one pass here
+  -- (op $2E summons land before the slots walk); s.scriptPass may yield
+  if s.scriptPass then s.scriptPass(s) end
   E.walkSlots(s)
   if rd(s, 0xD016) ~= 0 then E.finish(s) end
   s.chosen = {}

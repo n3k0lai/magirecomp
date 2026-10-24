@@ -235,8 +235,13 @@ function M:host()
     battleOp = function(op, args)
       local t = {}; for i, v in ipairs(args) do t[i] = ("%02X"):format(v) end
       s.log[#s.log + 1] = ("battle op $%02X %s"):format(op, table.concat(t, " "))
-      if s.battleSetup then table.insert(s.battleSetup.ops, { op = op, args = args }) end
+      if s.battleSetup then table.insert(s.battleSetup.ops, { op = op, args = args })
+      elseif s.battle and s.battle.inject then s.battle:inject(op, args) end
     end,
+    -- director duel ($25 then a looping $2B stream): see Battle:startDirector
+    battleDirect = function() if s.battle and s.battle.startDirector then s.battle:startDirector() end end,
+    battleRaised = function() return s.battle ~= nil and s.battle.d3c2 == 1 end,
+    battleClear = function() if s.battle then s.battle.d3c2 = 0 end end,
     battleRun = function()
       s.battle = Battle.new(s, s.battleSetup or { ops = {} }); s.battleSetup = nil
       s.log[#s.log + 1] = "battle start"
