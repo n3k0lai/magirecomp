@@ -216,6 +216,23 @@ its real effect shows on the next load of map 20.
    talks to that NPC first (story 7, $A3A3 = 2), then runs the route; the
    kick leg from to229in229.lua kicks 40,13 and 39,13 and ends at 38,13.
 
+8. Todo: story 7 chain (read from the decomp; legs not yet run). The
+   chapter phase byte $A224 is cleared when 1D:465D sets story 7, and the
+   story-7 checks are `story == 7 AND $A224 ...` lookups (index 8 = AND,
+   15 = equal, 19 = below):
+   - $A224 = 0: map 113's entry selector (15:5CF9) picks 15:5D3D, which
+     takes slot 2 at 11,10 (talk 15:5D7C). This is the first objective.
+   - $A224 = 1: 113 picks 15:5D88.
+   - $A224 = 2: map 74 (22:5F0F) picks 22:620C, which stores $A224 = 3.
+   - $A224 = 3: 19:4B1D (maps 105-107).
+   - $A224 = 4 and 5: 17:4181 and 17:43C9 (maps 210 and 211); 17:41EC
+     stores 5.
+   - $A224 = 6: 17:4849 (map 212/213) stores 6, then map 74 picks 22:6498,
+     which stores story 8.
+   Door graph past the kicked wall: 229's left door (9,10) -> 204 -> 205
+   -> 200 -> 199 -> 198 -> 114 -> 113. 114 also links 113 twice, and 112
+   links 113 and 279. Map 74 has no plain door into it (scripted entry).
+
 ### Harness notes
 
 - A `x.yD>next` goal with a lever (no text box) advances only after the
