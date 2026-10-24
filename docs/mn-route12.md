@@ -93,3 +93,53 @@ inside the same run, so the inn (beat 8) may come before the ringsmith
   Remedy Drink (62, cell $41, 23:4F86) is still off the route.
 - A snapshot taken on 60's exit door places Tony on the exit cell, so loading
   it walks straight back into 52.
+
+## Bracelet legs (2026-10-24): into15 to the bracelet scene
+Working notes for the headless route toward the bracelet. Script addresses
+refer to the decomp's bank $1A event scripts. Floor-puzzle state lives in
+the story bits at $A125.
+
+### Puzzle bits ($A125)
+
+| bit | set by | effect on map init |
+|-----|--------|--------------------|
+| 0 | lever in map 20 (1A:62AB) | map 20 init (1A:6324 -> 6377) opens its south gate |
+| 1 | second lever in map 20 (1A:6304) | map 16 init (612D -> 6136) opens the 0,9 exit to 17 |
+| 2 | lever in map 19 (1A:6234) | map 23 init (654B -> 6594) joins 23's south door room to its middle room |
+| 3 | lever in map 23 at 6,13 (1A:6533) | map 20 init (6324 -> 63B9) opens column 14 and the north block, joining 20's north and west halves |
+
+Map 23's middle room (rows 14-16) is a dead end even with bit 2: rows 9-13
+stay solid, so the 23 corridor (rows 5-8, exits to 22 and 24) is reached from
+the other side, not from 18. The bit 3 lever only shakes the camera in map 23;
+its real effect shows on the next load of map 20.
+
+### Legs
+
+1. Done: 15 -> 16 -> 19 -> 20, lever (bit 0); back to 15.
+2. Done: 15 north door -> 20, second lever (bit 1); back to 15.
+3. Done: 15 -> 16 -> 17 -> 18 -> 19, lever (bit 2) -> 18 -> 23 south room.
+   Needed the A-list fix (commit b75c74b3): map 19's init sets its A-list
+   before its map load, and the load used to drop it.
+4. Done (green, 9000 frames from the 23 door snapshot): route
+   `23:6.14u>11.21,18:16.19,17:23.13,16:23.10,15:10.0,20:0.5` pulls the 23
+   lever ($A125 = $0F), walks 18 -> 17 -> 16 -> 15 and snapshots 15's north
+   door (1A:5BD2) into 20. The west half of 19 (entered from 18 at 0,4) does
+   not reach 19's east exit, so 18 -> 19 -> 20 is not a path.
+4b. Open: entering 20 from 15's north door lands in the south pocket (16,22)
+   and runs init 1A:6462, which tests no puzzle bits; only init 1A:6324
+   (entered through 1A:6448) applies the bit 3 copies. Next: find which
+   door table entry runs 6448 (likely 19's east exit into 20 at 0,16 or the
+   21/22 side) and route through it to 20's west exit, then 21 -> 22 -> 23
+   corridor -> 24.
+5. Todo: map 25 init (1A:66B7) places the object whose talk script (672C)
+   moves the story word to 6.
+6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
+   223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
+7. Todo: first kick on a $0B cell.
+
+### Harness notes
+
+- A `x.yD>next` goal with a lever (no text box) advances only after the
+  repeat press shows the already-pulled message; give the next goal a cell
+  that is reachable, or the planner idles silently.
+- Snapshots stay in /tmp and out of git.
