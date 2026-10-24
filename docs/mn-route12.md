@@ -125,12 +125,20 @@ its real effect shows on the next load of map 20.
    lever ($A125 = $0F), walks 18 -> 17 -> 16 -> 15 and snapshots 15's north
    door (1A:5BD2) into 20. The west half of 19 (entered from 18 at 0,4) does
    not reach 19's east exit, so 18 -> 19 -> 20 is not a path.
-4b. Open: entering 20 from 15's north door lands in the south pocket (16,22)
-   and runs init 1A:6462, which tests no puzzle bits; only init 1A:6324
-   (entered through 1A:6448) applies the bit 3 copies. Next: find which
-   door table entry runs 6448 (likely 19's east exit into 20 at 0,16 or the
-   21/22 side) and route through it to 20's west exit, then 21 -> 22 -> 23
-   corridor -> 24.
+4b. Done: the lever-aware init 1A:6324 runs from 19's upper east door
+   (1A:6222) and 21's south door (1A:6448, entry 2 of map 21's step list
+   21:413E: from 11,23 in 21 to 13,0 in 20). The walkable path is
+   23 (lever at 6,13) -> 18 -> 19 at 0,4 -> 19's upper east door -> 20's west
+   upper exit -> 20 north (column 14 opened by the bit 3 copies) -> 21 ->
+   22 -> 23 corridor -> 24 (lands at 19,18). Script legs `levers` and
+   `corridor` (`MN_LEGS=bracelet`).
+4c. Open: map 24's init (1A:65D7) keeps a wall at rows 13-15, cols 6-9
+   between the south area and the north exit (7,1 -> 25) unless
+   $A125 bit 4 and $A126 bit 3 are both set. The map 22 lever (1A:64AF)
+   sets $A125 bit 4; with $A126 bit 2 clear it shows a hint and clears
+   bit 4 again (1A:64D4), otherwise it sets $A126 bit 3. $A126 bit 2 comes
+   from the map 24 NPC talk chain (1A:6645 -> 1A:5C7D). Next leg: talk to
+   that NPC, go back to 22, pull the lever, return to 24 and take 7,1.
 5. Todo: map 25 init (1A:66B7) places the object whose talk script (672C)
    moves the story word to 6.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
@@ -142,4 +150,7 @@ its real effect shows on the next load of map 20.
 - A `x.yD>next` goal with a lever (no text box) advances only after the
   repeat press shows the already-pulled message; give the next goal a cell
   that is reachable, or the planner idles silently.
-- Snapshots stay in /tmp and out of git.
+- Snapshots stay out of git: ~/Code/interns/state/snaps/magirecomp/
+  (override with MN_SNAP_DIR).
+- A map listed twice in a route overwrites its first goals; use `|` for
+  per-visit goals, e.g. `23:6.14u>11.21|0.6`.

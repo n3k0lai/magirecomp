@@ -8,6 +8,7 @@
 #   bash scripts/mn-route12.sh
 #   MN_ROM=/path/to/magination.gbc bash scripts/mn-route12.sh
 #   MN_FROM=town bash scripts/mn-route12.sh   # reuse earlier legs' snapshots and logs
+#   MN_LEGS=bracelet bash scripts/mn-route12.sh  # only the bracelet legs, from into15.lua
 #
 # Prints one "beat N: ..." line when that beat's log marker appears.
 # Exits nonzero if a beat marker is missing or a snapshot was not written.
@@ -131,6 +132,33 @@ run_leg() {
   grep -F "[mn-test] final player" "$log" || true
   report_beats
 }
+
+# Bracelet legs (after beat 12): the floor-lever puzzle from map 15 to map 24.
+# They start from into15.lua (the door into 15) and keep their checkpoints in
+# $BSNAP (MN_SNAP_DIR overrides). The puzzle bits are $A125 bits 0-3; see
+# docs/mn-route12.md, "Bracelet legs".
+BSNAP="${MN_SNAP_DIR:-$HOME/Code/interns/state/snaps/magirecomp}"
+run_bracelet() {
+  mkdir -p "$BSNAP"
+  # levers: 20's two levers (1A:62AB 9,14 and 1A:6304 16,15), then 19's lever
+  # (1A:6234 5,22) by way of 16 -> 17 -> 18; ends on 18's door into 23 (1A:61C4).
+  MN_WATCH=A125 run_leg levers 18000 \
+    "15:0.13|10.0|0.13,16:8.0|23.10|0.10,19:23.16|12.23|5.21d>0.4,20:9.15u>0.16|16.16u>16.23,17:10.0,18:25.5|16.0" \
+    23 "$BSNAP/into23.lua" \
+    "$BSNAP/into15.lua"
+  # corridor: 23's lever (1A:6533 6,13, bit 3), back out through 18 into 19's
+  # upper half, 19's east door into 20 (1A:6222, init 1A:6324 opens column 14),
+  # then 20's north door into 21, 21 -> 22 -> the 23 corridor -> 24.
+  MN_WATCH=A125 run_leg corridor 14000 \
+    "23:6.14u>11.21|0.6,18:25.5,19:23.5,20:15.0,21:0.7,22:0.6" \
+    24 "$BSNAP/into24.lua" \
+    "$BSNAP/into23.lua"
+}
+if [ "${MN_LEGS:-}" = bracelet ]; then
+  run_bracelet
+  echo "bracelet legs: into24 reached"
+  exit 0
+fi
 
 # Leg 1. New game, Tavel Gorge, cave to the door into map 222.
 # 219:far only advances text (slot 0 owns the player until the script warps).
