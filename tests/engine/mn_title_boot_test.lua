@@ -30,9 +30,11 @@ local function env(map)
   return function(name) return map[name] end
 end
 
--- choose: keyboard default stays Continue until pictures land; the two old boots stay put.
+-- choose: keyboard default is the title without a save, Continue with one; the two old boots stay put.
 do
-  ok(Title.choose(env({}), {}) == "continue", "keyboard default stays Continue (title is opt-in)")
+  ok(Title.choose(env({}), {}) == "title", "keyboard default without a save is the title")
+  ok(Title.choose(env({}), {}, true) == "continue", "keyboard default with a save stays Continue")
+  ok(Title.choose(env({ MN_TITLE = "1" }), {}, true) == "title", "MN_TITLE=1 boots the title over a save")
   ok(Title.choose(env({ MN_TITLE = "1" }), {}) == "title", "MN_TITLE=1 boots the title from the keyboard")
   ok(Title.choose(env({ MN_NEWGAME = "1" }), {}) == "continue", "MN_NEWGAME stays Continue")
   ok(Title.choose(env({}), { test = true }) == nil, "--mn-test stays the map harness")

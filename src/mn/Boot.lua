@@ -419,8 +419,9 @@ function love.load()
       for _, k in ipairs({ "up", "down", "left", "right" }) do if held[k] or love.keyboard.isDown(k) then return k end end
     end)
     if not os.getenv("MN_LOAD") and not os.getenv("MN_BATTLE_TEST") then
-      -- Keyboard default, and --mn-test with MN_TITLE=1: Reset's script
-      -- 22:418E. MN_NEWGAME keeps today's Continue call (a no-op). A valid
+      -- Keyboard default with no slot file, and --mn-test with MN_TITLE=1:
+      -- Reset's script 22:418E. A slot file keeps Continue for now.
+      -- MN_NEWGAME keeps today's Continue call (a no-op). A valid
       -- slot is installed and not resumed; MN_SAVE_LOAD overrides the slot.
       local Title = require("mn.boot.Title")
       local data
@@ -431,7 +432,7 @@ function love.load()
           data = love.filesystem.read(require("mn.SaveFile").PATH)
         end
       end
-      if Title.choose(os.getenv, opts) == "title" then
+      if Title.choose(os.getenv, opts, data ~= nil and data ~= "") == "title" then
         Title.start(ow, data)
         Boot.title = true
       else
@@ -447,7 +448,7 @@ function love.load()
     if os.getenv("MN_BATTLE_TEST") then -- the map-3 Weebo encounter ($2E 09 53 01), straight into battle
       ow.battle = require("mn.Battle").new(ow, { ops = { { op = 0x2E, args = { 0x09, 0x53, 0x01 } } } })
     end
-    -- MN_KEYS="w60,z,w20,down,..." : wN waits N frames, a key name is pressed for 4 frames
+    -- MN_KEYS="w60,z,w20,down,left:16,..." : wN waits N frames, a key name is pressed for 4 frames (name:N holds it N frames)
     local keys = os.getenv("MN_KEYS")
     if keys then
       local q = {}; for tok in keys:gmatch("[^,]+") do q[#q + 1] = tok end
@@ -469,9 +470,11 @@ function love.load()
         local n = tok:match("^w(%d+)$")
         if n then waitN = tonumber(n)
         else
+          local name, hold = tok:match("^(.-):(%d+)$") -- "left:16" holds the key 16 frames
+          tok = name or tok; hold = tonumber(hold) or 4
           local alias = { a = "z", b = "x", start = "space", select = "rshift" }
           tok = alias[tok] or tok
-          love.event.push("keypressed", tok, tok, false); rel = { tok, 4 }; waitN = 6
+          love.event.push("keypressed", tok, tok, false); rel = { tok, hold }; waitN = hold + 2
         end
       end
     end

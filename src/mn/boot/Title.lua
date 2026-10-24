@@ -60,7 +60,9 @@ end
 -- "title" runs 22:418E. "continue" is today's keyboard Continue call, which
 -- MN_NEWGAME makes a no-op. nil leaves MN_LOAD / MN_BATTLE_TEST / plain
 -- --mn-test alone. MN_TITLE=1 wins over MN_NEWGAME and over --mn-test.
-function M.choose(getenv, opts)
+-- hasSave: a slot file was read. The title's continue side (2A:73B6, A017
+-- set) is not checked yet, so a keyboard boot with a save stays Continue.
+function M.choose(getenv, opts, hasSave)
   opts = opts or {}
   local function on(name)
     local v = getenv(name)
@@ -70,9 +72,10 @@ function M.choose(getenv, opts)
   if getenv("MN_TITLE") == "1" then return "title" end
   if opts.test then return nil end
   if getenv("MN_NEWGAME") == "1" then return "continue" end
-  -- Opt-in: the slideshow pictures render, but after Start the new-game
-  -- script (2A:73D8 -> $42) does not start yet, so the keyboard default stays Continue.
-  return "continue"
+  if hasSave then return "continue" end
+  -- No save: Start takes 2A:73D8, which hands slot 0 the control handler
+  -- $5D81; walking onto 4,3 runs 2A:6CB5, the intro.
+  return "title"
 end
 
 -- check_save_signature.asm on bank 0, then mirror_accepted_save.asm.

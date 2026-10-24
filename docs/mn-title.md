@@ -12,7 +12,7 @@ The keyboard boot (no `MN_NEWGAME`, no `--mn-test`, no `MN_LOAD`, no `MN_BATTLE_
 - A file that passes the stamp check is installed into the VM and not resumed. The saved script at `$A012` stays for the title script.
 - A missing or rejected file leaves SRAM unread, so `$A017` is 0.
 
-For now the keyboard default is still Continue: the title is opt-in with `MN_TITLE=1`. The pictures render and Start reaches the field (map 216), but the new-game script that 2A:73D8 installs through $42 does not start yet. `MN_NEWGAME=1` without `MN_TITLE` is unchanged: Continue is called and returns without starting a script. `--mn-test` without `MN_TITLE` is unchanged. `MN_TITLE=1` runs this same title boot under `--mn-test` (and on the keyboard path). `MN_LOAD` and `MN_BATTLE_TEST` still win.
+With no slot file the keyboard default is the title. With a slot file it is still Continue, because the title's continue side (`2A:73B6`, `$A017` set) has not been checked yet. `MN_TITLE=1` forces the title either way. `MN_NEWGAME=1` without `MN_TITLE` is unchanged: Continue is called and returns without starting a script. `--mn-test` without `MN_TITLE` is unchanged. `MN_TITLE=1` runs this same title boot under `--mn-test` (and on the keyboard path). `MN_LOAD` and `MN_BATTLE_TEST` still win.
 
 ## Bytes
 
@@ -22,4 +22,8 @@ The script, not the boot helper, writes `$CCA6` = 1 and reads `$A017`. Continue'
 
 ## Still open
 
-The slideshow pictures are drawn by `mn.Picture` through `host.picture` ($63/$6A); $65 clears it when the field map loads. After Start, `$C6F3` is set to 1 once the script parks after $93 (finish_startup.asm). The A017=0 path from 2A:73D8 still has to install and run the new-game script.
+The slideshow pictures are drawn by `mn.Picture` through `host.picture` ($63/$6A); $65 clears it when the field map loads. After Start, `$C6F3` is set to 1 once the script parks after $93 (finish_startup.asm). The A017=0 path needs nothing extra. `2A:73D8`'s `$07` writes `$5D81` (player control) into slot 0's handler and `$42` parks. Walking onto 4,3 (cell `C0`, key 0 of the bank-21 list `$5051`) runs `2A:6CB5`, the intro, which goes on to map 219. Headless check (input only works about 500 frames after Start):
+
+`MN_TITLE=1 MN_NEWGAME=1 MN_FRAMES=2000 MN_KEYS="w700,start,w500,left:40,w10,up:14,w200,a,w40,a,w40,a" mn-headless love . --mn --rom ROM --mn-test OUT` logs `script 2A:6CB5 (step trigger)` and `enter map 219 at 4,3`. `name:N` in `MN_KEYS` holds a key N frames; a bare name is 4 frames, which turns the player instead of moving him.
+
+The continue side with a real slot file (`2A:73B6`, then the `$A018` check) is not checked yet.
