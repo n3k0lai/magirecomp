@@ -1,4 +1,4 @@
-# Shared project descriptor. decomp.dev reads the objdiff report from CI.
+# Shared project descriptor. Decomp trackers (ByteMatch, decomp.fun) read the objdiff report from CI.
 # Its manage page has no Game Boy platform (ps, win32, n64, ps2, gba, gc,
 # xbox, nds, psp, xbox360, wii, 3ds, switch). `gbc` is for local tools.
 # Pick a value that page accepts when the project is registered.
