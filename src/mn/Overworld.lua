@@ -173,6 +173,13 @@ function M:host()
       -- slot 0 with a script record in its anim field is a cutscene stand-in:
       -- the real game shows no player sprite there until control returns
       if slot == 0 and not Sprites.SPRITE_BANKS[abank] then s.hidePlayer = true end
+      -- slot 0 with a sprite anim and the $5D81 pad handler is the player itself, not a
+      -- stand-in: drop a leftover stand-in so the pad works (1A:6841 into room 10 after
+      -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB)
+      if slot == 0 and handler == 0x5D81 and Sprites.SPRITE_BANKS[abank] then
+        if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
+        s.objects[0] = nil; s.hidePlayer = false; return
+      end
       if slot ~= 0 or s.hidePlayer then
         local prev = s.objects[slot]
         s.objects[slot] = Sprites.npc(s, x, y, base, abank, aptr, sbank, sptr)
