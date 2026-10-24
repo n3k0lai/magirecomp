@@ -177,24 +177,35 @@ function VM:run(bank, ptr)
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
       if h.picture then h.picture(nil) end -- back to the field map
-      if r:u8(o + 3) == 0x4F then h.loadMap((r:u16(o + 1) - 0x4000) / 15) end; o = o + n
+      if r:u8(o + 3) == 0x4F then h.loadMap((r:u16(o + 1) - 0x4000) / 15) end
+      self.pairNeedsMap = nil -- opcode_02.asm's pair now refers to this map
+      o = o + n
     elseif op == 0x64 then h.setTriggers(r:u16(o + 1)); o = o + n -- ReadBank21ByteThenResume
     elseif op == 0x69 then h.setAList(r:u16(o + 1)); o = o + n -- RunBank21ScriptList ($2C97)
     elseif op == 0x66 then h.objPalette(r:u8(o + 3), r:u16(o + 1)); o = o + n -- $2EE9 OBJ palettes
     elseif op == 0x05 then -- object record from script (opcode_05.asm)
       -- slot, handler word, cell x, cell y, word, tile base, anim (bank, ptr), script (bank, ptr)
       if r:u8(o + 1) == 0 then
-        -- a door's $02 pair normally wins (applied by a later $00); when it lands on a wall
-        -- in this map (seen entering the ringsmith, 59) the record's own cell is used
-        if not self.pair then h.placePlayer(r:u8(o + 4), r:u8(o + 5))
-        elseif h.cellOpen and not h.cellOpen(self.pair[1], self.pair[2]) then self.pair = nil; h.placePlayer(r:u8(o + 4), r:u8(o + 5)) end
+        -- opcode_05.asm fills the record and does not write $C18E. A door's $02
+        -- pair is copied later by $00 (opcode_00_bank1.asm). The template wins
+        -- when that cell is a wall on the destination (ringsmith, map 59,
+        -- 14:7DD2: $65 then $05). It must not win before $65: 1A:6082 fills
+        -- slot 0 at 5,5 while the map being left is still current, and the
+        -- 1A:6802 rebase (8,0 -> 9,27) is off that map.
+        local tx, ty = r:u8(o + 4), r:u8(o + 5)
+        if not self.pair then h.placePlayer(tx, ty)
+        elseif not self.pairNeedsMap and h.cellOpen and not h.cellOpen(self.pair[1], self.pair[2]) then
+          self.pair = nil; h.placePlayer(tx, ty)
+        end
       end
       h.spawn(r:u8(o + 1), r:u8(o + 4), r:u8(o + 5), r:u16(o + 2), r:u8(o + 8), r:u8(o + 9), r:u16(o + 10), r:u8(o + 12), r:u16(o + 13)); o = o + n
     elseif op == 0x01 then -- opcode_01.asm: wScriptPair ($C9A1 col, $C9A2 row)
       self.pair = { r:u8(o + 1), r:u8(o + 2) }; o = o + n
     elseif op == 0x02 then -- opcode_02.asm: pair = (C18E - b0) + b1, (C18F - b2) + b3
       local px, py = h.playerCell()
-      self.pair = { (px - r:u8(o + 1) + r:u8(o + 2)) % 256, (py - r:u8(o + 3) + r:u8(o + 4)) % 256 }; o = o + n
+      self.pair = { (px - r:u8(o + 1) + r:u8(o + 2)) % 256, (py - r:u8(o + 3) + r:u8(o + 4)) % 256 }
+      self.pairNeedsMap = true -- still the map being left until $65
+      o = o + n
     elseif op == 0x00 then -- Opcode00 -> bank 1 $4423: C9A1 copied to C18E (player map cell)
       if self.pair then h.placePlayer(self.pair[1], self.pair[2]); self.pair = nil end; o = o + n
     elseif op == 0x13 then -- Opcode13 (word): this record's handler := word, yield
