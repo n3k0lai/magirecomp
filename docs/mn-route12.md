@@ -197,7 +197,7 @@ its real effect shows on the next load of map 20.
    would store $A225 = 1 again. Done (legs to225/bracelet): 225's 8,4 NPC from
    9,4 facing left stores $A225 = 2, then 223's 22,22 NPC from 22,23 facing up
    runs 1D:465D (story word 7, $A3A3 = 2).
-7. In progress (legs to229/kick): first bracelet kick. Map 229 has a two-cell-wide
+7. Done (legs to229/kick): first bracelet kick. Map 229 has a two-cell-wide
    wall of $0B cells at 39-40,12-15 between the 44,24 arrival side and the west
    half. With $A3A3 = 2, A from 41,13 facing left kicks 40,13, A from 40,13 kicks
    39,13, and the player walks through to 38,13. A kick ends a `>` goal like a talk.
@@ -211,10 +211,10 @@ its real effect shows on the next load of map 20.
    planner no longer avoids them (Boot). The a225 leg drops its 8 detour.
    Checked: korg leg still wins at story 5; a225 and to229 cross 37,8 into
    room 10 with no Geyser. No 204 route is needed.
-   Open: out225.lua is snapshotted on the door into 223, before the 22,22
-   bracelet talk, so it still has $A3A3 = 1 (enough for $09 cells, not $0B).
-   A to229 run from it reached 229 41,13 but A did not kick. to229 now talks
-   to the 223 NPC first; the kick leg is still to be confirmed.
+   out225.lua is snapshotted on the door into 223, before the 22,22 bracelet
+   talk, so it still has $A3A3 = 1 (enough for $09 cells, not $0B). to229
+   talks to that NPC first (story 7, $A3A3 = 2), then runs the route; the
+   kick leg from to229in229.lua kicks 40,13 and 39,13 and ends at 38,13.
 
 ### Harness notes
 
