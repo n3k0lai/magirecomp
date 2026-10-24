@@ -550,6 +550,9 @@ function M:update()
   -- through the cave-in while C71B runs 5EFB; a step trigger there would fire 5BC6)
   local th = self.vm.threads
   if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then return end
+  -- a script running in slot 0 walks the player (Opcode09 slot 0, e.g. map 25's
+  -- 1A:674C); the pad is ignored, so no step back onto a trigger mid-scene
+  if self:slot0Scripted() then return end
   local dir = self.input("dir")
   if not dir then return end
   self.facing = dir
@@ -558,6 +561,12 @@ function M:update()
   if nx >= 0 and ny >= 0 and nx < self.def.w and ny < self.def.h and World.walkable(World.cell(self.def, nx, ny)) then
     self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
   end
+end
+
+function M:slot0Scripted()
+  local th = self.vm and self.vm.threads
+  local t = th and th[0]
+  return t ~= nil and t.co ~= nil and coroutine.status(t.co) ~= "dead"
 end
 
 function M:frame()

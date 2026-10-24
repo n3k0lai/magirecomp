@@ -140,8 +140,16 @@ its real effect shows on the next load of map 20.
    $A126 bit 3; without bit 2 it shows a hint and clears bit 4 again
    (1A:64D4). Back in 24 the wall is open and 24's north door (1A:65CE)
    leads into 25. No engine change needed.
-5. Todo: map 25 init (1A:66B7) places the object whose talk script (672C)
-   moves the story word to 6.
+5. Story 6 (leg `scene25`, from into25.lua): 25's init (1A:66B7) places
+   slot 2 at 5,5; talking to it (stand at 5,6 facing up) runs 1A:672C, which
+   sets the story word ($A123) to 6. With story 6, 25's exit (1A:668E)
+   runs 1A:66A3, which hands slot 0 the guardian scene (1A:674C): four talk
+   steps keyed on $C6FD, then 1A:5F88 sets up the duel (battle script
+   4C:4023). Engine fix: the pad is ignored while a script runs in slot 0;
+   before it, the route stepped back onto the exit during the scene's pause
+   and restarted the scene. Open: the duel never starts. Slot 0 loops in
+   1A:603B (C70D record 1A:6045 picks an animation, then waits for $D3C2)
+   and $D3C2 never clears.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
    223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
 7. Todo: first kick on a $0B cell.
