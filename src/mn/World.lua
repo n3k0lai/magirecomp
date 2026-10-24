@@ -3,9 +3,12 @@
 --   $00       open floor. Resume*RecordHead walks only onto a zero cell.
 --   $08       wall (88% of all non-zero cells; never entered).
 --   $02       stop cell: ResumeHead00Record commits without walking.
---   $09/$0B   A-button cells: DispatchCell*OnButtonA plants scripts
---             $5597/$55E3 (gated on $C9A6 >= 1/2).
---   $81       far cell of a two-cell jump (WalkTwoCellsDown/StampTwoStepCells).
+--   $09/$0B   A-button cells (DispatchCell*OnButtonA). $09 needs $C9A6 >= 1
+--             and plants the bank-$20 push tail (WalkTwoCells*). $0B needs
+--             $C9A6 >= 2 and plants the kick. Both are solid.
+--   $81       WalkTwoCells* accepts only this far cell. StampTwoStepCells
+--             writes $09 there and $81 on the near cell. ProbeCells* leaves
+--             a cell >= $80 clear, so $81 stays walkable.
 --   $82       countdown cell (AdvanceCell82Countdown).
 --   $20-$7F with bit 5/6, bit 7 clear: A-button list scripts
 --             (SaveCellBelowAndStageThirdScript -> StageThirdScriptFromListIndex).
