@@ -35,6 +35,7 @@ BEATS=(
   "4|door crossed -> map 0"
   "5|enter map 2 "
   "6|enter map 63 "
+  "7|script 14:700F"
 )
 
 LOGS=()
@@ -162,6 +163,16 @@ run_leg orwin 6000 \
   "44:13.0,51:29.2" \
   63 "$SNAP/into63.lua" \
   "$SNAP/into44.lua"
+
+# Leg 5. Out of Orwin's house (14,9 -> 54), back west through 53 and 51 to 44,
+# then 44's east exit (23,5 -> 48) and 48's door at 12,2 (16:6D7F -> 59).
+# A on the ringsmith's counter cell (10,9 from 10,10) runs 14:700F, which
+# gives the ring and 50 Animite. The leg snapshots 59's exit 8,13
+# (14:7006), the second door into 48 in this run.
+run_leg ring 11000 \
+  "63:14.9d,54:3.9d,53:0.27l,51:13.23d,44:23.5r,48:12.2u,59:10.10u>8.13d" \
+  48:2 "$SNAP/after59.lua" \
+  "$SNAP/into63.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
