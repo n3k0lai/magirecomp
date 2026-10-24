@@ -344,7 +344,9 @@ function love.load()
                 -- a goal route also steps around other doors (279 32,26 crossed the 74/75 door at 19-20,22)
                 if g and nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
                   local v = W.cell(def, nx, ny)
-                  if v >= 0xC0 and v ~= W.cell(def, g[1], g[2]) then occ = true end
+                  local t = v >= 0xC0 and def.triggers[bit.band(v, 0x3F) + 1]
+                  -- only map doors; event lines (to = -1, e.g. 110 5-9,17) must stay crossable
+                  if t and (t.to or -1) >= 0 and v ~= W.cell(def, g[1], g[2]) then occ = true end
                 end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and W.walkable(W.cell(def, nx, ny)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
