@@ -194,8 +194,9 @@ its real effect shows on the next load of map 20.
    Pressing A from 50,9 facing up sets $A334 bit 2, clears the cell and stores
    $A225 = 1 (leg a229/a225 below). Map setup must not continue past the $44 in
    that record ($44 follows its word while the LCD is off), or every re-entry
-   would store $A225 = 1 again. Next: talk to 225's 8,4 NPC from 9,4 facing left
-   ($A225 = 2), then 223's 22,22 NPC from 22,23 facing up ($A3A3 = 2).
+   would store $A225 = 1 again. Done (legs to225/bracelet): 225's 8,4 NPC from
+   9,4 facing left stores $A225 = 2, then 223's 22,22 NPC from 22,23 facing up
+   runs 1D:465D (story word 7, $A3A3 = 2).
 7. Todo: first kick on a $0B cell.
 
 ### Harness notes

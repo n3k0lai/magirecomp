@@ -180,10 +180,21 @@ run_bracelet() {
     "229:50.9u>44.24,10:5.11,8:8.15,277:38.10" \
     7 "$BSNAP/a225g7.lua" \
     "$BSNAP/in229.lua"
+  # to225: 7 -> 5 -> 4 -> 3 -> 277's west half -> 223 -> 225 (a225in225.lua).
+  run_leg to225 22000 \
+    "7:5.19,5:12.29,4:0.21,3:0.20,277:18.36,223:23.21" \
+    225 "$BSNAP/a225in225.lua" \
+    "$BSNAP/a225g7.lua"
+  # bracelet: 225's 8,4 NPC from 9,4 facing left ($A225 = 2), out at 7,11, then
+  # 223's 22,22 NPC from 22,23 facing up (1D:465D: story 7, $A3A3 = 2).
+  MN_WATCH=A3A3 run_leg bracelet 7000 \
+    "225:9.4l>7.11,223:22.23u" \
+    223 "$BSNAP/out225.lua" \
+    "$BSNAP/a225in225.lua"
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
-  echo "bracelet legs: out10 reached"
+  echo "bracelet legs: bracelet given"
   exit 0
 fi
 
