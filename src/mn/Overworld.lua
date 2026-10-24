@@ -54,7 +54,10 @@ function M:host()
       local co = coroutine.running()
       for k, t in pairs(s.vm.threads or {}) do if t.co ~= co then s.vm.threads[k] = nil end end
     end,
-    setTriggers = function(p) s.triggerPtr = p end,
+    setTriggers = function(p)
+      s.triggerPtr = p
+      if os.getenv("MN_TDBG") then s.log[#s.log + 1] = ("triggers 21:%04X (map %d)"):format(p, s.map) end
+    end,
     setAList = function(p) -- RunBank21ScriptList ($2C97): kind-$01 entries run now
       s.aList = p; s.initQueue = s.initQueue or {}
       local r = s.vm.rom; local o = 0x21 * 0x4000 + p - 0x4000
