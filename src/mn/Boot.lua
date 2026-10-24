@@ -341,6 +341,11 @@ function love.load()
                 -- a goal route steps around a live $65A4 step-on record unless it is the goal
                 -- (277 37,8 runs the Shadow Geyser scene on every crossing while story is 3..5)
                 if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and not ob.dormant and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end
+                -- a goal route also steps around other doors (279 32,26 crossed the 74/75 door at 19-20,22)
+                if g and nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
+                  local v = W.cell(def, nx, ny)
+                  if v >= 0xC0 and v ~= W.cell(def, g[1], g[2]) then occ = true end
+                end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and W.walkable(W.cell(def, nx, ny)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 end
