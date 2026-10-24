@@ -246,6 +246,10 @@ its real effect shows on the next load of map 20.
    doors to 7 and 10), so the overworld goal 31,38 is unreachable from
    there. Way back to the mainland: island 38,10 -> 7 (5,19) -> 5 (12,29)
    -> 4 (0,21) -> 3 (0,20) -> 277; leg to113d tries that chain.
+   to113d reached 279 (16,5) via 277 31,38 -> 110 -> 108, but 279's 34,21
+   cell sits in a pocket that only 121 opens onto: 279 32,26 -> 115
+   (19,29) -> 120 (26,0) -> 121 (5,0) -> back on 279 -> 34,21 -> 112.
+   Leg to113e runs that.
 
 ### Harness notes
 
