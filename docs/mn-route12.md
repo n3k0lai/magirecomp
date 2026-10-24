@@ -265,6 +265,20 @@ its real effect shows on the next load of map 20.
 
 ### Harness notes
 
+- `MN_NOENC=1` (debug only, off by default) stops wandering monsters
+  (object slots 31+) from starting battles so a route leg can be tested
+  without random battles eating its frames. Story step-on records still
+  fire. A real route must still pass with encounters on.
+- Map 120 (entered from 115 at 4,0) splits at a block field, 11-14,7-11:
+  $09 blocks and $81 floor. A on a $09 cell with $A3A3 >= 1 runs the
+  bank-$20 push script (DispatchCell*OnButtonA tail: $5597 up, $55BD
+  down, $554B left, $5571 right), and WalkTwoCells* moves the block one cell
+  onto an $81 far cell (StampTwoStepCells). The port has only the $0B kick
+  (Kick.lua), so the 120 leg stops at 10,9. A naive search under that
+  push model finds no way from the west side to 15+, so the intended
+  approach to 120's 26,0 exit may come from another side (117 via the
+  east edge). Still open.
+
 - A `x.yD>next` goal with a lever (no text box) advances only after the
   repeat press shows the already-pulled message; give the next goal a cell
   that is reachable, or the planner idles silently.
