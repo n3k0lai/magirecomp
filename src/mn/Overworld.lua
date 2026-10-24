@@ -520,7 +520,7 @@ function M:update()
     return
   end
   if Push.tick(self) then return end -- crystal-gloves push lunge owns the player
-  if Kick.tick(self) then return end -- bracelet lunge (bank-$20 kick script) owns the player
+  if Kick.tick(self) then return end -- Crystal Gloves dig lunge (bank-$20 kick script) owns the player
   if self.moving then
     local d = DIRS[self.moving]
     self.px, self.py = self.px + d[1], self.py + d[2]
