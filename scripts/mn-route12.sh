@@ -22,9 +22,14 @@ mkdir -p "$SNAP" "$FRAMES"
 # Beat markers, in story order. Each is a fixed substring of a [mn-test] log
 # line (map entry or script start). Addresses are the decomp routines the
 # checklist names; nothing from the ROM is printed beyond those lines.
+# Beat 2's crystal talk is the npc record on map 222 (1F:5D95), logged when
+# that map's entry spawns it. The pickup that starts the cave-in is 1F:5EAE.
+# Beat 3 is the scripted fall into map 40 (2A:4774). Beats 4-12 are not in
+# this list: the river scene has no step-trigger door inside a 3000-frame
+# leg, so a later leg cannot resume. See docs/mn-route12.md.
 BEATS=(
   "1|script 2A:6CB5"
-  "2|script 1F:5D95"
+  "2|talk=1F:5D95"
   "3|enter map 40"
 )
 
@@ -109,11 +114,27 @@ run_leg() {
 # Leg 1. New game, Tavel Gorge, cave to the door into map 222.
 # 219:far only advances text (slot 0 owns the player until the script warps).
 # 220 north lip is 12,0; 221 north lip is 36,0 (both kind-1, walked onto upward).
+# The gorge cutscene on 219 has no door of its own; 3000 frames is still
+# inside it (player hidden at 6,14), so this leg stays one 8000-frame run.
 run_leg into222 8000 \
   "219:far,220:12.0,221:36.0" \
   222 "$SNAP/into222.lua"
 
-# Later legs append below. Beats 2 and 3 are reached on the crystal leg.
+# Leg 2. From the map 222 door, stand beside the crystal (29,4) and face it.
+# 1F:5EAE plays the cave-in and the fall. Map 40's entry 2A:4774 is still
+# running at frame 3000 (slot 0 at 2A:4882, player hidden at 9,28). No
+# step trigger fires on the way, so there is no snapshot to hang a later
+# leg on. Overworld:snapshot only writes on a door.
+run_leg crystal 3000 \
+  "222:28.4r" \
+  "" "" \
+  "$SNAP/into222.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
+if [ ! -f "$SNAP/beat12.snap" ]; then
+  echo "beat 4: NOT REACHED (map 40 at 9,28, 2A:4837 still running at frame 3000)" >&2
+  echo "beat 12: NOT REACHED (no $SNAP/beat12.snap)" >&2
+  exit 1
+fi
+echo "beat 12 reached"
