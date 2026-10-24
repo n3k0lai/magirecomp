@@ -34,7 +34,7 @@ BEATS=(
   "3|enter map 40"
   "4|door crossed -> map 0"
   "5|enter map 2 "
-  "6|enter map 43 "
+  "6|enter map 63 "
 )
 
 LOGS=()
@@ -154,6 +154,14 @@ run_leg town 8000 \
   "@43#2,43:9.0" \
   44 "$SNAP/into44.lua" \
   "$SNAP/after40.lua"
+
+# Leg 4. From the 44 door: north exit 13,0 (16:52ED -> 51), then 51's east
+# exit 29,2 (2B:4B3E -> 53). The default planner takes 53 -> 54 -> 63, and
+# the leg snapshots the 54 door into Orwin's house (28:50D8).
+run_leg orwin 6000 \
+  "44:13.0,51:29.2" \
+  63 "$SNAP/into63.lua" \
+  "$SNAP/into44.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"

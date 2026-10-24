@@ -11,6 +11,7 @@
 | into222 | 8000 | new game, map 216 | `219:far,220:12.0,221:36.0` | door into map 222 (`into222.lua`) |
 | river | 12000 | that door | `222:28.4r`, then the default planner | map 40 west exit into map 0 (`after40.lua`) |
 | town | 8000 | `after40.lua` | default planner to Vash Naroom, then `@43#2,43:9.0` | town north exit into map 44 (`into44.lua`) |
+| orwin | 6000 | `into44.lua` | `44:13.0,51:29.2`, then the default planner (53, 54) | 54 door into Orwin's house 63 (`into63.lua`) |
 
 `MN_FROM=town bash scripts/mn-route12.sh` reuses the earlier legs' snapshots
 and logs in `/tmp/mn-route12/` and runs from that leg on.
@@ -22,7 +23,7 @@ Beat lines the script prints:
 3. `enter map 40` after `1F:5EAE` plays the cave-in and the fall.
 4. `door crossed -> map 0`: the river scene is over and Tony leaves map 40.
 5. `enter map 2` (the stairs below Vash Naroom).
-6. `enter map 43` (Vash Naroom).
+6. `enter map 63` (Orwin's house, reached from Vash Naroom 43 through 44, 51, 53, 54).
 
 The gorge scene on map 219 is still running at frame 3000 (player hidden at
 6,14), so leg 1 cannot be split on a door and stays 8000 frames.
