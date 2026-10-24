@@ -276,8 +276,17 @@ its real effect shows on the next load of map 20.
   onto an $81 far cell (StampTwoStepCells). The port has only the $0B kick
   (Kick.lua), so the 120 leg stops at 10,9. A naive search under that
   push model finds no way from the west side to 15+, so the intended
-  approach to 120's 26,0 exit may come from another side (117 via the
-  east edge). Still open.
+  approach to 120's 26,0 exit is from the east: 115's top door (22-26,0)
+  -> 116 -> 116's bottom-right door (40-43,39) -> 117 -> 117's west edge
+  (0,35-38) -> 120's east side (59,8) -> 26,0 -> 121. Leg `underneath`
+  takes that way. Porting the push (Crystal Gloves on $09) is still to do.
+- The farm (113): slot 2 at 11,10 is Gruk's shop (15:5B10 opens the $90
+  list). A route leaves a $90 shop list with B (Boot.lua), which lets the
+  talk go on to the basement-noises lines (15:5B60), and 15:5C08 sets
+  $A125 bit 2. The basement (114, stairs at 113's 14,6) has a step line at
+  2-5,10 (15:5E97 -> 15:5F06): with that bit set it writes $A224 = 1 and
+  runs the kidnap scene back in 113, whose init (15:5D88) writes
+  $A224 = 2. Leg `farm`.
 
 - A `x.yD>next` goal with a lever (no text box) advances only after the
   repeat press shows the already-pulled message; give the next goal a cell

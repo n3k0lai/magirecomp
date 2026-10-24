@@ -210,10 +210,38 @@ run_bracelet() {
     echo "leg kick: the wall at 39-40,13 was not kicked through" >&2
     exit 1
   }
+  # The legs from the kick to the Underneath world map (279) and into the caves
+  # are not scripted yet; they were run by hand and left to120.lua (map 120's
+  # west side, entered from 115 at 4,0). Without it the next two legs are skipped.
+  if [ ! -f "$BSNAP/to120.lua" ]; then
+    echo "underneath legs: skipped (no $BSNAP/to120.lua)"
+    return
+  fi
+  # underneath: 120's west side is cut off by the $09 block field (11-14,7-11)
+  # until the Crystal Gloves push is ported, so go back out through 115, its top
+  # door into 116, 116's bottom-right door into 117, 117's west edge into 120's
+  # east side, 120's 26,0 into 121, 121's top door onto the 279 pocket, then
+  # 279's 34,21 into 112 and 112's 12,9 into the farm (113, to113.lua).
+  run_leg underneath 44000 \
+    "120:5.0|26.0,115:22.0,116:40.39,117:0.36,121:5.0,279:34.21,112:12.9,113:11.11" \
+    113 "$BSNAP/to113.lua" \
+    "$BSNAP/to120.lua"
+  # farm: talk to Gruk (the farm's shopkeeper) at 11,10 from 11,11 (the route
+  # leaves his shop with B); the talk sets $A125 bit 2 (15:5C08). 113's stairs at 14,6 lead to
+  # the basement (114), whose line at row 10 (15:5E97 -> 15:5F06) sets $A224 = 1
+  # and runs the kidnap scene; back in 113 the init (15:5D88) sets $A224 = 2.
+  MN_WATCH=A224 run_leg farm 6000 \
+    "113:11.11u>14.6,114:3.10" \
+    114 "$BSNAP/to114.lua" \
+    "$BSNAP/to113.lua"
+  grep -q "A224 <- 02" "$SNAP/farm.log" || {
+    echo "leg farm: \$A224 did not reach 2" >&2
+    exit 1
+  }
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
-  echo "bracelet legs: bracelet given, first kick done"
+  echo "bracelet legs: bracelet given, first kick done (farm legs need to120.lua)"
   exit 0
 fi
 

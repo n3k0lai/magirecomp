@@ -277,6 +277,12 @@ function love.load()
         lateKey = nil
       end
       local d = ow and route[ow.map]
+      -- a shop list ($90 SetupPrefixedBlockChoice) opened by a talk: a route buys nothing, it
+      -- leaves with B (cancel, slot $FE) so the talk script goes on past the shop
+      if d and ow.overlay and ow.overlay.mode == "90" then
+        if k == "b" then return frame % 20 == 10 end
+        return nil
+      end
       -- routes only press A and directions; a direction returned for "start" would open the menu
       if d and k ~= "a" and k ~= "dir" then return nil end
       -- MN_HOLD="63:900": no route input for the first n frames of each entry into that map (cutscenes)
