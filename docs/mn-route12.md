@@ -250,6 +250,13 @@ its real effect shows on the next load of map 20.
    cell sits in a pocket that only 121 opens onto: 279 32,26 -> 115
    (19,29) -> 120 (26,0) -> 121 (5,0) -> back on 279 -> 34,21 -> 112.
    Leg to113e runs that.
+   Next objective, summarized (read-only, from the decomp): after the 229
+   kick, the next story step is map 113's slot-2 NPC at 11,10 (talk from
+   11,11 facing up). Selector 15:5CF9 picks 15:5D3D at $A224 = 0, and the
+   talk is 15:5D7C (it goes on into 15:5A8B / 0E:66B3). The story word
+   only goes past 7 at 22:6498 in map 74, the one script that stores
+   story 8. Map 74 picks it once $A224 = 6, after the 105-107 and 210-213
+   phases above.
 
 ### Harness notes
 
