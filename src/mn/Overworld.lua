@@ -11,6 +11,7 @@ local Battle = require("mn.Battle")
 local StartMenu = require("mn.ui.StartMenu")
 local Sfx = require("mn.Sfx")
 local SfxOut = require("mn.SfxOut")
+local Kick = require("mn.Kick")
 local M = {}
 M.__index = M
 
@@ -469,6 +470,7 @@ function M:update()
     end
     return
   end
+  if Kick.tick(self) then return end -- bracelet lunge (bank-$20 kick script) owns the player
   if self.moving then
     local d = DIRS[self.moving]
     self.px, self.py = self.px + d[1], self.py + d[2]
@@ -522,6 +524,8 @@ function M:update()
         self:runScript(ob.talk[1], ob.talk[2], ("talk to slot %d"):format(slot)); return
       end
     end
+    -- DispatchPressedAOnFacingCell (01:619A): a faced $0B cell is the bracelet kick
+    if Kick.try(self) then return end
     local v = World.cell(self.def, fx, fy)
     -- standing on a list cell ($20-$3F stay walkable) counts too
     if not (v < 0x80 and bit.band(v, 0x60) ~= 0) then v = World.cell(self.def, self.x, self.y) end
