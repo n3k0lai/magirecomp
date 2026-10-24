@@ -245,9 +245,12 @@ function love.load()
     local goals = {}
     -- "54:7.3|3.9": successive goals on successive entries into that map
     -- "...,@61,2:5.5,...": entries after "@61" only take effect once map 61 has been entered
+    -- "@43#2,...": only once map 43 has been entered twice (door crossings counted by testDone)
     local routeStr = os.getenv("MN_ROUTE") or ""
-    local lateKey, lateStr = routeStr:match("@(%d+),(.*)$")
-    if lateKey then routeStr = routeStr:gsub("@%d+,.*$", "") end
+    local lateKey, lateN, lateStr = routeStr:match("@(%d+)#?(%d*),(.*)$")
+    lateN = tonumber(lateN) or 1
+    if lateKey then routeStr = routeStr:gsub("@%d+#?%d*,.*$", "") end
+    local entered = {}
     local function parseRoute(str, route, goals)
     for m, d in str:gmatch("(%d+):([%w%.|>]+)") do
       if d:match("^%d+%.%d+") then
@@ -267,13 +270,15 @@ function love.load()
     local ow
     local mkOw = os.getenv("MN_LOAD") and function(_, _, _, fn) return Overworld.load(os.getenv("MN_LOAD"), fn) end or Overworld.new
     ow = mkOw(start, 0, 0, function(k)
-      if lateKey and ow and ow.map == tonumber(lateKey) then
+      if lateKey and ow and ow.map == tonumber(lateKey) and (lateN <= 1 or (entered[ow.map] or 0) >= lateN) then
         -- switch to the late route: its maps restart their visit counts
         local r2, g2 = {}, {}; parseRoute(lateStr, r2, g2)
         for m2, v in pairs(r2) do route[m2] = v; goals[m2] = g2[m2]; visits[m2] = nil end
         lateKey = nil
       end
       local d = ow and route[ow.map]
+      -- routes only press A and directions; a direction returned for "start" would open the menu
+      if d and k ~= "a" and k ~= "dir" then return nil end
       -- MN_HOLD="63:900": no route input for the first n frames of each entry into that map (cutscenes)
       if ow and os.getenv("MN_HOLD") then
         if ow.holdMap ~= ow.map then ow.holdMap, ow.holdFrom = ow.map, frame end
@@ -395,7 +400,7 @@ function love.load()
     stack:push(ow)
     local startMap = ow.map
     Boot.testDone = function(s)
-      if s.map ~= startMap and not s.moving and not s.scriptWaiting then startMap = s.map; planner.phase = "talk"; planner.q = {}; s.log[#s.log + 1] = ("door crossed -> map %d at %d,%d"):format(s.map, s.x, s.y) end
+      if s.map ~= startMap and not s.moving and not s.scriptWaiting then startMap = s.map; entered[s.map] = (entered[s.map] or 0) + 1; planner.phase = "talk"; planner.q = {}; s.log[#s.log + 1] = ("door crossed -> map %d at %d,%d"):format(s.map, s.x, s.y) end
       if s.textBox and not planner.inBox then planner.inBox = true; planner.boxes = (planner.boxes or 0) + 1 end
       if not s.textBox and planner.inBox then planner.inBox = false end
       if (planner.boxes or 0) >= 2 and not s.textBox then planner.after = (planner.after or 0) + 1 end

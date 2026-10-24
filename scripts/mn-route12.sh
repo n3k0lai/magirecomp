@@ -7,6 +7,7 @@
 #
 #   bash scripts/mn-route12.sh
 #   MN_ROM=/path/to/magination.gbc bash scripts/mn-route12.sh
+#   MN_FROM=town bash scripts/mn-route12.sh   # reuse earlier legs' snapshots and logs
 #
 # Prints one "beat N: ..." line when that beat's log marker appears.
 # Exits nonzero if a beat marker is missing or a snapshot was not written.
@@ -24,9 +25,9 @@ mkdir -p "$SNAP" "$FRAMES"
 # checklist names; nothing from the ROM is printed beyond those lines.
 # Beat 2's crystal talk is the npc record on map 222 (1F:5D95), logged when
 # that map's entry spawns it. The pickup that starts the cave-in is 1F:5EAE.
-# Beat 3 is the scripted fall into map 40 (2A:4774). Beats 4-12 are not in
-# this list: the river scene has no step-trigger door inside a 3000-frame
-# leg, so a later leg cannot resume. See docs/mn-route12.md.
+# Beat 3 is the scripted fall into map 40 (2A:4774). Beat 4 is map 40's west
+# exit after the river scene. Legs after beat 6 checkpoint on doors (snapshot
+# files) until the next beat's marker is known. See docs/mn-route12.md.
 BEATS=(
   "1|script 2A:6CB5"
   "2|talk=1F:5D95"
@@ -75,10 +76,21 @@ require_beats() {
   return "$missing"
 }
 
+# MN_FROM=NAME: legs before NAME are not run again when their snapshot and log
+# from an earlier run are still in $SNAP.
+FROM="${MN_FROM:-}"
+
 # run_leg NAME FRAMES ROUTE SNAP_TO SNAP_FILE [LOAD]
 run_leg() {
   local name="$1" frames="$2" route="$3" snap_to="$4" snap_file="$5" load="${6:-}"
   local log="$SNAP/${name}.log"
+  if [ "$name" = "$FROM" ]; then FROM=""; fi
+  if [ -n "$FROM" ] && [ -f "$log" ] && { [ -z "$snap_to" ] || [ -f "$snap_file" ]; }; then
+    echo "leg $name: reused"
+    LOGS+=("$log")
+    report_beats
+    return
+  fi
   find "$FRAMES" -name 'frame_*.png' -delete 2>/dev/null || true
   if [ -n "$load" ] && [ ! -f "$load" ]; then
     echo "leg $name: missing snapshot $load" >&2
@@ -133,6 +145,15 @@ run_leg river 12000 \
   "222:28.4r" \
   0 "$SNAP/after40.lua" \
   "$SNAP/into222.lua"
+
+# Leg 3. Vash Naroom (43). Entry 1 is Eidon's scene from the stairs; it ends
+# with a second entry at 2,46. Only after that entry ("@43#2") does the route
+# take over: up through the step trigger at 6,38 (16:4026) to the north exit
+# at 9,0 (live list 16:4271 entry 1, 16:401D -> map 44).
+run_leg town 8000 \
+  "@43#2,43:9.0" \
+  44 "$SNAP/into44.lua" \
+  "$SNAP/after40.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"

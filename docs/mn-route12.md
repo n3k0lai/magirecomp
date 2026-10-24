@@ -10,6 +10,10 @@
 |-----|--------|------|-------|----------|
 | into222 | 8000 | new game, map 216 | `219:far,220:12.0,221:36.0` | door into map 222 (`into222.lua`) |
 | river | 12000 | that door | `222:28.4r`, then the default planner | map 40 west exit into map 0 (`after40.lua`) |
+| town | 8000 | `after40.lua` | default planner to Vash Naroom, then `@43#2,43:9.0` | town north exit into map 44 (`into44.lua`) |
+
+`MN_FROM=town bash scripts/mn-route12.sh` reuses the earlier legs' snapshots
+and logs in `/tmp/mn-route12/` and runs from that leg on.
 
 Beat lines the script prints:
 
@@ -37,9 +41,25 @@ live list (`self.triggerPtr`) and resolve its script's `$65` with
 `MnRom:resolveWarp` (`Overworld:triggerTo`, `World.gate`;
 `tests/engine/mn_trigger_live_test.lua`).
 
+## Town leg (2026-10-23)
+
+Map 43 is entered twice: Eidon's scene from the stairs (talk `14:4D01`), then
+a second entry at 2,46. `@43#2,...` in `MN_ROUTE` holds the route back until
+that second entry (entries are the `door crossed` count). The live list
+`16:4271` has the step trigger `16:4026` at 6,38/6,39 (on the way up) and
+the north exit `16:401D` at 9,0/10,0 into map 44.
+
+Engine fix: once `StartMenu.canOpen` is true in town, the route input gave a
+direction for the `start` poll and opened the start menu every frame. Route
+input now answers only `a` and `dir`.
+
+The planner after the 44 door went 44 -> 47 -> 55 (the inn, talk `28:5918`)
+inside the same run, so the inn (beat 8) may come before the ringsmith
+(beat 7) on this route.
+
 ## OPEN QUESTIONS
 
-- Legs after `after40.lua`: Vash Naroom (beats 6-9) onward to the Korg duel.
+- Legs after `into44.lua`: Vash Naroom (beats 6-9) onward to the Korg duel.
   Beat 8's inn has a `$9C` Yes/No save; mn-headless now gives each run a
   private save folder, so a route that answers Yes does not touch the real
   slot.
