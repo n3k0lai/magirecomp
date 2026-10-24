@@ -15,6 +15,7 @@
 | ring | 11000 | `into63.lua` | `63:14.9d,54:3.9d,53:0.27l,51:13.23d,44:23.5r,48:12.2u,59:10.10u>8.13d` | ringsmith counter (14:700F), then 59's exit back into 48 (`48:2`, `after59.lua`) |
 | inn | 7000 | `after59.lua` | `48:0.6l,44:0.5l,47:8.4u,55:7.14u>14.17d` | Poad's rest (28:5918, control at 16,5), then 55's exit into 47 (`47:2`, `after55.lua`) |
 | evu | 10000 | `after55.lua` | `47:19.7r\|8.4u\|19.7r,44:13.0u\|0.5l\|13.0u,51:0.12l\|13.23d\|0.12l,52:4.1u\|17.5r\|4.1u,60:14.5r>6.9d\|14.5r>6.9d,55:7.14u>14.17d` (MN_PICK=2B:43F0) | Evu, the other inn scene, Evu again; spell 3:1; exit into 52 (`52:4`, `after60.lua`) |
+| train | 7000 | `after60.lua` | `52:17.5r,51:13.23d,44:12.16d,43:far,61:0.9` | Eidon training in 61 (Awl 0:45, control 10,9), the quake on 0,9 (13:5D5F), door into 2 (`after61.lua`) |
 
 `MN_FROM=town bash scripts/mn-route12.sh` reuses the earlier legs' snapshots
 and logs in `/tmp/mn-route12/` and runs from that leg on.
@@ -30,6 +31,7 @@ Beat lines the script prints:
 7. `script 14:700F` (A on the ringsmith's counter cell in 59; ring and 50 Animite).
 8. `script 28:5918` (Poad's rest in the inn, 55). Before the Korg duel this talk only offers the rest; it gives no item. The fireplace Remedy Drink in 62 is not on the route yet.
 9. `got 3:1 x1` (Evu gives the spell after the jellybean trade in 60).
+10. `got 0:45 x1` (Eidon hands over the Awl at the training grounds, 61).
 
 The gorge scene on map 219 is still running at frame 3000 (player hidden at
 6,14), so leg 1 cannot be split on a door and stays 8000 frames.

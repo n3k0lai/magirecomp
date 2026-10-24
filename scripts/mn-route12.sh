@@ -38,6 +38,7 @@ BEATS=(
   "7|script 14:700F"
   "8|script 28:5918"
   "9|got 3:1 x1"
+  "10|got 0:45 x1"
 )
 
 LOGS=()
@@ -197,6 +198,17 @@ MN_PICK=2B:43F0 MN_WATCH=A224 run_leg evu 10000 \
   "47:19.7r|8.4u|19.7r,44:13.0u|0.5l|13.0u,51:0.12l|13.23d|0.12l,52:4.1u|17.5r|4.1u,60:14.5r>6.9d|14.5r>6.9d,55:7.14u>14.17d" \
   52:4 "$SNAP/after60.lua" \
   "$SNAP/after55.lua"
+
+# Leg 8. Eidon's training (beat 10): from 60's exit, walk back down through
+# 51 and 44 into 43. Entering 43 sets $A224 to 5 (16:510C) and the Eidon scene
+# moves to the training grounds (61), which hands over the Awl (0:45, control
+# at 10,9). Stepping on 61's west cell 0,9 (13:4163) runs the quake (13:5D5F,
+# story word 3); the goal has no facing, so the autopilot steps off and back
+# on and the second step takes the door (13:4000) into 2 (after61.lua).
+run_leg train 7000 \
+  "52:17.5r,51:13.23d,44:12.16d,43:far,61:0.9" \
+  2 "$SNAP/after61.lua" \
+  "$SNAP/after60.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
