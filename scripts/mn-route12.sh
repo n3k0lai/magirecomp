@@ -39,6 +39,7 @@ BEATS=(
   "8|script 28:5918"
   "9|got 3:1 x1"
   "10|got 0:45 x1"
+  "11|door crossed -> map 5 at"
 )
 
 LOGS=()
@@ -209,6 +210,16 @@ run_leg train 7000 \
   "52:17.5r,51:13.23d,44:12.16d,43:far,61:0.9" \
   2 "$SNAP/after61.lua" \
   "$SNAP/after60.lua"
+
+# Leg 9. The Glade (beat 11): the quake scene in 2 (14:50BA) ends with control
+# at 12,8. 2's south door 6,15 (14:49B0) leads to 277, whose cell 37,13
+# (2F:4010) is the Glade entrance (3). 3 and 4 are walked with the far
+# planner. 5's far exit is the side clearing 6 (0,6), so 5 takes its north
+# door 21,0 (14:6141) into 7 (after5.lua). MN_GOD covers the wild battles.
+run_leg glade 6000 \
+  "2:6.15d,277:37.13,3:far,4:far,5:21.0u" \
+  7 "$SNAP/after5.lua" \
+  "$SNAP/after61.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
