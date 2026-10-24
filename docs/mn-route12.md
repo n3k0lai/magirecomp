@@ -68,3 +68,18 @@ inside the same run, so the inn (beat 8) may come before the ringsmith
   Beat 8's inn has a `$9C` Yes/No save; mn-headless now gives each run a
   private save folder, so a route that answers Yes does not touch the real
   slot.
+
+## Historian leg notes (2026-10-23, not on the route yet)
+
+- From `after55.lua`, `47:19.7r,44:13.0u,51:0.12l,52:4.1u` reaches the
+  historian's house 60 (door 2B:6479; Evu is slot 2 at 15,5, talk 2B:4538,
+  record script 2B:479E). A at 14,5 facing right runs 2B:479E ("use slot 2"),
+  but no SRAM flag changes and nothing in the log confirms Evu's first talk.
+- With `60:14.5r>6.9d` the chain leaves after 90 frames; the next goal is the
+  exit 6,9 (2B:4000 -> 52). A snapshot taken right on that door places Tony on
+  the exit cell, so later runs must snapshot the 52 door into 60 from 51's side.
+- The fireplace Remedy Drink (item 13) is in 62 (52's door 12,2, cell $41,
+  23:4F86), not 60.
+- Jelly Beans: 62's other occupant script set (init 23:529D, slot 2 record
+  23:534D/23:5355) gives them through 23:5606 / 23:56D3 depending on SRAM bits
+  $A126/$A127. Which beat sets those bits is the open question for beat 9.
