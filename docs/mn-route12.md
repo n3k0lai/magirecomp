@@ -14,6 +14,7 @@
 | orwin | 6000 | `into44.lua` | `44:13.0,51:29.2`, then the default planner (53, 54) | 54 door into Orwin's house 63 (`into63.lua`) |
 | ring | 11000 | `into63.lua` | `63:14.9d,54:3.9d,53:0.27l,51:13.23d,44:23.5r,48:12.2u,59:10.10u>8.13d` | ringsmith counter (14:700F), then 59's exit back into 48 (`48:2`, `after59.lua`) |
 | inn | 7000 | `after59.lua` | `48:0.6l,44:0.5l,47:8.4u,55:7.14u>14.17d` | Poad's rest (28:5918, control at 16,5), then 55's exit into 47 (`47:2`, `after55.lua`) |
+| evu | 10000 | `after55.lua` | `47:19.7r\|8.4u\|19.7r,44:13.0u\|0.5l\|13.0u,51:0.12l\|13.23d\|0.12l,52:4.1u\|17.5r\|4.1u,60:14.5r>6.9d\|14.5r>6.9d,55:7.14u>14.17d` (MN_PICK=2B:43F0) | Evu, the other inn scene, Evu again; spell 3:1; exit into 52 (`52:4`, `after60.lua`) |
 
 `MN_FROM=town bash scripts/mn-route12.sh` reuses the earlier legs' snapshots
 and logs in `/tmp/mn-route12/` and runs from that leg on.
@@ -27,7 +28,8 @@ Beat lines the script prints:
 5. `enter map 2` (the stairs below Vash Naroom).
 6. `enter map 63` (Orwin's house, reached from Vash Naroom 43 through 44, 51, 53, 54).
 7. `script 14:700F` (A on the ringsmith's counter cell in 59; ring and 50 Animite).
-8. `script 28:5918` (Poad's rest in the inn, 55). Before the Korg duel this talk only offers the rest; it gives no item. The fireplace Remedy Drink in 60 is not on the route yet.
+8. `script 28:5918` (Poad's rest in the inn, 55). Before the Korg duel this talk only offers the rest; it gives no item. The fireplace Remedy Drink in 62 is not on the route yet.
+9. `got 3:1 x1` (Evu gives the spell after the jellybean trade in 60).
 
 The gorge scene on map 219 is still running at frame 3000 (player hidden at
 6,14), so leg 1 cannot be split on a door and stays 8000 frames.
@@ -69,17 +71,19 @@ inside the same run, so the inn (beat 8) may come before the ringsmith
   private save folder, so a route that answers Yes does not touch the real
   slot.
 
-## Historian leg notes (2026-10-23, not on the route yet)
+## Historian leg notes (2026-10-23)
 
-- From `after55.lua`, `47:19.7r,44:13.0u,51:0.12l,52:4.1u` reaches the
-  historian's house 60 (door 2B:6479; Evu is slot 2 at 15,5, talk 2B:4538,
-  record script 2B:479E). A at 14,5 facing right runs 2B:479E ("use slot 2"),
-  but no SRAM flag changes and nothing in the log confirms Evu's first talk.
-- With `60:14.5r>6.9d` the chain leaves after 90 frames; the next goal is the
-  exit 6,9 (2B:4000 -> 52). A snapshot taken right on that door places Tony on
-  the exit cell, so later runs must snapshot the 52 door into 60 from 51's side.
-- The fireplace Remedy Drink (item 13) is in 62 (52's door 12,2, cell $41,
-  23:4F86), not 60.
-- Jelly Beans: 62's other occupant script set (init 23:529D, slot 2 record
-  23:534D/23:5355) gives them through 23:5606 / 23:56D3 depending on SRAM bits
-  $A126/$A127. Which beat sets those bits is the open question for beat 9.
+- Evu's record 2B:479E switches on the story word ($A123). At 2 it switches
+  again on $A224, a per-chapter phase byte that the VM clears on each new story
+  word: 0 -> 2B:4538, 1 -> 2B:41CB (sets 2), 2 -> 2B:42FA, 3 -> 2B:4353 (the
+  jellybean question; choice 2B:4396 / 2B:43F0, and 43F0 sets 4).
+- The ringsmith (14:7399) leaves $A224 at 1. With $A224 = 2, 55's init
+  28:5BDF loads a second scene (slot 2 at 7,13, record 28:5C27, which sets 3).
+- The autopilot takes the first choice option (2B:4396, no trade), so the leg
+  sets MN_PICK=2B:43F0. MN_WATCH=A224 logs each phase write.
+- No engine change was needed; every flag on this chain is already modeled.
+- 62's alternate scene (init 23:529D, the $A126/$A127 jellybean scripts) is
+  chosen only at story word $19, much later than this beat. The fireplace
+  Remedy Drink (62, cell $41, 23:4F86) is still off the route.
+- A snapshot taken on 60's exit door places Tony on the exit cell, so loading
+  it walks straight back into 52.

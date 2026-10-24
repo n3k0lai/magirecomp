@@ -37,6 +37,7 @@ BEATS=(
   "6|enter map 63 "
   "7|script 14:700F"
   "8|script 28:5918"
+  "9|got 3:1 x1"
 )
 
 LOGS=()
@@ -184,6 +185,18 @@ run_leg inn 7000 \
   "48:0.6l,44:0.5l,47:8.4u,55:7.14u>14.17d" \
   47:2 "$SNAP/after55.lua" \
   "$SNAP/after59.lua"
+
+# Leg 7. Evu's chain, all keyed on the story-phase byte $A224 (story word 2):
+# Evu (60, slot 2 at 15,5, record 2B:479E) picks his talk by $A224. At 1 (set
+# by the ringsmith) his talk 2B:41CB sets 2. With $A224 = 2, 55's init
+# (28:5BDF) loads another scene: slot 2 at 7,13 whose record 28:5C27 sets 3.
+# Back in 60 at 3, his talk asks for the jellybeans; picking 2B:43F0 sets 4
+# and gives spell 3:1. 52 is entered four times; the fourth is the exit from
+# 60 after the trade (52:4, after60.lua).
+MN_PICK=2B:43F0 MN_WATCH=A224 run_leg evu 10000 \
+  "47:19.7r|8.4u|19.7r,44:13.0u|0.5l|13.0u,51:0.12l|13.23d|0.12l,52:4.1u|17.5r|4.1u,60:14.5r>6.9d|14.5r>6.9d,55:7.14u>14.17d" \
+  52:4 "$SNAP/after60.lua" \
+  "$SNAP/after55.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
