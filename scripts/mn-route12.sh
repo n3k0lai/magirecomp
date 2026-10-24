@@ -31,6 +31,9 @@ BEATS=(
   "1|script 2A:6CB5"
   "2|talk=1F:5D95"
   "3|enter map 40"
+  "4|door crossed -> map 0"
+  "5|enter map 2 "
+  "6|enter map 43 "
 )
 
 LOGS=()
@@ -121,19 +124,19 @@ run_leg into222 8000 \
   222 "$SNAP/into222.lua"
 
 # Leg 2. From the map 222 door, stand beside the crystal (29,4) and face it.
-# 1F:5EAE plays the cave-in and the fall. Map 40's entry 2A:4774 is still
-# running at frame 3000 (slot 0 at 2A:4882, player hidden at 9,28). No
-# step trigger fires on the way, so there is no snapshot to hang a later
-# leg on. Overworld:snapshot only writes on a door.
-run_leg crystal 3000 \
+# 1F:5EAE plays the cave-in and the fall into map 40 (2A:4774). The river
+# scene (2A:4837 .. 2A:4C51) has no door inside it, so this leg runs until
+# Tony walks out of map 40's west exit (live list 21:4228/21:4231 -> map 0)
+# and snapshots that door; the default planner then follows Eidon through
+# 0, 1, 277 and 2 into Vash Naroom (43).
+run_leg river 12000 \
   "222:28.4r" \
-  "" "" \
+  0 "$SNAP/after40.lua" \
   "$SNAP/into222.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
 if [ ! -f "$SNAP/beat12.snap" ]; then
-  echo "beat 4: NOT REACHED (map 40 at 9,28, 2A:4837 still running at frame 3000)" >&2
   echo "beat 12: NOT REACHED (no $SNAP/beat12.snap)" >&2
   exit 1
 fi

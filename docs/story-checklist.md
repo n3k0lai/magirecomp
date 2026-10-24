@@ -8,8 +8,8 @@ Order of beats, our map ids where known, and port status.
 |---|------|------|------|
 | 1 | New game, Tavel Gorge, kids dare Tony into the cave | 216, 219 | yes |
 | 2 | Cave maze to the crystal; cave-in, Tony trapped | 220-222 | yes: route leg 2 reaches the crystal talk 1F:5D95 and runs 1F:5EAE |
-| 3 | Fall to the Moonlands: Furoks find Tony at a river | 40 | partial: route enters map 40 (2A:4774); at frame 3000 Tony is still hidden at 9,28 and 2A:4837 is running |
-| 4 | Korg, Zet and Eidon scene; translation ring | 40 | ported earlier; route12 does not reach it (docs/mn-route12.md) |
+| 3 | Fall to the Moonlands: Furoks find Tony at a river | 40 | yes: route enters map 40 (2A:4774); the river leg finishes the scene in 12000 frames |
+| 4 | Korg, Zet and Eidon scene; translation ring | 40 | yes: route12 river leg leaves through the west exit (snapshot after40.lua) |
 | 5 | Follow Eidon up and left along the river to the stairs | 40 (west exit 0,10) -> 0 -> 1 -> 277 -> 1 -> 277 -> 2 (stairs; Korg/Zet line) | yes (auto-route, this round) |
 | 6 | Vash Naroom: climb to the town square, meet Orwin with Eidon | 43 (town), houses 44, 47, 55, 58; also seen in PyBoy: 48, 51, 65, 67 ; Orwin's house 63 via 43 -> 44 -> 51 -> 53 -> 54 -> 63 (entry 23:7358) | yes (route_cur.txt) |
 | 7 | Ringsmith forges a first Furok ring free | 59 (from 48 door at 12,2; counter cell $40 at 10,9 -> 14:700F -> 14:71DB) | yes: ring, 50 Animite, Evu hint |

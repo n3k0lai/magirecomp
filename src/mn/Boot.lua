@@ -103,8 +103,8 @@ function Planner:plan()
     local path, goal = bfs(def, ow.x, ow.y, function(x, y)
       local v = World.cell(def, x, y)
       if v < 0xC0 or not ow.triggerPtr or self.tried[y * 1000 + x] then return false end
-      local t = def.triggers[v % 64 + 1]
-      return t ~= nil and t.to >= 0 and t.to ~= ow.map
+      local to = ow:triggerTo(v % 64)
+      return to ~= nil and to ~= ow.map
     end)
     if goal then self.tried[goal[2] * 1000 + goal[1]] = true end
     if path then

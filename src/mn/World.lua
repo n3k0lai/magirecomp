@@ -37,9 +37,14 @@ function M.trigger(def, x, y, dx, dy)
   if v < 0xC0 then return nil end
   local t = def.triggers[bit.band(v, 0x3F) + 1]
   if not t then return nil end
-  local k = t.kind
-  if (k == 1 and dy >= 0) or (k == 2 and dy <= 0) or (k == 3 and dx <= 0) or (k == 4 and dx >= 0) then return nil end
+  if not M.gate(t.kind, dx, dy) then return nil end
   return t
+end
+
+-- StageThirdScriptFromMarkedCell's direction gate: 1 up, 2 down, 3 right,
+-- 4 left; any other kind fires from every direction.
+function M.gate(k, dx, dy)
+  return not ((k == 1 and dy >= 0) or (k == 2 and dy <= 0) or (k == 3 and dx <= 0) or (k == 4 and dx >= 0))
 end
 
 return M

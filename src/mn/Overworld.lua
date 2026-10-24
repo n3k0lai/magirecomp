@@ -298,12 +298,29 @@ end
 -- Dev checkpoints (MN_SNAP_TO=map[:n] MN_SNAP_FILE=path): when a door trigger into that map
 -- fires (the n-th time), write the VM memory (SRAM flags, items, story word), the
 -- player's cell and the trigger script; Overworld.load replays that door.
+-- Destination map of the live trigger list's entry idx: the list the entry
+-- script's $64 installed (self.triggerPtr), not the importer's cached first
+-- list (map 40 runs 21:4228 / 21:4231 while the cache holds 21:4238).
+function M:triggerTo(idx)
+  if not self.triggerPtr then return nil end
+  self.warpTo = self.warpTo or {}
+  local key = self.triggerPtr * 64 + idx
+  local hit = self.warpTo[key]
+  if hit == nil then
+    local _, b, p = self:listEntry(self.triggerPtr, idx)
+    local w = b and self.vm.rom.resolveWarp and self.vm.rom:resolveWarp(b, p, {})
+    hit = w and w.map or -1
+    self.warpTo[key] = hit
+  end
+  return hit >= 0 and hit or nil
+end
+
 function M:snapshot(b, p)
   local want, file = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
   if not (want and file) then return end
-  local t = self.def.triggers[World.cell(self.def, self.x, self.y) % 64 + 1]
+  local to = self:triggerTo(bit.band(World.cell(self.def, self.x, self.y), 0x3F))
   local m, n = want:match("^(%d+):?(%d*)$")
-  if not t or t.to ~= tonumber(m) then return end
+  if not to or to ~= tonumber(m) then return end
   self.snapCount = (self.snapCount or 0) + 1
   if self.snapCount ~= (tonumber(n) or 1) then return end
   local parts = {}
@@ -315,7 +332,7 @@ function M:snapshot(b, p)
   local f = assert(io.open(file, "w"))
   f:write(("return {map=%d,x=%d,y=%d,facing=%q,bank=%d,ptr=%d,tony=%s,mem={%s}}\n"):format(self.map, self.x, self.y,
     self.facing, b, p, tostring(self.tonyEnergy or "nil"), table.concat(parts, ",")))
-  f:close(); self.log[#self.log + 1] = ("snapshot -> %s (door %02X:%04X into %d)"):format(file, b, p, t.to)
+  f:close(); self.log[#self.log + 1] = ("snapshot -> %s (door %02X:%04X into %d)"):format(file, b, p, to)
 end
 
 function M.load(file, input)
@@ -455,12 +472,13 @@ function M:update()
     self.anim = (self.anim or 0) + 1
     if self.px == self.x * 16 and self.py == self.y * 16 then
       local dx, dy = d[1], d[2]; self.moving = nil
-      local t = World.trigger(self.def, self.x, self.y, dx, dy)
-      if os.getenv("MN_ADBG") and World.cell(self.def, self.x, self.y) >= 0xC0 then print(("[step] map %d %d,%d cell %02X d %d,%d t=%s tp=%s"):format(self.map, self.x, self.y, World.cell(self.def, self.x, self.y), dx, dy, tostring(t and t.kind), tostring(self.triggerPtr))) end
-      if t and self.triggerPtr then
-        local _, b, p = self:listEntry(self.triggerPtr, bit.band(World.cell(self.def, self.x, self.y), 0x3F))
-        if b then self:snapshot(b, p); self:runScript(b, p, "step trigger") end
-      end
+      -- the live list ($64's self.triggerPtr) gives the kind and script; the
+      -- importer's cached list can be another entry's
+      local v = World.cell(self.def, self.x, self.y)
+      local k, b, p
+      if v >= 0xC0 and self.triggerPtr then k, b, p = self:listEntry(self.triggerPtr, bit.band(v, 0x3F)) end
+      if os.getenv("MN_ADBG") and v >= 0xC0 then print(("[step] map %d %d,%d cell %02X d %d,%d t=%s tp=%s"):format(self.map, self.x, self.y, v, dx, dy, tostring(k), tostring(self.triggerPtr))) end
+      if b and World.gate(k, dx, dy) then self:snapshot(b, p); self:runScript(b, p, "step trigger") end
     end
     return
   end
