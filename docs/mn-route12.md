@@ -189,9 +189,13 @@ its real effect shows on the next load of map 20.
    alternative entries into the same code, and 1D:5888 is another $A225 = 2 setter
    that has no known caller yet. Map 223 slot 2 at 22,22 (behaviour 1D:44EF ->
    1D:4558, talk 1D:44F7) selects on $A225: 0 or 1 goes to 1D:456C, and 2 goes to
-   1D:465D (the bracelet). The only $A225 = 1 store found so far is 13:7372
-   (gated on $A334), so the next step is to confirm whether that runs before or
-   after the guardian duel, then talk to 225's 8,4 NPC with story 6.
+   1D:465D (the bracelet). $A225 = 1 comes from 13:7372: map 229 (north door
+   of room 10, 5,4) lists it on its $40 cell at 50,8, a $A2 record on $A334 bit 2.
+   Pressing A from 50,9 facing up sets $A334 bit 2, clears the cell and stores
+   $A225 = 1 (leg a229/a225 below). Map setup must not continue past the $44 in
+   that record ($44 follows its word while the LCD is off), or every re-entry
+   would store $A225 = 1 again. Next: talk to 225's 8,4 NPC from 9,4 facing left
+   ($A225 = 2), then 223's 22,22 NPC from 22,23 facing up ($A3A3 = 2).
 7. Todo: first kick on a $0B cell.
 
 ### Harness notes

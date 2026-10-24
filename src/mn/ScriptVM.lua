@@ -479,7 +479,9 @@ function VM:run(bank, ptr)
       end
       o = o + n
     elseif op == 0x5B then -- FillScriptRecordC71BUnlessC6EEIs1: stalls while C6EE==1
-      if (self.curSlot or self.fromA) and not self.init then
+      -- the main script plants it too (Shadow Geyser revisit 14:6B0C posts its text
+      -- record, then waits on C6FD for the record's $01)
+      if not self.init then
         -- C6EE == 1 while a dialogue owns the window: one talk record at a time
         while self:rd8(0xC6EE) == 1 or (self.threads and self.threads.talk and coroutine.status(self.threads.talk.co) ~= "dead") do coroutine.yield("wait", 1) end
         self:spawnTalk(r:u8(o + 1), r:u16(o + 2))
@@ -511,8 +513,8 @@ function VM:run(bank, ptr)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
     elseif op == 0x68 then o = o + n -- unpack into WRAM4/6 (map-record overlay); cells come from loadMap
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
-    elseif op == 0x44 then -- SkipTwoUnlessLcdOff
-      o = o + n
+    elseif op == 0x44 then -- SkipTwoUnlessLcdOff: LCD off (map setup) follows the word
+      if self.init then o = off(r:u16(o + 1), cur.bank) else o = o + n end
     elseif op == 0xA4 then
       -- PlantOffset7ThenStoreFF ($25DA): SRAM flag word, mask, reward (category,
       -- id), WRAM-3 map cell word. LCD off (map setup): flag set -> cell := $FF

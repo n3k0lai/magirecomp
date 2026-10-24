@@ -169,6 +169,17 @@ run_bracelet() {
     "25:5.6u>5.11,10:down" \
     277 "$BSNAP/out10.lua" \
     "$BSNAP/into25.lua"
+  # in229: the same duel, then room 10's north door (5,4) into 229 (writes in229.lua).
+  MN_WATCH=A225 run_leg in229 20000 \
+    "25:5.6u>5.11,10:5.4,229:far" \
+    229 "$BSNAP/in229.lua" \
+    "$BSNAP/into25.lua"
+  # a225: A on 229's $40 cell from 50,9 (13:7372, $A225 = 1), back through 10 and
+  # the Shadow Geyser revisit (8), out of the 277 enclosure into 7 (a225g7.lua).
+  MN_WATCH=A225 run_leg a225 16000 \
+    "229:50.9u>44.24,10:5.11,8:8.15,277:38.10" \
+    7 "$BSNAP/a225g7.lua" \
+    "$BSNAP/in229.lua"
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet

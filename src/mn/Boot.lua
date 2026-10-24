@@ -337,6 +337,9 @@ function love.load()
                 local occ = false
                 -- same rule as the player's own step (Overworld: $65A4 records and blank/imageless ones don't block)
                 for k, ob in pairs(ow.objects) do if k ~= 0 and not ob.dormant and not ob.blank and (ob.image or ob.anim) and ob.handler ~= 0x65A4 and ob.x == nx and ob.y == ny then occ = true end end
+                -- a goal route steps around a live $65A4 step-on record unless it is the goal
+                -- (277 37,8 re-runs the Shadow Geyser scene on every crossing)
+                if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and W.walkable(W.cell(def, nx, ny)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 end
@@ -358,9 +361,10 @@ function love.load()
               if busy then ow.talkSeen = 0 elseif ow.talkSeen then ow.talkSeen = ow.talkSeen + 1 end
               if ow.talkSeen and ow.talkSeen > 90 then ow.step = (ow.step or 1) + 1; ow.talkSeen = nil; ow.farMap = nil; ow.replan = true; return nil end
             end
-            if k == "a" then return frame % 30 == 0 and not (ow.talkSeen and vl and (ow.step or 1) < #vl) end
+            -- press A only once turned: a step that ends facing a counter would read it first (225 9,4)
+            if k == "a" then return frame % 30 == 0 and ow.facing == ow.farFace and not (ow.talkSeen and vl and (ow.step or 1) < #vl) end
             -- turn only when needed: a press toward an open cell would walk off the goal
-            if frame % 30 == 10 and not ow.talkSeen and ow.facing ~= ow.farFace then return ow.farFace end
+            if k == "dir" and not ow.talkSeen and ow.facing ~= ow.farFace then return ow.farFace end
             return nil
           end
           if k == "a" then return false end
