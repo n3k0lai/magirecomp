@@ -160,17 +160,19 @@ run_bracelet() {
     "24:6.16u>19.18|7.1,23:23.6|0.6,22:13.3u>0.6" \
     25 "$BSNAP/into25.lua" \
     "$BSNAP/into24.lua"
-  # scene25: talk to 25's slot 2 (1A:672C, story word 6), then step on 25's exit:
+  # duel25: talk to 25's slot 2 (1A:672C, story word 6), then step on 25's exit:
   # with story 6 its door (1A:668E) runs the guardian scene (1A:66A3 -> 1A:674C in
-  # slot 0) into the duel at 1A:5F88. No snapshot yet: the duel does not start.
-  MN_WATCH=A123 run_leg scene25 3000 \
-    "25:5.6u>5.11" \
-    "" "" \
+  # slot 0) into the director duel at 1A:5F88 (won with MN_GOD; its length varies
+  # with the seed). The win script 1A:67C7 leads through 9 into the small room 10,
+  # whose south door into 277 writes out10.lua.
+  MN_WATCH=A123 run_leg duel25 17000 \
+    "25:5.6u>5.11,10:5.11" \
+    277 "$BSNAP/out10.lua" \
     "$BSNAP/into25.lua"
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
-  echo "bracelet legs: into25 reached"
+  echo "bracelet legs: out10 reached"
   exit 0
 fi
 

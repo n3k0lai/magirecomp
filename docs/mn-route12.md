@@ -150,7 +150,7 @@ its real effect shows on the next load of map 20.
    and restarted the scene. Open: the duel never starts. Slot 0 loops in
    1A:603B (C70D record 1A:6045 picks an animation, then waits for $D3C2)
    and $D3C2 never clears.
-5a. Next engine step: the guardian duel is a scripted "director" duel.
+5a. Done (leg `duel25`, from into25.lua): the guardian duel is a scripted "director" duel.
    In the ROM, Opcode25 plants the $2B-style handler and jumps straight into
    the battle engine (bank 4 $6416); it does not wait for Opcode27.
    Opcode2B clears $D3C2 and sets hScriptHandler to the $0F66 stub, which
@@ -163,6 +163,17 @@ its real effect shows on the next load of map 20.
    the battle on $25 when $2B follows, and let Battle raise $D3C2 at its
    turn points to resume the director stream. $A3A3 = 2 (item 6) comes after
    this duel.
+   Port (src/mn/ScriptVM.lua op $2B, src/mn/Battle.lua startDirector/pass): the
+   port still collects a battle script's ops, but when the stream loops back to
+   a $2B it already passed since the $25 (1A:603B), the battle starts there.
+   Each engine round raises $D3C2 between the ranking and the slot walk (bank 2
+   $5E5E, WaitUntilD3C2Clears) and waits until the stream's next $2B clears it;
+   summons the stream ran in that pass reach the engine then. When the battle
+   ends, the $31 win or loss script runs as the main script (ContinueStartup),
+   which ends the slot 0 director. $27 duels (Korg) are unchanged. Tests:
+   tests/engine/mn_battle_director_test.lua. The guardian is won in about 24
+   passes with MN_GOD; its win script 1A:67C7 walks through 9 into the small
+   room 10 (bank 1D village, south door to the world map).
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
    223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
 7. Todo: first kick on a $0B cell.
