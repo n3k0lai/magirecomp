@@ -174,12 +174,24 @@ its real effect shows on the next load of map 20.
    tests/engine/mn_battle_director_test.lua. The guardian is won in about 24
    passes with MN_GOD; its win script 1A:67C7 walks through 9 into the small
    room 10 (bank 1D village, south door to the world map).
-   Status (duel25b run): the duel is won and the player reaches room 10 at
-   5,10, but the leg ran out of frames before the south door step, so
-   out10.lua (the bracelet-leg start) is not written yet. Next: give the
-   leg more frames or check the 5,11 door walk.
+   Room 10 fix: its entry (1A:6841) fills slot 0 with the $5D81 pad handler and a
+   sprite anim, which is the player record itself. The duel scene left hidePlayer
+   set, so the port made it a cutscene stand-in that kept the pad locked. Overworld
+   spawn now drops that stand-in, and the leg holds down to the south door. Run
+   duel25d writes out10.lua (door 1D:4000 into 277), which is the start for the
+   bracelet legs.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
    223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
+   Who's who (from the decomp and earlier b13 harness logs): map 225 slot 2 at 8,4
+   (behaviour 1D:76DC, talk 1D:76E4) selects on story word $04. At story 6 it
+   goes to 1D:7724, which selects on $A225: 0 gives a text only, 1 gives 1D:776A
+   (sets $A225 = 2), 2 falls through to 1D:7931. 1D:7720 and 1D:7766 are
+   alternative entries into the same code, and 1D:5888 is another $A225 = 2 setter
+   that has no known caller yet. Map 223 slot 2 at 22,22 (behaviour 1D:44EF ->
+   1D:4558, talk 1D:44F7) selects on $A225: 0 or 1 goes to 1D:456C, and 2 goes to
+   1D:465D (the bracelet). The only $A225 = 1 store found so far is 13:7372
+   (gated on $A334), so the next step is to confirm whether that runs before or
+   after the guardian duel, then talk to 225's 8,4 NPC with story 6.
 7. Todo: first kick on a $0B cell.
 
 ### Harness notes

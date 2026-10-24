@@ -164,9 +164,9 @@ run_bracelet() {
   # with story 6 its door (1A:668E) runs the guardian scene (1A:66A3 -> 1A:674C in
   # slot 0) into the director duel at 1A:5F88 (won with MN_GOD; its length varies
   # with the seed). The win script 1A:67C7 leads through 9 into the small room 10,
-  # whose south door into 277 writes out10.lua.
+  # whose south door into 277 writes out10.lua (10:down; "far" waits on slot 0).
   MN_WATCH=A123 run_leg duel25 17000 \
-    "25:5.6u>5.11,10:5.11" \
+    "25:5.6u>5.11,10:down" \
     277 "$BSNAP/out10.lua" \
     "$BSNAP/into25.lua"
 }
