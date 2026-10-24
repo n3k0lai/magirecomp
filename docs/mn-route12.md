@@ -132,13 +132,14 @@ its real effect shows on the next load of map 20.
    upper exit -> 20 north (column 14 opened by the bit 3 copies) -> 21 ->
    22 -> 23 corridor -> 24 (lands at 19,18). Script legs `levers` and
    `corridor` (`MN_LEGS=bracelet`).
-4c. Open: map 24's init (1A:65D7) keeps a wall at rows 13-15, cols 6-9
-   between the south area and the north exit (7,1 -> 25) unless
-   $A125 bit 4 and $A126 bit 3 are both set. The map 22 lever (1A:64AF)
-   sets $A125 bit 4; with $A126 bit 2 clear it shows a hint and clears
-   bit 4 again (1A:64D4), otherwise it sets $A126 bit 3. $A126 bit 2 comes
-   from the map 24 NPC talk chain (1A:6645 -> 1A:5C7D). Next leg: talk to
-   that NPC, go back to 22, pull the lever, return to 24 and take 7,1.
+4c. Done (leg `gate24`, from into24.lua): map 24's init (1A:65D7) keeps a
+   wall at rows 13-15, cols 6-9 between the south area and the north exit
+   (7,1 -> 25) unless $A125 bit 4 and $A126 bit 3 are both set. Talking to
+   the NPC at 6,15 (stand at 6,16 facing up; 1A:6645 -> 1A:5C7D) sets
+   $A126 bit 2. The map 22 lever (1A:64AF at 13,2) then sets $A125 bit 4 and
+   $A126 bit 3; without bit 2 it shows a hint and clears bit 4 again
+   (1A:64D4). Back in 24 the wall is open and 24's north door (1A:65CE)
+   leads into 25. No engine change needed.
 5. Todo: map 25 init (1A:66B7) places the object whose talk script (672C)
    moves the story word to 6.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map

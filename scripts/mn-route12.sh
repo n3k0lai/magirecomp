@@ -153,10 +153,17 @@ run_bracelet() {
     "23:6.14u>11.21|0.6,18:25.5,19:23.5,20:15.0,21:0.7,22:0.6" \
     24 "$BSNAP/into24.lua" \
     "$BSNAP/into23.lua"
+  # gate24: talk to 24's NPC at 6,15 (1A:6645 -> 1A:5C7D, $A126 bit 2), back
+  # through 23 to 22's lever (1A:64AF 13,2: $A125 bit 4 and $A126 bit 3), then
+  # 23 -> 24, where init 1A:65D7 opens the wall, and 24's north door into 25.
+  MN_WATCH=A126 run_leg gate24 12000 \
+    "24:6.16u>19.18|7.1,23:23.6|0.6,22:13.3u>0.6" \
+    25 "$BSNAP/into25.lua" \
+    "$BSNAP/into24.lua"
 }
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
-  echo "bracelet legs: into24 reached"
+  echo "bracelet legs: into25 reached"
   exit 0
 fi
 
