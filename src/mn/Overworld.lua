@@ -240,6 +240,8 @@ function M:host()
     end,
     -- director duel ($25 then a looping $2B stream): see Battle:startDirector
     battleDirect = function() if s.battle and s.battle.startDirector then s.battle:startDirector() end end,
+    -- a script the main stream runs from the next field frame (director duel tail)
+    mainScript = function(bank, ptr) s.pendingMain = { bank, ptr } end,
     battleRaised = function() return s.battle ~= nil and s.battle.d3c2 == 1 end,
     battleClear = function() if s.battle then s.battle.d3c2 = 0 end end,
     battleRun = function()
@@ -402,6 +404,11 @@ function M:update()
     if done then self.log[#self.log + 1] = ("battle end: %s"):format(tostring(done)); self.battle = nil; self.battleResult = done end
     self.vm:tickThreads(false)
     return
+  end
+  if self.pendingMain then
+    local m = self.pendingMain
+    self.pendingMain = nil
+    self:runScript(m[1], m[2], "duel tail")
   end
   self.vm:tickThreads(self.textBox ~= nil and not self.textBox.done)
   -- encounter records: a $65A4 handler fires the record's tail script when Tony shares its cell

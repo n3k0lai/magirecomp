@@ -74,6 +74,29 @@ do
   ok(vm.dir == nil, "director state cleared")
 end
 
+-- a director running in a slot's thread hands its tail to the main stream
+do
+  local b = {
+    0x31, 0x12, 0x30, 0x40, 0x12, 0x30, 0x40,
+    0x25, 0x07, 0x59, 0x0C, 0x4C, 0x23, 0x40,
+    0x2B,
+    0x45, 0x12, 0x0E, 0x40,
+  }
+  while #b < 0x30 do b[#b + 1] = 0 end
+  b[#b + 1] = 0xA9; b[#b + 1] = 0x44; b[#b + 1] = 0x00; b[#b + 1] = 0x97
+  local f = host()
+  local main
+  f.h.mainScript = function(bank, ptr) main = { bank, ptr } end
+  local vm = VM.new(image(b), f.h)
+  vm:spawnThread(0, 0x12, 0x4000)
+  for _ = 1, 3 do vm:tickThreads(false) end
+  ok(f.runs == 1 and f.directs == 1, "slot director starts the battle")
+  f.active, f.result = false, "win"
+  vm:tickThreads(false)
+  ok(main and main[1] == 0x12 and main[2] == 0x4030, "the win tail goes to the main stream")
+  ok(vm:rd8(0xA123) == 0 and vm.threads[0] == nil, "the slot thread ends without running the tail")
+end
+
 -- a $27 duel (Korg 14:4174 shape): two different $2B stops then $27; unchanged
 do
   local b = {

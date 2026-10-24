@@ -269,6 +269,10 @@ function VM:run(bank, ptr)
             self.dir = nil
             local k = duelTail(self, h)
             if not k then return end
+            -- ContinueStartup runs the tail as the main script; a director that ran
+            -- in a slot's record (map 25: RunScriptInSlot 0) ends, and the tail may
+            -- reinstall that slot's record (1A:67C7)
+            if self.co ~= coroutine.running() and h.mainScript then h.mainScript(k[1], k[2]); return end
             jump(k[1], k[2])
           end
         else
