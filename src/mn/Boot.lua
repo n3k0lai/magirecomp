@@ -315,7 +315,8 @@ function love.load()
       end
       if d == "far" then -- BFS to the reachable trigger cell farthest from where control began
         local W = require("mn.World")
-        if ow.textBox and ow.farFace then ow.talkSeen = 0 end
+        -- a bracelet kick (no text box) counts as a talk for ">" chains
+        if (ow.textBox or ow.kickSeen) and ow.farFace then ow.talkSeen = 0; ow.kickSeen = nil end
         if not ow.objects[0] and not ow.textBox then
           local key = ow.map .. ":" .. (ow.farGoalFor or "")
           if ow.farMap ~= ow.map then

@@ -197,7 +197,17 @@ its real effect shows on the next load of map 20.
    would store $A225 = 1 again. Done (legs to225/bracelet): 225's 8,4 NPC from
    9,4 facing left stores $A225 = 2, then 223's 22,22 NPC from 22,23 facing up
    runs 1D:465D (story word 7, $A3A3 = 2).
-7. Todo: first kick on a $0B cell.
+7. First kick (engine check, not yet a route leg): map 229 has a two-cell-wide
+   wall of $0B cells at 39-40,12-15 between the 44,24 arrival side and the west
+   half. With $A3A3 = 2, A from 41,13 facing left kicks 40,13, then A from 40,13
+   kicks 39,13, and the player walks through to 38,13 (Kick.try clears each cell).
+   Checked from a copy of in229.lua with $A3A3 = 2 and story 7 written in by hand,
+   route `229:41.13l>40.13l>38.13`. A kick now ends a `>` goal like a talk.
+   Open: the real path from out225.lua back to 229 goes 277 -> 3 -> 4 -> 5 -> 7 ->
+   the 277 enclosure, but room 10's door (277 37,7) is only reachable over 37,8,
+   the Shadow Geyser step-on (2F:4210), which always sends the player into 8.
+   Need to find whether the ROM skips that step-on after the Korg duel, or
+   another way into 10/229 (204's door lands on 229's west half).
 
 ### Harness notes
 

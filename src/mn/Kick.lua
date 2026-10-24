@@ -105,6 +105,7 @@ function M.try(ow)
   if #steps == 0 then finish(ow)
   else ow.kick = { steps = steps, i = 0 } end
   if ow.log then ow.log[#ow.log + 1] = ("kick %d,%d"):format(fx, fy) end
+  ow.kickSeen = true -- harness: a kick ends a ">" goal like a talk
   return true
 end
 
