@@ -232,6 +232,16 @@ its real effect shows on the next load of map 20.
    Door graph past the kicked wall: 229's left door (9,10) -> 204 -> 205
    -> 200 -> 199 -> 198 -> 114 -> 113. 114 also links 113 twice, and 112
    links 113 and 279. Map 74 has no plain door into it (scripted entry).
+   Correction (legs to113, to113b): the west room of 229 sits behind a
+   second $0B wall (16-19,18-20; kick 18,18 / 17,18 / 16,18 from the east),
+   and 204's pit (25:66AE) only drops to 205 once $A3A4 >= 3. $A3A4 is 2
+   here; 13:6C68 (map 133, the story 0x0A scene) stores 3, so the 204 way
+   is for a later chapter. At story 7 the way to 113 is overworld: 229 ->
+   10 (5,11) -> 277 (31,38) -> 110 (5,29) -> 108 (17,39) -> 279 cell
+   34,21, whose script 2F:44DE goes to 122 at story 8/9 and to 112
+   otherwise -> 112 (12,9, moving up) -> 113. The importer read garbage
+   trigger lists for maps 40, 73 and 198 (an entry-scan false positive
+   pointing at graphics); it now skips implausible lists.
 
 ### Harness notes
 
