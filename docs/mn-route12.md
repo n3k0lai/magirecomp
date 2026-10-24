@@ -174,6 +174,10 @@ its real effect shows on the next load of map 20.
    tests/engine/mn_battle_director_test.lua. The guardian is won in about 24
    passes with MN_GOD; its win script 1A:67C7 walks through 9 into the small
    room 10 (bank 1D village, south door to the world map).
+   Status (duel25b run): the duel is won and the player reaches room 10 at
+   5,10, but the leg ran out of frames before the south door step, so
+   out10.lua (the bracelet-leg start) is not written yet. Next: give the
+   leg more frames or check the 5,11 door walk.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
    223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
 7. Todo: first kick on a $0B cell.
