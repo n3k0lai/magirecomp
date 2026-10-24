@@ -150,6 +150,19 @@ its real effect shows on the next load of map 20.
    and restarted the scene. Open: the duel never starts. Slot 0 loops in
    1A:603B (C70D record 1A:6045 picks an animation, then waits for $D3C2)
    and $D3C2 never clears.
+5a. Next engine step: the guardian duel is a scripted "director" duel.
+   In the ROM, Opcode25 plants the $2B-style handler and jumps straight into
+   the battle engine (bank 4 $6416); it does not wait for Opcode27.
+   Opcode2B clears $D3C2 and sets hScriptHandler to the $0F66 stub, which
+   only steps the script while $D3C2 is nonzero. So the rest of the stream
+   (combatant adds via $2E, text, the 1A:603B loop) runs inside the battle,
+   one chunk each time the battle engine raises $D3C2. The port only starts
+   battles on Opcode27 and treats $2B as a one-frame yield, so the stream
+   spins. The same $25 -> $2B pattern starts 17 scripted duels (banks 12,
+   13, 14, 15, 16, 18, 1A, 1F, 22, 23 and 26), so the fix is general: start
+   the battle on $25 when $2B follows, and let Battle raise $D3C2 at its
+   turn points to resume the director stream. $A3A3 = 2 (item 6) comes after
+   this duel.
 6. Todo: village chain sets $A225 = 2 (1D:5888 / 7720 / 7766), then the map
    223 NPC (1D:44EF -> 465D) sets the bracelet flag ($A3A3 = 2).
 7. Todo: first kick on a $0B cell.
