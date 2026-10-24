@@ -40,6 +40,7 @@ BEATS=(
   "9|got 3:1 x1"
   "10|got 0:45 x1"
   "11|door crossed -> map 5 at"
+  "12|player control at 8,8"
 )
 
 LOGS=()
@@ -220,6 +221,17 @@ run_leg glade 6000 \
   "2:6.15d,277:37.13,3:far,4:far,5:21.0u" \
   7 "$SNAP/after5.lua" \
   "$SNAP/after61.lua"
+
+# Leg 10. The Korg duel (beat 12): 7's far exit is the north door (14:63F4)
+# into 277. Its goal 37,8 is the step-on record 2F:4210 that moves
+# the scene into the Shadow Geyser (8, 14:6A95). The duel (14:4174) is won
+# with MN_GOD (the battle length varies with its seed, so the leg has slack);
+# its win tail (14:6B30) ends with control at 8,8. Then 8's far
+# exit leads back into 277, and that second door into 277 writes beat12.snap.
+run_leg korg 12000 \
+  "7:far,277:37.8,8:far" \
+  277:2 "$SNAP/beat12.snap" \
+  "$SNAP/after5.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
