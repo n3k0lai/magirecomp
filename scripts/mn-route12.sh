@@ -36,6 +36,7 @@ BEATS=(
   "5|enter map 2 "
   "6|enter map 63 "
   "7|script 14:700F"
+  "8|script 28:5918"
 )
 
 LOGS=()
@@ -173,6 +174,16 @@ run_leg ring 11000 \
   "63:14.9d,54:3.9d,53:0.27l,51:13.23d,44:23.5r,48:12.2u,59:10.10u>8.13d" \
   48:2 "$SNAP/after59.lua" \
   "$SNAP/into63.lua"
+
+# Leg 6. From 48 west to 44 (0,6), 44 west to 47 (0,5), 47's door 8,4
+# (16:67EF -> 55). Poad's talk (28:5918, from 7,14 facing up) offers the rest;
+# the rest scene ends with control at 16,5. Then 55's exit 14,17 (28:541F)
+# is the second door into 47 in this run. The fireplace Remedy Drink (60) is
+# left for the historian leg.
+run_leg inn 7000 \
+  "48:0.6l,44:0.5l,47:8.4u,55:7.14u>14.17d" \
+  47:2 "$SNAP/after55.lua" \
+  "$SNAP/after59.lua"
 
 require_beats
 echo "route12: ${printed} beat(s) confirmed"
