@@ -61,6 +61,7 @@ function M:host()
     end,
     setAList = function(p) -- RunBank21ScriptList ($2C97): kind-$01 entries run now
       s.aList = p; s.initQueue = s.initQueue or {}
+      s.aListCo = coroutine.running() or true -- map 19's init sets the list before its loadMap
       local r = s.vm.rom; local o = 0x21 * 0x4000 + p - 0x4000
       for k = 0, r:u8(o) - 1 do
         local q = o + 1 + 4 * k
@@ -271,12 +272,20 @@ function M:host()
   return h
 end
 
+-- A map load drops the old A-list, except one this same script run set just
+-- before its loadMap: map 19's init (1A:624C) runs $69 first, then $65.
+function M:settleAList()
+  local keep = self.aListCo ~= nil and self.aListCo == (coroutine.running() or true)
+  if not keep then self.aList = nil end
+  self.aListCo = nil
+end
+
 function M:snap() self.px, self.py = self.x * 16, self.y * 16 end
 
 function M:enterMap(i, x, y)
   self.def = Importer.loadMap(i); self.map = i; self.objects = {}
   self.x, self.y = x, y; self:snap(); self.moving = nil; self.facing = self.facing or "down"
-  self.aList = nil; self.camOff = nil; self.camFix = nil; self.patches = {}
+  self:settleAList(); self.camOff = nil; self.camFix = nil; self.patches = {}
   self.atlas = love.graphics.newImage(("%s/maps/%03d_meta.png"):format(Importer.CACHE, i)); self.atlas:setFilter("nearest", "nearest")
   local ov = love.filesystem.read(("%s/maps/%03d.obj"):format(Importer.CACHE, i))
   self.obj = {}; for k = 1, #ov do self.obj[k - 1] = ov:byte(k) end
