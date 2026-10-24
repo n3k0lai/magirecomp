@@ -242,6 +242,10 @@ its real effect shows on the next load of map 20.
    otherwise -> 112 (12,9, moving up) -> 113. The importer read garbage
    trigger lists for maps 40, 73 and 198 (an entry-scan false positive
    pointing at graphics); it now skips implausible lists.
+   Leg to113c: 10's 5,11 door lands on the 277 geyser island (37,8; only
+   doors to 7 and 10), so the overworld goal 31,38 is unreachable from
+   there. Way back to the mainland: island 38,10 -> 7 (5,19) -> 5 (12,29)
+   -> 4 (0,21) -> 3 (0,20) -> 277; leg to113d tries that chain.
 
 ### Harness notes
 
