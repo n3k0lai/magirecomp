@@ -15,8 +15,12 @@ local Kick = require("mn.Kick")
 local Push = require("mn.Push")
 local Grass = require("mn.Grass")
 local Travel = require("mn.ops.Travel")
+local Viewport = require("mn.Viewport")
+local EdgeFill = require("mn.EdgeFill")
+local EdgeFillMaps = require("mn.EdgeFillMaps")
 local M = {}
 M.__index = M
+M.wideAware = true -- Boot passes the logical view to draw() (see mn.Viewport)
 
 local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
 
@@ -635,13 +639,53 @@ function M:frame()
   return anim[(t < 8) and 1 or math.min(#anim, 3)].f
 end
 
-function M:draw()
-  if self.battle then self.battle:draw() else self:drawField() end
-  if self.overlay then self.overlay:draw() end
-  if Battle.GOD then -- dev mode tag (MN_GOD=1), never shown in normal play
-    love.graphics.setColor(1, 0.2, 0.2); love.graphics.rectangle("fill", 130, 0, 30, 11)
-    love.graphics.setColor(1, 1, 1); love.graphics.print("GOD", 133, -2); love.graphics.setColor(1, 1, 1)
+-- view: { w, h, ux, uy } from mn.Viewport (nil = classic 160x144). The field
+-- fills the whole view; battle, pictures, the text box and menus draw in the
+-- classic 160x144 frame at (ux, uy), so their layouts stay the original ones.
+function M:draw(view)
+  local vw, vh = view and view.w or 160, view and view.h or 144
+  local ux, uy = view and view.ux or 0, view and view.uy or 0
+  local wide = vw ~= 160 or vh ~= 144
+  if self.battle then
+    if wide then love.graphics.clear(0, 0, 0) end
+    self:classicFrame(wide, ux, uy, function() self.battle:draw() end)
+  else self:drawField(vw, vh, ux, uy) end
+  self:classicFrame(wide, ux, uy, function()
+    if self.overlay then self.overlay:draw() end
+    if Battle.GOD then -- dev mode tag (MN_GOD=1), never shown in normal play
+      love.graphics.setColor(1, 0.2, 0.2); love.graphics.rectangle("fill", 130, 0, 30, 11)
+      love.graphics.setColor(1, 1, 1); love.graphics.print("GOD", 133, -2); love.graphics.setColor(1, 1, 1)
+    end
+  end)
+end
+
+-- run fn with the origin at the classic frame, clipped to it (identity when classic)
+function M:classicFrame(wide, ux, uy, fn)
+  if not wide then return fn() end
+  love.graphics.push(); love.graphics.translate(ux, uy); love.graphics.setScissor(ux, uy, 160, 144)
+  fn()
+  love.graphics.setScissor(); love.graphics.pop()
+end
+
+-- out-of-map cells of a wide view: best-guess metatiles (mn.EdgeFill) from
+-- this map's own cell plane and atlas, batched in one draw
+function M:drawEdgeFill(L, T, vw, vh)
+  local ef = self.edgeFill
+  if not ef or ef.map ~= self.map or ef.atlas ~= self.atlas then
+    local fill, mode = EdgeFill.build(self.def, os.getenv("MN_VIEW_FILL"), EdgeFillMaps[self.map])
+    ef = { map = self.map, atlas = self.atlas, fill = fill, mode = mode, quads = {},
+           batch = love.graphics.newSpriteBatch(self.atlas, 1024, "stream") }
+    self.edgeFill = ef
   end
+  if ef.mode == "black" then return end
+  local b = ef.batch; b:clear()
+  local n = EdgeFill.each(ef.fill, self.def.w, self.def.h, L, T, vw, vh, function(x, y, mt)
+    local q = ef.quads[mt]
+    if not q then q = love.graphics.newQuad((mt % 16) * 16, math.floor(mt / 16) * 16, 16, 16, 256, 256); ef.quads[mt] = q end
+    if b:getCount() >= b:getBufferSize() then b:setBufferSize(b:getBufferSize() * 2) end
+    b:add(q, x * 16 - L, y * 16 - T)
+  end)
+  if n > 0 then love.graphics.draw(b, 0, 0) end
 end
 
 -- camera top-left in map pixels: follows the player, clamped to the map, unless a
@@ -657,31 +701,46 @@ function M:cameraXY()
   return math.floor(cx), math.floor(cy)
 end
 
-function M:drawField()
+function M:drawField(vw, vh, ux, uy)
+  vw, vh, ux, uy = vw or 160, vh or 144, ux or 0, uy or 0
   local W, H = self.def.w * 16, self.def.h * 16
   local cx, cy = self:cameraXY()
+  -- render camera (L, T): the classic camera unless the view is wider, then a
+  -- wider window around it (mn.Viewport.wideCamera); logic only sees cx, cy
+  local wide = vw ~= 160 or vh ~= 144
+  local L, T = cx, cy
+  if wide then L, T = Viewport.wideCamera(cx, cy, W, H, vw, vh) end
   love.graphics.clear(0, 0, 0)
   if self.picture then
-    self.picture:draw() -- a travel card / title picture replaces the field until $65
+    -- a travel card / title picture replaces the field until $65
+    self:classicFrame(wide, ux, uy, function() self.picture:draw() end)
   else
-  love.graphics.draw(self.def.image, -cx, -cy)
+  if wide then self:drawEdgeFill(L, T, vw, vh) end
+  love.graphics.draw(self.def.image, -L, -T)
   for _, p in ipairs(self.patches) do
-    love.graphics.draw(self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - cx, p.y * 16 - cy)
+    love.graphics.draw(self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - L, p.y * 16 - T)
   end
   for _, o in pairs(self.objects) do
     if o.dirty then Sprites.build(self, o); o.dirty = false end
     if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.panv and table.concat(self.panv, ",") or "-")) end
     -- record byte 0 bit 7 (dormant) objects aren't drawn: PyBoy map 40 slots 5-7
     -- stay $80 and show no OAM until $0B wakes them
-    if o.image and not o.dormant and not o.blank then love.graphics.draw(o.image, o.x * 16 - 24 + (o.ox or 0) - cx, o.y * 16 - 24 + (o.oy or 0) - cy) end
+    if o.image and not o.dormant and not o.blank then
+      local dx, dy = o.x * 16 - 24 + (o.ox or 0), o.y * 16 - 24 + (o.oy or 0)
+      -- wide view only: a record parked off the map (scripts hide actors past
+      -- the classic screen) stays hidden unless it overlaps the classic frame
+      if not wide or not Viewport.offstage(dx, dy, o.image:getWidth(), o.image:getHeight(), W, H, cx, cy) then
+        love.graphics.draw(o.image, dx - L, dy - T)
+      end
+    end
   end
   -- QueueRepeatedSpriteList: the kick / push lunge draws that record's
   -- bank-$20 list at the wobbled origin. A zero pointer keeps the walker.
   if not self.hidePlayer then
     local pose = Sprites.lungeList(self.push) or Sprites.lungeList(self.kick)
     local img = pose and Sprites.playerList(self, pose)
-    if img then love.graphics.draw(img, self.px - cx - 24, self.py - cy - 24)
-    else love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - cx - 8, self.py - cy - 8) end
+    if img then love.graphics.draw(img, self.px - L - 24, self.py - T - 24)
+    else love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - L - 8, self.py - T - 8) end
   end
   end
   -- title-card fade: while [$C6F3] == 0 the scene sits at palette black
@@ -691,7 +750,7 @@ function M:drawField()
   if f3 == 0 then self.fadeT = 0 elseif f3 == 1 and self.fadeT then self.fadeT = self.fadeT + 1; if self.fadeT > 64 then self.fadeT = nil end end
   if self.fadeT and not self.picture then -- the field's startup fade; cards use the $6E/$6F fades
     love.graphics.setColor(0, 16 / 255, 0, 1 - self.fadeT / 64)
-    love.graphics.rectangle("fill", 0, 0, 160, 144)
+    love.graphics.rectangle("fill", 0, 0, vw, vh)
     love.graphics.setColor(1, 1, 1, 1)
   end
   -- script fades ($6E to a colour, $6F back from it): BGR555 colour over the scene
@@ -700,10 +759,10 @@ function M:drawField()
     sf.t = math.min(sf.dur, sf.t + 1)
     local a = sf.from + (sf.to - sf.from) * sf.t / sf.dur
     if a > 0 then
-      love.graphics.setColor(sf.c[1], sf.c[2], sf.c[3], a); love.graphics.rectangle("fill", 0, 0, 160, 144); love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.setColor(sf.c[1], sf.c[2], sf.c[3], a); love.graphics.rectangle("fill", 0, 0, vw, vh); love.graphics.setColor(1, 1, 1, 1)
     elseif sf.t >= sf.dur then self.sfade = nil end
   end
-  if self.textBox then Font.drawTyped(self.textBox, self.def.pal7, self.vm.rom) end
+  if self.textBox then self:classicFrame(wide, ux, uy, function() Font.drawTyped(self.textBox, self.def.pal7, self.vm.rom) end) end
 end
 
 

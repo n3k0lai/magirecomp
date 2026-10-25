@@ -1,5 +1,7 @@
 -- Magi-Nation boot: `love . --mn [--rom path] [--viewer] [--mn-test outdir [--mn-ui Name]]`.
--- Uses gen1recomp's StateStack; renders into a 160x144 canvas scaled x4.
+-- Uses gen1recomp's StateStack; renders into a logical canvas (160x144 classic,
+-- wider with the flex zoom, see mn.Viewport and docs/mn-viewport.md) scaled into
+-- the window. --mn-test runs stay classic 160x144 unless MN_VIEW_SIM is set.
 package.path = "src/?.lua;" .. package.path
 local MnRom = require("mn.MnRom")
 local Importer = require("mn.MnImporter")
@@ -8,6 +10,7 @@ local bit = require("bit")
 local StateStack = require("src.core.StateStack")
 -- LICENSE.MD term 1: this boot screen is a front end and must carry the credit.
 local Attribution = require("src.core.Attribution")
+local Viewport = require("mn.Viewport")
 
 local Boot = {}
 io.stdout:setvbuf("no")
@@ -24,6 +27,68 @@ end
 
 local stack = setmetatable({}, { __index = StateStack }); stack:init()
 local canvas, held
+
+-- Viewport settings: MN_VIEW_ZOOM (0 classic, 1 fill, 2 wide, 3 wider),
+-- MN_VIEW_PIXEL=0 (allow fractional scale), MN_VIEW_SIM=WxH (pretend the
+-- window is WxH device pixels: headless fold / unfold renders),
+-- MN_VIEW_WIN=1 (with MN_VIEW_SIM under --mn-test: also write the composed
+-- WxH window as win_NNNN.png). F7 cycles the zoom, F8 toggles pixel-perfect,
+-- a three-finger tap cycles the zoom on touch screens; both are saved to
+-- mn_view.cfg in the save folder (never read or written by --mn-test runs).
+local VIEW_CFG = "mn_view.cfg"
+local simW, simH = Viewport.parseSize(os.getenv("MN_VIEW_SIM"))
+local viewCfg, winCanvas
+local function viewSettings()
+  if viewCfg then return viewCfg end
+  local saved
+  if not opts.test and love.filesystem.getInfo(VIEW_CFG) then saved = love.filesystem.read(VIEW_CFG) end
+  viewCfg = Viewport.settings(os.getenv, saved)
+  if opts.test and not simW then viewCfg.zoom = 0 end -- harness frames stay 160x144
+  return viewCfg
+end
+local function saveView()
+  if opts.test then return end
+  pcall(love.filesystem.write, VIEW_CFG, Viewport.serialize(viewCfg))
+  print(("[mn] view zoom %d (%s) pixel %s"):format(viewCfg.zoom, Viewport.ZOOM_NAMES[viewCfg.zoom], tostring(viewCfg.pixel)))
+end
+function Boot.viewKey(k)
+  local cfg = viewSettings()
+  if k == "f7" then cfg.zoom = (cfg.zoom + 1) % (Viewport.ZOOMS + 1); saveView(); return true end
+  if k == "f8" then cfg.pixel = not cfg.pixel; saveView(); return true end
+  return false
+end
+function love.touchpressed()
+  if love.touch and #love.touch.getTouches() == 3 then Boot.viewKey("f7") end
+end
+
+local CREDIT = "MagiRecomp - " .. Attribution.UPSTREAM_CREDIT
+-- height (units) of the band under the game that carries the credit line
+local function creditBand(w)
+  if opts.test then return 0 end
+  local font = love.graphics.getFont()
+  local _, lines = font:getWrap(CREDIT, math.max(16, w - 16))
+  return #lines * font:getHeight() + 12
+end
+
+-- window (or MN_VIEW_SIM) -> viewport: safe area minus the credit band, in
+-- device pixels so the integer scale is pixel-perfect on high-dpi phones
+local function layout()
+  local cfg = viewSettings()
+  local G = love.graphics
+  local w, h = G.getDimensions()
+  local dpi = G.getDPIScale and G.getDPIScale() or 1
+  local sx, sy, sw, sh = 0, 0, w, h
+  if simW then
+    dpi, sw, sh = 1, simW, simH
+  elseif love.window and love.window.getSafeArea then
+    local okA, x, y, aw, ah = pcall(love.window.getSafeArea)
+    if okA and type(aw) == "number" and aw > 0 and ah > 0 and aw <= w + 0.5 and ah <= h + 0.5 then sx, sy, sw, sh = x, y, aw, ah end
+  end
+  local band = creditBand(w)
+  local v = Viewport.compute(sw * dpi, math.max(1, sh - band) * dpi, cfg)
+  v.dpi, v.sx, v.sy, v.band, v.winW, v.winH = dpi, sx, sy, band, sw, sh
+  return v
+end
 
 -- Continue: check_save_signature.asm then LoadSRAMScriptAndDispatch. A valid file
 -- installs the active SRAM bank and starts the saved script triple. MN_NEWGAME=1
@@ -445,7 +510,7 @@ function love.load()
     local def = Importer.loadMap(startMap); local sp = def.entries[1] and def.entries[1].spawn or { x = 1, y = 1 }
     local pressed, held = {}, {}
     local AK = { z = "a", ["return"] = "a", x = "b", backspace = "b", space = "start", rshift = "select" }
-    function love.keypressed(k) held[k] = true; if AK[k] then pressed[AK[k]] = true end end
+    function love.keypressed(k) if Boot.viewKey(k) then return end; held[k] = true; if AK[k] then pressed[AK[k]] = true end end
     function love.keyreleased(k) held[k] = nil end
     local mkOw = os.getenv("MN_LOAD") and function(_, _, _, fn) return Overworld.load(os.getenv("MN_LOAD"), fn) end or Overworld.new
     local ow = mkOw(startMap, sp.x, sp.y, function(kind)
@@ -537,17 +602,37 @@ function love.update()
   end
 end
 
-if opts.viewer then function love.keypressed(k) local s = stack:top(); if s.key then s:key(k) end end end
+if opts.viewer then function love.keypressed(k) if Boot.viewKey(k) then return end; local s = stack:top(); if s.key then s:key(k) end end end
 
 function love.draw()
-  love.graphics.setCanvas(canvas); stack:top():draw(); love.graphics.setCanvas()
-  love.graphics.draw(canvas, 0, 0, 0, 4, 4)
+  local v = layout()
+  -- live resize (fold / unfold, rotation): the canvas follows the logical size
+  if canvas:getWidth() ~= v.w or canvas:getHeight() ~= v.h then
+    canvas = love.graphics.newCanvas(v.w, v.h); canvas:setFilter("nearest", "nearest")
+  end
+  love.graphics.setCanvas(canvas)
+  local top = stack:top()
+  if top.wideAware then top:draw(v)
+  elseif v.w == 160 and v.h == 144 then top:draw()
+  else -- a classic-only screen (viewer, harness): centred classic frame
+    love.graphics.clear(0, 0, 0)
+    love.graphics.push(); love.graphics.translate(v.ux, v.uy); top:draw(); love.graphics.pop()
+  end
+  love.graphics.setCanvas()
+  love.graphics.draw(canvas, v.sx + v.ox / v.dpi, v.sy + v.oy / v.dpi, 0, v.scale / v.dpi, v.scale / v.dpi)
   if not opts.test then
     local w, h = love.graphics.getDimensions()
     love.graphics.setColor(0.85, 0.85, 0.9, 1)
-    love.graphics.printf("MagiRecomp - " .. Attribution.UPSTREAM_CREDIT, 8,
-      math.min(h - 40, 144 * 4 + 8), w - 16)
+    love.graphics.printf(CREDIT, 8, v.sy + v.winH - v.band + 6, w - 16)
     love.graphics.setColor(1, 1, 1, 1)
+  end
+  if opts.test and simW and os.getenv("MN_VIEW_WIN") == "1" and frame % 8 == 0 then
+    if not winCanvas or winCanvas:getWidth() ~= simW or winCanvas:getHeight() ~= simH then winCanvas = love.graphics.newCanvas(simW, simH) end
+    love.graphics.setCanvas(winCanvas); love.graphics.clear(0, 0, 0)
+    love.graphics.draw(canvas, v.ox, v.oy, 0, v.scale, v.scale)
+    love.graphics.setCanvas()
+    local f = io.open(("%s/win_%04d_map%03d.png"):format(opts.test, shot + 1, stack:top().map or 0), "wb")
+    if f then f:write(winCanvas:newImageData():encode("png"):getString()); f:close() end
   end
   local shotDir = os.getenv("MN_SHOT")
   if shotDir and not opts.test and frame % tonumber(os.getenv("MN_SHOT_EVERY") or "30") == 0 then
