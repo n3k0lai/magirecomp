@@ -13,6 +13,7 @@ local Sfx = require("mn.Sfx")
 local SfxOut = require("mn.SfxOut")
 local Kick = require("mn.Kick")
 local Push = require("mn.Push")
+local Grass = require("mn.Grass")
 local M = {}
 M.__index = M
 
@@ -413,6 +414,7 @@ end
 function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
+  Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then
     local r = self.overlay:update()
@@ -524,6 +526,8 @@ function M:update()
   if Push.tick(self) then return end -- crystal-gloves push lunge owns the player
   if Kick.tick(self) then return end -- Crystal Gloves dig lunge (bank-$20 kick script) owns the player
   if self.moving then
+    -- pixel step in progress: the walk head is still the live record
+    Grass.walk(self)
     local d = DIRS[self.moving]
     self.px, self.py = self.px + d[1], self.py + d[2]
     self.anim = (self.anim or 0) + 1
@@ -599,6 +603,10 @@ function M:update()
   if self:slot0Scripted() then return end
   local dir = self.input("dir")
   if not dir then return end
+  -- direction held, including a bump: StepCell82EveryFourthFrame's first
+  -- call does not wait for a nonzero step. A started grass script owns
+  -- the frame, so the step does not also begin.
+  if Grass.walk(self) then return end
   self.facing = dir
   local d = DIRS[dir]; local nx, ny = self.x + d[1], self.y + d[2]
   for _, ob in pairs(self.objects) do if ob.x == nx and ob.y == ny and (ob.image or ob.anim) and not ob.dormant and not ob.blank and ob.handler ~= 0x65A4 then return end end
