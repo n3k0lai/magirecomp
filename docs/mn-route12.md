@@ -295,3 +295,26 @@ its real effect shows on the next load of map 20.
   (override with MN_SNAP_DIR).
 - A map listed twice in a route overwrites its first goals; use `|` for
   per-visit goals, e.g. `23:6.14u>11.21|0.6`.
+
+## Story 7 legs (Underneath, after the 229 kick)
+
+Leg runner: `/tmp/mnp/leg.sh` style (MN_NEWGAME, MN_GOD, MN_BAUTO, headless,
+muted). Snapshots stay outside git.
+
+- Farm and kidnap: Gruk's Mushroom Farm (113) talk, then the scene
+  ($A224 1 -> 2).
+- Ransom: entering the Underneath town (74) runs its init 22:620C, which
+  stores $A224 = 3. The long way in from the farm side: 112 -> 279 33,23 ->
+  121 (5,19) -> 120 (59,8) -> 117 (12,0) -> 116 (4,39) -> 115 (0,16) -> 279
+  31,26 -> the town icon 19,22. The town snapshot needs MN_SNAP_TO=75,
+  because the harness resolves the town icon's warp with an empty state
+  (it names map 75).
+- North of town: 74's north edge (11-14,0) -> 279 north half. 3,9 is the
+  cave 105 (a dead end for the story; see docs/mn-secrets.md for its hidden
+  spot). The story goes 279 16,4 -> 108 -> 108's 29,0 -> 110.
+- Rock trap: 110's step cell 5,17 runs 19:4E24, which (story 7 and
+  $A224 = 3) enters 19:5208; 19:5211 stores $A224 = 4. Confirmed headless
+  (leg trap1, from to110.lua; route `110:5.17`).
+- Next: 110's north edge (36,0) -> 277 -> 277's 32,36 -> abandoned tower
+  210 (17:4181 at $A224 = 4), then 211 (17:43C9, stores 5) and 212/213
+  (17:4849, stores 6), then back to 74 for 22:6498 (story 8).
