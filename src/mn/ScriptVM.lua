@@ -156,6 +156,7 @@ function VM:runInit(bank, ptr)
 end
 
 function VM:start(bank, ptr)
+  self.started = ("%02X:%04X"):format(bank or 0, ptr or 0)
   self.co = coroutine.create(function() self:run(bank, ptr) end)
   return self:resume()
 end
@@ -165,7 +166,11 @@ function VM:resume()
   local ok, err, arg = coroutine.resume(self.co)
   if ok and err == "wait" then self.wait = arg end
   self.textWait = ok and err == "text" or nil
-  if not ok then print("[vm] error " .. tostring(err)); self.co = nil; return false end
+  if not ok then
+    -- name the script and the Lua frames so a dead script can be traced
+    local tb = debug.traceback(self.co, tostring(err)):gsub("\n%s*", " | "):sub(1, 400)
+    print(("[vm] error (script %s) %s"):format(self.started or "?", tb)); self.co = nil; return false
+  end
   if coroutine.status(self.co) == "dead" then self.co = nil; return false end
   return true -- waiting (text box)
 end
