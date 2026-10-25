@@ -370,22 +370,32 @@ muted). Snapshots stay outside git.
 
 ## OPEN QUESTIONS
 
-Story 9 is not stored yet. The pocket leg ends with control at map 279,
-cell 33,22 (MN_FRAMES=3000, MN_NOENC=1, load of the 117->120 door, route
-`120:26.0,121:5.0,279:34.21`). The planner logs the 120 and 121 goals,
-then `door crossed -> map 279 at 33,22`, `place player 33,22`, and
-`npc slot 2 at 34,21` (anim 11:7604, behaviour 22:4005). It never logs a
-path to 34,21. For the rest of the run MN_STUCKDBG prints
-`stuck at 33,22 next -` (no next step, no text box, no thread). Final
-line: `final player 33,22 map 279`. The floor north of 33,22 is open;
-34,21 is the 2F:44DE step cell, and slot 2 stands on it.
+Story 9 is stored (fixed 2026-10-25). The pocket leg ends with control at
+map 279, cell 33,22 (MN_FRAMES=3000, MN_NOENC=1, load of the 117->120 door,
+route `120:26.0,121:5.0,279:34.21`). 279's entry 2F:44F9 at story 8 or 9
+branches to 2F:453E, which fills slot 2 on 34,21 (handler $4A6B, anim
+11:7604, behaviour 22:4005) and runs opcode $0B on it. The s9door leg then
+logs `route far -> 34,21 (2 steps)`, `script 2F:44DE (step trigger)`,
+`A123 <- 09 at 15:4CCB` and `enter map 122`, and prints `story 9 reached`.
 
-Suspect: 279's entry 2F:44F9. At story 8 or 9 it branches to 2F:453E,
-which spawns that slot on 34,21 and then runs opcode $0B on it
-(opcode_0b.asm clears the record's dormant bit). Overworld's step and
-the route planner both treat a non-dormant sprite as solid, so the step
-trigger cannot be entered. 22:4005 is only a parked script, and the slot
-has no talk. This job does not change the engine. Once a step onto 34,21
-is possible, the same route's last leg (`279:34.21`, watch $A123) should
-see `A123 <- 09 at 15:4CCB` and print `story 9 reached`. Until then
-MN_TO80S8 exits nonzero at that leg.
+The block was the port's sprite rule. The old Overworld step and planner
+treated any live (non-dormant) sprite as solid. The real step code never
+looks at records: ProbeCellsUp and its siblings (StepClassProbeTable, bank
+5 $651E) read only the WRAM-5 cell map. A record makes its own cell solid
+through MarkZeroMapCell (bank 1 $4AD5), which writes $08 there only when the
+cell byte is $00, and ClearRecordHeadBit5 ($4AB6) puts the $00 back. 34,21
+is the $C5 step cell, so slot 2 never blocks it. `World.blocks` now applies
+that rule for the player's step and the route planner
+(`tests/engine/mn_sprite_cell_test.lua`). Only RunTwoScriptsThenTouchCell
+($4A8F, and the $63ED / $6405 heads that call it) runs MarkZeroMapCell;
+$4A6B records like this one never mark a cell at all. The port does not
+track head-word changes yet, so it keeps treating every live sprite on a
+$00 cell as solid.
+
+## Story 9 (next lead)
+
+With 8000 frames from to279p.lua, the map-122 scene (15:4BB4 case 8 ->
+15:4C10; slots 0 and 3-8, talks 15:482C, 15:48AC, 15:48D6) runs to
+`player control at 6,19` on map 122. The route goal `279:34.21` then keeps
+the planner bouncing through 122's 15:4812 exit and 2F:44DE, so the next
+leg should snapshot at control on 122 and pick a story-9 goal there.

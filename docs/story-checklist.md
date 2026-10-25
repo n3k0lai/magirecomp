@@ -29,6 +29,6 @@ Dev mode for battle testing: `MN_GOD=1` (see docs/battle-formulas.md). Never on 
 
 Story word 8 -> 9 (after the Underneath town arrival): the store is
 15:4CCB, reached by stepping on world-map 279 cell 34,21 (2F:44DE). The
-walk there is in scripts/mn-route12.sh (MN_TO80S8). It stops on 279 at
-33,22: a sprite woken by 2F:453E stands on the cell. See the open
-question in docs/mn-route12.md.
+walk there is in scripts/mn-route12.sh (MN_TO80S8) and stores story 9.
+The sprite 2F:453E puts on the cell does not block it (a record only marks
+a $00 cell solid). Next: the map-122 scene, see docs/mn-route12.md.

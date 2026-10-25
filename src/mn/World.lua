@@ -38,6 +38,21 @@ function M.cell(def, x, y)
   return def.block[y * def.w + x + 1]
 end
 
+-- Does object ob block a step onto x,y? A record never blocks by itself: the
+-- player's step probes only the WRAM-5 cell map (ProbeCellsUp and its
+-- siblings, StepClassProbeTable). A record makes its cell solid through
+-- MarkZeroMapCell (bank 1 $4AD5), which writes $08 there only when the cell
+-- byte is $00, and ClearRecordHeadBit5 puts the $00 back. On any other cell
+-- (a $C0+ step trigger, a list cell, a gate) a sprite never blocks: 279's
+-- slot 2 (2F:453E) stands on the story-9 step cell 34,21 ($C5) and the real
+-- game walks onto it. Dormant, blank and imageless records and $65A4 step-on
+-- records do not block either (Overworld's old rule).
+function M.blocks(def, ob, x, y)
+  if ob.x ~= x or ob.y ~= y then return false end
+  if ob.dormant or ob.blank or not (ob.image or ob.anim) or ob.handler == 0x65A4 then return false end
+  return M.cell(def, x, y) == 0x00
+end
+
 -- Copy the bank-5 pattern into the VM. SetupDefaultState calls
 -- WriteC12APattern on the reset path, before any map script.
 function M.seedPattern(vm)

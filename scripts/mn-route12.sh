@@ -385,8 +385,9 @@ fi
 # That cell sits in the south pocket: east out of town, 279's 32,26 into 115,
 # the long cave way to 121, and 121's north door back onto 279 at 33,22.
 # Cave maps 115-120 have wandering monsters; one battle on 116 is longer than
-# the frame cap, so those legs set MN_NOENC=1. The last leg is blocked: see
-# docs/mn-route12.md (the slot-2 sprite on 34,21).
+# the frame cap, so those legs set MN_NOENC=1. 279's entry puts a slot-2
+# sprite on 34,21; it does not block the $C5 cell (World.blocks, see
+# docs/mn-route12.md).
 if [ -n "${MN_TO80S8:-}" ]; then
   S9=/tmp/mn-story9
   mkdir -p "$S9"
@@ -420,8 +421,8 @@ if [ -n "${MN_TO80S8:-}" ]; then
     "120:26.0,121:5.0" \
     279 "$S9/to279p.lua" \
     "$S9/to120e.lua" MN_NOENC=1
-  # 34,21 is the story door. The planner cannot step on it while slot 2 stands
-  # there, so this leg does not reach 15:4CCB yet.
+  # 34,21 is the story door. Slot 2 stands on it, but a sprite only blocks a
+  # $00 cell (MarkZeroMapCell), so the step reaches 15:4CCB.
   run_leg s9door 1500 \
     "279:34.21" \
     "" "" \

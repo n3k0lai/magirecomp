@@ -409,8 +409,8 @@ function love.load()
               for _, dd in ipairs({ { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } }) do
                 local nx, ny = c[1] + dd[1], c[2] + dd[2]; local nid = ny * def.w + nx
                 local occ = false
-                -- same rule as the player's own step (Overworld: $65A4 records and blank/imageless ones don't block)
-                for k, ob in pairs(ow.objects) do if k ~= 0 and not ob.dormant and not ob.blank and (ob.image or ob.anim) and ob.handler ~= 0x65A4 and ob.x == nx and ob.y == ny then occ = true end end
+                -- same rule as the player's own step (World.blocks: only a live record on a $00 cell)
+                for k, ob in pairs(ow.objects) do if k ~= 0 and W.blocks(def, ob, nx, ny) then occ = true end end
                 -- a goal route steps around a live $65A4 step-on record unless it is the goal
                 -- (277 37,8 runs the Shadow Geyser scene on every crossing while story is 3..5)
                 if g then for oi, ob in pairs(ow.objects) do if oi ~= 0 and ob.handler == 0x65A4 and not ob.dormant and ob.x == nx and ob.y == ny and not (g[1] == nx and g[2] == ny) then occ = true end end end

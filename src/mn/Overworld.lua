@@ -618,7 +618,7 @@ function M:update()
   if Grass.walk(self) then return end
   self.facing = dir
   local d = DIRS[dir]; local nx, ny = self.x + d[1], self.y + d[2]
-  for _, ob in pairs(self.objects) do if ob.x == nx and ob.y == ny and (ob.image or ob.anim) and not ob.dormant and not ob.blank and ob.handler ~= 0x65A4 then return end end
+  for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, nx, ny) then return end end
   if nx >= 0 and ny >= 0 and nx < self.def.w and ny < self.def.h and World.walkable(World.cell(self.def, nx, ny)) then
     self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
   end
