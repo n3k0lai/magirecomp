@@ -72,9 +72,17 @@ flips Y. g3d (MIT, GPL-compatible) would be acceptable, but the prototype uses
    face the camera) with blob shadows. Phase 3 adds optional *extrusion*: each
    opaque pixel of the sprite becomes a voxel column of depth 1-2, built into a
    single mesh once per species.
-3. **Camera** with a default 3/4 view, an intro orbit, a cut to a low side view
-   for each attack, a dolly-in on big hits, and a pull-back on eliminations.
-   Shots are data (a clip table) so they can be tuned without touching code.
+3. **Camera** shots are data in `src/mn/b3d/Shots.lua`, tuned without code
+   changes. Each shot is `{ eye(p, ctx), at(p, ctx), fov }` where `p` is the
+   clip progress (0..1) and `ctx` is the actor, target and slot world positions
+   (plus damage and energy, when the clip carries them) that the timeline
+   attaches. The shots are `default` (3/4 view, horizon in the upper third,
+   every slot's feet and 2.0-tall top inside the frame), `intro` (orbit in;
+   the eye stays in front of the back wall), `attack` (low side cut and a
+   small dolly), `bigHit` (a deeper dolly, used when the clip carries damage
+   at least half the target's energy), `elim` (pull back and up) and `summon`
+   (a short push in on that slot). `Presenter:camera` looks the shot up from
+   the clip kind. Shots only read the timeline, so frame budgets stay put.
 4. **Animation timeline driven by battle events.** Every engine event maps to a
    clip (`attack`, `summon`, `elim`, `intro`, later `spell`, `heal`, `status`).
    Each clip is given the *exact* frame budget the 2D path uses, so timing,
