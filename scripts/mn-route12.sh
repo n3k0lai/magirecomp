@@ -90,6 +90,8 @@ FROM="${MN_FROM:-}"
 # run_leg NAME FRAMES ROUTE SNAP_TO SNAP_FILE [LOAD]
 run_leg() {
   local name="$1" frames="$2" route="$3" snap_to="$4" snap_file="$5" load="${6:-}"
+  # Optional extra VAR=value settings for this leg only (e.g. MN_TALK=1).
+  local extra=("${@:7}")
   local log="$SNAP/${name}.log"
   if [ "$name" = "$FROM" ]; then FROM=""; fi
   if [ -n "$FROM" ] && [ -f "$log" ] && { [ -z "$snap_to" ] || [ -f "$snap_file" ]; }; then
@@ -116,6 +118,7 @@ run_leg() {
     MN_FRAMES="$frames" \
     MN_START=216 \
     MN_ROUTE="$route" \
+    "${extra[@]}" \
     "$HEAD" love . --mn --rom "$ROM" --mn-test "$FRAMES" >"$log" 2>&1
   local ec=$?
   set -e
@@ -353,3 +356,25 @@ if [ ! -f "$SNAP/beat12.snap" ]; then
   exit 1
 fi
 echo "beat 12 reached"
+
+# Story 7 tail (optional). The legs from beat 12 to the tower are not scripted
+# yet; set MN_TO211 to a snapshot taken on the door from 212 into 211
+# (17:44B5, the ring side room) to run the last two legs.
+if [ -n "${MN_TO211:-}" ]; then
+  # Leg S7a. The Gruk rescue: with MN_TALK the autopilot talks to the figure
+  # at 211's south door 10,16 (script 17:43A7), whose step trigger 17:438F
+  # moves the scene into tower 210. The scene there stores $A224 = 6 at
+  # 17:42C3 (Gruk is freed); the second door into 210 writes gruk6.lua.
+  run_leg gruk 6000 "" \
+    210:2 "$SNAP/gruk6.lua" \
+    "$MN_TO211" MN_TALK=1 MN_WATCH=A224
+  # Leg S7b. Back to town: 210 -> 277 (31,38) -> 110 (5,29) -> 108 (16,39)
+  # -> 279 -> the town icon 19,22. The town's arrival scene stores story
+  # word 8 at 22:6498. The snapshot needs MN_SNAP_TO=75 (see the doc).
+  run_leg home 9000 \
+    "210:1.0,277:31.38,110:5.29,108:16.39,279:19.22" \
+    75 "$SNAP/to75s8.lua" \
+    "$SNAP/gruk6.lua" MN_WATCH=A123
+  grep -qF "A123 <- 08 at 22:6498" "$SNAP/home.log" || { echo "story 8: NOT SET" >&2; exit 1; }
+  echo "story 8 set (22:6498)"
+fi

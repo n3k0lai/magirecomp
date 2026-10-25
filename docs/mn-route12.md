@@ -315,6 +315,18 @@ muted). Snapshots stay outside git.
 - Rock trap: 110's step cell 5,17 runs 19:4E24, which (story 7 and
   $A224 = 3) enters 19:5208; 19:5211 stores $A224 = 4. Confirmed headless
   (leg trap1, from to110.lua; route `110:5.17`).
-- Next: 110's north edge (36,0) -> 277 -> 277's 32,36 -> abandoned tower
-  210 (17:4181 at $A224 = 4), then 211 (17:43C9, stores 5) and 212/213
-  (17:4849, stores 6), then back to 74 for 22:6498 (story 8).
+- Tower: 110's north edge (36,0) -> 277 -> 277's 32,36 -> abandoned tower
+  210 (17:4181 at $A224 = 4), then 211 (17:43C9, stores 5). The ring side
+  room 212 leads back into 211 (door 17:44B5, to211.lua).
+- Gruk rescue: in 211, talking to the figure at the south door 10,16
+  (17:43A7) and stepping on its trigger 17:438F moves the scene into 210.
+  The scene there (kidnappers flee, Gogor breaks in, Gruk is freed and
+  suggests going back to town) stores $A224 = 6 at 17:42C3. Confirmed
+  headless with MN_TALK=1 (gruk6.lua, door 17:437F into 210).
+- Back to town: 210 -> 277 (31,38) -> 110 (5,29) -> 108 (16,39) -> 279 ->
+  town icon 19,22 (MN_SNAP_TO=75, to75s8.lua). On arrival the town scene
+  stores story word 8 at 22:6498 (watched on $A123). Both legs are in
+  scripts/mn-route12.sh behind MN_TO211.
+- Open: after the arrival scene the player stays hidden with the script
+  waiting (vmwait) at 41,14 for the rest of a 4000-frame run; not yet
+  investigated.
