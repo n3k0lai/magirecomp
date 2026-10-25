@@ -9,6 +9,7 @@ local bit = require("bit")
 local band, bor, lshift = bit.band, bit.bor, bit.lshift
 local Op = require("mn.Opcodes")
 local Ext = require("mn.OpExt").handlers
+local Travel = require("mn.ops.Travel")
 
 local VM = {}
 
@@ -550,8 +551,7 @@ function VM:run(bank, ptr)
       if cat == 0 then -- item count A3A7+id, clamped to the cap 6 bytes before the record
         local a, cap = 0xA3A7 + id, r:u8(self:recordOff(0, id) - 6)
         self:wr8(a, math.min(cap, self:rd8(a) + cnt))
-      elseif cat == 3 then -- spell: A5A5+id := the byte 8 before the spell record
-        self:wr8(0xA5A5 + id, r:u8(self:recordOff(3, id) - 8))
+      elseif cat == 3 then Travel.grantSpell(self, id) -- StoreIndex3RecordByte
       elseif cat == 4 then -- Animite: little-endian word, capped at 999
         local v = math.min(999, self:rd8(0xA3A5) + self:rd8(0xA3A6) * 256 + cnt)
         self:wr8(0xA3A5, v % 256); self:wr8(0xA3A6, math.floor(v / 256))

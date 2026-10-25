@@ -14,6 +14,7 @@ local SfxOut = require("mn.SfxOut")
 local Kick = require("mn.Kick")
 local Push = require("mn.Push")
 local Grass = require("mn.Grass")
+local Travel = require("mn.ops.Travel")
 local M = {}
 M.__index = M
 
@@ -92,7 +93,11 @@ function M:host()
       if mt then d.cells[di + 1] = mt; s.patches[#s.patches + 1] = { x = di % d.w, y = math.floor(di / d.w), mt = mt } end
       if d.block[si + 1] then d.block[di + 1] = d.block[si + 1] end
     end,
+    -- CopyThreeBank7 ($7350). Category 0 clamps an item count. Category 3
+    -- stores the spell byte at $A5A5+id. A false return is the full branch
+    -- (22:4074). Category 2 (roster) is not granted yet.
     giveReward = function(cat, id)
+      if cat == 3 then return Travel.grant(s.vm, cat, id) end
       if cat ~= 0 then return true end
       local a = 0xA3A7 + id; local it = s.items[id]
       local maxc = it and it.max or 99

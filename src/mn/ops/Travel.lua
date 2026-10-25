@@ -115,6 +115,23 @@ local function floorByte(vm, addr)
   vm:wr8(addr, v)
 end
 
+-- StoreIndex3RecordByte (07:72FF). Give-table category 3, shared with
+-- opcode $87: $A5A5+id becomes the ROM byte eight before that spell's
+-- record. $C9FD becomes 1. The count is not used.
+function M.grantSpell(vm, id)
+  vm:wr8(0xA5A5 + id, vm.rom:u8(vm:recordOff(3, id) - 8))
+  vm:wr8(0xC9FD, 1)
+  return true
+end
+
+-- Categories opcode $A4 hands to CopyThreeBank7 (spells only for now;
+-- category 2 roster chests are a separate job). The chest stores 1 at
+-- $C9FE first (LCDOnAfterOffset7Record). Nil means some other category.
+function M.grant(vm, cat, id)
+  if cat == 3 then return M.grantSpell(vm, id) end
+  return nil
+end
+
 -- $86 seed_camera_loop.asm ($1F50). Same opening as FinishStartup, without
 -- clearing $CCA5 and without setting $C6F3. The following script is the
 -- travel-card setup; $20 is the stride and both camera limits. The
