@@ -30,6 +30,8 @@ function M.new(mapIndex, x, y, input)
   s.vm = VM.new(rom, s:host())
   -- default_state: $FFAA/$FFAB start at 3 (bit 1 lets HandleStartPress open the menu)
   if s.vm:rd8(0xFFAA) == 0 and s.vm:rd8(0xFFAB) == 0 then s.vm:wr8(0xFFAA, 3); s.vm:wr8(0xFFAB, 3) end
+  -- WriteC12APatternBank5 (05:6C08), before the map script's opcode $85
+  World.seedPattern(s.vm)
   s.items = assert(loadstring(love.filesystem.read(Importer.CACHE .. "/items.lua")))()
   s:enterMap(mapIndex, x, y)
   return s

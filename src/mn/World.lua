@@ -1,8 +1,16 @@
 -- Cell semantics for the WRAM bank-5 plane (slot-4 block record), named from
 -- the decomp (mn-gfx integration):
 --   $00       open floor. Resume*RecordHead walks only onto a zero cell.
+--             ProbeCells* still consults $C12A: a nonzero byte there blocks it.
 --   $08       wall (88% of all non-zero cells; never entered).
+--   $01-$07   low cells. A cell below $08 is solid when the byte at
+--             $C12A + cell is nonzero (probe_cells_up.asm and the seven
+--             sibling probes). WriteC12APatternBank5 (05:6C08) stores
+--             00 FF FF 00 FF FF FF FF, so $00 and $03 start open and
+--             $01, $02, $04-$07 start solid. Opcode $85 rewrites
+--             $C12E-$C131 (cells $04-$07).
 --   $02       stop cell: ResumeHead00Record commits without walking.
+--             Stays solid even when $C12C is clear.
 --   $09/$0B   A-button cells (DispatchCell*OnButtonA). $09 needs $C9A6 >= 1
 --             and plants the bank-$20 push tail (WalkTwoCells*). $0B needs
 --             $C9A6 >= 2 and plants the kick. Both are solid.
@@ -18,20 +26,58 @@
 local bit = require("bit")
 local M = {}
 
+-- WriteC12APatternBank5 (05:6C08). Index 0 is the byte at $C12A (cell $00).
+local PATTERN = { 0x00, 0xFF, 0xFF, 0x00, 0xFF, 0xFF, 0xFF, 0xFF }
+local BASE = 0xC12A
+-- Live WRAM once seedPattern has copied the pattern into a VM. Opcode $85
+-- writes $C12E-$C131 into that same table. Nil uses PATTERN.
+local wram
+
 function M.cell(def, x, y)
   if x < 0 or y < 0 or x >= def.w or y >= def.h then return 0x08 end
   return def.block[y * def.w + x + 1]
 end
 
--- The game's walk gate is "cell == 0" (plus triggers it stages on entry).
--- Values with unproven meaning ($A0-$BF, $01, $40-$5F) are treated as floor
--- so the viewer can explore; tighten once their handlers are lifted.
-function M.walkable(v)
-  if v == 0x00 or v >= 0xC0 then return true end
+-- Copy the bank-5 pattern into the VM. SetupDefaultState calls
+-- WriteC12APattern on the reset path, before any map script.
+function M.seedPattern(vm)
+  for i = 0, 7 do vm:wr8(BASE + i, PATTERN[i + 1]) end
+  wram = vm.mem
+end
+
+local function gateByte(cell, mem)
+  local src = mem or wram
+  if not src then return PATTERN[cell + 1] end
+  if src.rd8 then return src:rd8(BASE + cell) end
+  local b = src[BASE + cell]
+  if b == nil then return 0 end
+  return b
+end
+
+local function noteGate(cell, byte)
+  local flag = os.getenv("MN_DEBUG_GATES")
+  if flag == nil or flag == "" then return end
+  local seen = M._gateSeen
+  if not seen then seen = {}; M._gateSeen = seen end
+  local key = cell * 256 + byte
+  if seen[key] then return end
+  seen[key] = true
+  print(("[gates] cell $%02X blocked ($%04X=$%02X)"):format(cell, BASE + cell, byte))
+end
+
+-- ProbeCells*: >= $80 stays clear, $08-$7F is occupied, and a byte under
+-- $08 is occupied only when $C12A + cell is nonzero. $02/$09/$0B stay
+-- solid on top of that (stop cell and the A-button cells). $40-$7F stay
+-- solid (signs and the high list cells).
+function M.walkable(v, mem)
   if v == 0x08 or v == 0x02 or v == 0x09 or v == 0x0B then return false end
   -- $40-$5F are A-press cells (signs, counters, fireplaces): PyBoy blocks Tony on them
   -- (map 59 counter $41, map 60 $45); $60-$7F are solid
   if v >= 0x40 and v < 0x80 then return false end
+  if v < 0x08 then
+    local b = gateByte(v, mem)
+    if b ~= 0 then noteGate(v, b); return false end
+  end
   return true
 end
 
