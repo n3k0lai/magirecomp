@@ -21,6 +21,10 @@ M.__index = M
 M.GOD = os.getenv("MN_GOD") == "1"
 M.GOD_ENERGY = 999
 
+-- MN_BATTLE3D=1: prototype 3D presentation (mn.b3d.Presenter), off by default. It is handed the
+-- same events and frame budgets as the 2D screen below, so rules, RNG and timing are unchanged.
+M.B3D = os.getenv("MN_BATTLE3D") == "1"
+
 -- battle data is extracted once per run from the imported ROM copy in the save directory
 local dataCache
 function M.data()
@@ -102,6 +106,7 @@ function M.new(ow, setup)
   for slot = 0, 9 do b:refreshVis(slot) end
   b:L(("battle vs magi %02X, seed %d"):format(Engine.rd(b.state, 0xD338), seed))
   b:buildImages()
+  if M.B3D then b.p3d = require("mn.b3d.Presenter").new(b) end
   b.co = coroutine.create(function() return b:script() end)
   return b
 end
@@ -157,6 +162,7 @@ function M:buildImages()
   local bd = love.image.newImageData(160, 144)
   local bf = Ppu.scene("backdrop")[1]
   Ppu.cells(bd, bf, bgmap(bf), 0, 0, 20, 18, 0, 0)
+  self.bgData = bd
   self.bg = love.graphics.newImage(bd); self.bg:setFilter("nearest", "nearest")
   self.pics = {}
   for k, p in pairs(Ppu.data().pics) do
@@ -363,26 +369,34 @@ end
 local SCENES = { ["1C:53"] = "fight_furok_weebo", ["53:58"] = "fight_weebo_tony", ["53:1C"] = "fight_weebo_furok" }
 
 function M:play(events)
-  local lastAct
+  local lastAct, lastAnim
   for _, ev in ipairs(events) do
     if ev.t == "msg" then
       self:say(ev.text, ev.actor == Engine.TONY_ID and "Tony" or nil)
     elseif ev.t == "act" then
-      lastAct = ev
+      lastAct, lastAnim = ev, nil
+    elseif ev.t == "anim" then
+      lastAnim = ev
     elseif ev.t == "damage" then
       local key = lastAct and ("%02X:%02X"):format(lastAct.species, ev.species or 0)
-      if key and SCENES[key] then self:playScene(SCENES[key])
+      if self.p3d then
+        -- same frame budget as the 2D clip or flash, so the battle's timing is unchanged
+        local n = key and SCENES[key] and #Ppu.scene(SCENES[key]) or 16
+        self.p3d:attack(lastAct and lastAct.slot, ev.slot, n, lastAnim and lastAnim.script)
+        wait(n)
+      elseif key and SCENES[key] then self:playScene(SCENES[key])
       else self.flash = ev.slot; for _ = 1, 16 do coroutine.yield() end; self.flash = nil end
     elseif ev.t == "summon" and not ev.pending then
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
-      self:fade(8); self.white = nil
+      if self.p3d then self.p3d:summon(ev.slot, 8); wait(8) else self:fade(8); self.white = nil end
     elseif ev.t == "appear" then
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
     elseif ev.t == "eliminated" then
       local v = self.vis[ev.slot]
       if v and ev.slot >= 1 and ev.slot <= 8 then
         local _, y = cardXY(ev.slot)
-        self:eliminate(v, y)
+        if self.p3d then self.p3d:eliminate(ev.slot, #Ppu.scene("elim_top")); wait(#Ppu.scene("elim_top"))
+        else self:eliminate(v, y) end
         self.vis[ev.slot] = nil
       end
     elseif ev.t == "unimplemented" then
@@ -439,6 +453,7 @@ function M:update()
   self.t = self.t + 1
   if self.result then return self.result end
   self:readInput()
+  if self.p3d then self.p3d:step() end
   local ok, err = coroutine.resume(self.co)
   if not ok then error(err) end
   return self.result
@@ -448,6 +463,7 @@ end
 local WIN = { [0] = { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.75, 0.75, 0.75 }, { 1, 1, 1 } } -- white on black
 local ARROW = string.char(0x0C)
 local PICS = { [0x1C] = "1C", [0x53] = "53", [0x4B] = "4B" }
+M.PICS = PICS
 
 function M:drawCard(slot, v)
   local x, y = cardXY(slot)
@@ -465,15 +481,18 @@ function M:hand(x, y) love.graphics.draw(self.imgs.hand, x - 32, y - 104) end
 
 function M:draw()
   love.graphics.clear(0, 0, 0); love.graphics.setColor(1, 1, 1)
+  local v = self.view
+  if self.p3d then self.p3d:draw(0, 0, 160, 144)
+  else
   if self.anim then love.graphics.draw(self.anim, 0, 0); return self:drawWhite() end
   love.graphics.draw(self.bg, 0, 0)
-  for slot = 1, 8 do local v = self.vis[slot]; if v then self:drawCard(slot, v) end end
+  for slot = 1, 8 do local vv = self.vis[slot]; if vv then self:drawCard(slot, vv) end end
   local mg = self.vis[9]
   if mg and mg.species ~= 0x6C and mg.name and mg.name ~= "" then Font.drawText(mg.name:sub(1, 5), 120, 8, WIN) end
   love.graphics.draw(self.imgs.tony, 0, 0)
   if self.elim then love.graphics.draw(self.elim, 0, 0) end
-  local v = self.view
-  if v == "target" and self.targetSlot then local x, y = cardXY(self.targetSlot); self:hand(x + 4, y + 16) end
+  end
+  if v == "target" and self.targetSlot and not self.p3d then local x, y = cardXY(self.targetSlot); self:hand(x + 4, y + 16) end
   local box = self.msg or v == "tony" or v == "creature" or v == "list"
   if box then love.graphics.setColor(0, 0, 0); love.graphics.rectangle("fill", 0, 104, 160, 40); love.graphics.setColor(1, 1, 1) end
   local T = function(s, col, row) Font.drawText(s, col * 8, 104 + row * 8, WIN) end
