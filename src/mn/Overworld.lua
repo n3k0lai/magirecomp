@@ -660,7 +660,14 @@ function M:drawField()
     -- stay $80 and show no OAM until $0B wakes them
     if o.image and not o.dormant and not o.blank then love.graphics.draw(o.image, o.x * 16 - 24 + (o.ox or 0) - cx, o.y * 16 - 24 + (o.oy or 0) - cy) end
   end
-  if not self.hidePlayer then love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - cx - 8, self.py - cy - 8) end
+  -- QueueRepeatedSpriteList: the kick / push lunge draws that record's
+  -- bank-$20 list at the wobbled origin. A zero pointer keeps the walker.
+  if not self.hidePlayer then
+    local pose = Sprites.lungeList(self.push) or Sprites.lungeList(self.kick)
+    local img = pose and Sprites.playerList(self, pose)
+    if img then love.graphics.draw(img, self.px - cx - 24, self.py - cy - 24)
+    else love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - cx - 8, self.py - cy - 8) end
+  end
   end
   -- title-card fade: while [$C6F3] == 0 the scene sits at palette black
   -- ((0,16,0) in PyBoy); when the director sets it to 1 it fades in over $40
