@@ -71,8 +71,9 @@ for _, name in ipairs(NAMES) do
           ok(inArena(eye), label .. " eye inside the arena")
           for _, slotId in ipairs({ actor, target }) do
             local feet, top = feetAndTop(slotId)
-            local fok, fx, fy, fw = inFrame(eye, at, shot.fov, feet, 1)
-            local tok, tx, ty, tw = inFrame(eye, at, shot.fov, top, 1)
+            local fov = shot.fovAt and shot.fovAt(p, ctx) or shot.fov
+            local fok, fx, fy, fw = inFrame(eye, at, fov, feet, 1)
+            local tok, tx, ty, tw = inFrame(eye, at, fov, top, 1)
             ok(fok, string.format("%s slot %d feet in frame (%.3f,%.3f w=%.3f)", label, slotId, fx, fy, fw))
             ok(tok, string.format("%s slot %d top in frame (%.3f,%.3f w=%.3f)", label, slotId, tx, ty, tw))
           end
@@ -205,7 +206,7 @@ for _, name in ipairs({ "attack", "bigHit" }) do
     for _, p in ipairs(PS) do
       local eye, at = shot.eye(p, ctx), shot.at(p, ctx)
       for _, slot in ipairs({ actor, target }) do
-        local b = cardBox(eye, at, shot.fov, slot, 0.8)
+        local b = cardBox(eye, at, shot.fovAt and shot.fovAt(p, ctx) or shot.fov, slot, 0.8)
         local e = b and math.max(-b[1], b[3], -b[2], b[4]) or 99
         if e > worst then worst = e end
         ok(e <= 0.92, ("%s %d->%d p=%s: slot %d card inside 0.92 (edge %.3f)"):format(name, actor, target, p, slot, e))
@@ -213,6 +214,20 @@ for _, name in ipairs({ "attack", "bigHit" }) do
     end
   end end end
   print(("%s: worst card edge %.3f"):format(name, worst))
+end
+
+-- attack eyes stay over the floor (the Tony -> Korg shot used to back off past its edge)
+do
+  local worstZ, worstX = -99, 0
+  for _, name in ipairs({ "attack", "bigHit" }) do
+    for actor = 0, 9 do for target = 0, 9 do if actor ~= target then
+      for _, p in ipairs(PS) do
+        local e = Shots[name].eye(p, ctxFor(actor, target))
+        worstZ, worstX = math.max(worstZ, e[3]), math.max(worstX, math.abs(e[1]))
+      end
+    end end end
+  end
+  ok(worstZ <= 9.0 and worstX <= 6.2, ("attack eyes stay over the floor (z %.2f, |x| %.2f)"):format(worstZ, worstX))
 end
 
 -- every shot says what the banner strips do

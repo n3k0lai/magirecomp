@@ -133,8 +133,45 @@ Files in the prototype:
 - `src/mn/b3d/Presenter.lua`: LÖVE meshes, shader, camera, compositing,
   optional PNG dump (`MN_B3D_SHOT=dir`, `MN_B3D_EVERY=n`). `onEvent` pushes
   the same clips the direct calls used to.
+- `src/mn/b3d/Shots.lua`: camera shots as data plus the arena layout
+  (`Shots.slotPos`) they are tuned against.
+- `src/mn/b3d/Card.lua`: name cards for creatures without a picture; the card
+  widens and splits the name (at a space or inner capital) so nothing is cut off.
+- `src/mn/b3d/Banners.lua`: the fight scenes' header / footer strips (below).
 - `src/mn/Battle.lua`: subscribes one presenter; `play()` has no `p3d` branch.
-- `tests/engine/mn_b3d_test.lua`, `tests/engine/mn_battle_bus_test.lua`.
+- `tests/engine/mn_b3d_test.lua`, `mn_b3d_shots_test.lua`, `mn_b3d_banners_test.lua`,
+  `tests/engine/mn_battle_bus_test.lua`.
+
+### Header and footer banners
+
+In 2D the fight scenes (`fight_weebo_tony` and friends) split the screen into
+three bands while an attack plays: a header strip (a vine canopy, map pixel
+rows 0-30) on top, the fighters in the middle, and a footer strip (grass and
+ferns, map rows 33-63) along the bottom. Each strip scrolls sideways at its own
+speed (SCX per line run). The art comes from the private scene cache that
+`mn.fx.Gen` builds from the player's ROM; nothing is shipped.
+
+`Banners.find` reads the line runs of a cached scene to locate the two strips
+and their per-frame scroll; `PpuFrame.band` cuts a 256-px-wide band out of the
+background map, with colour 0 (the backdrop behind the art) made transparent,
+so the strips stand as cut-outs. The presenter uses them as:
+
+- **ceiling**: a vine canopy over the back half of the arena, its front edge
+  hanging down as a valance above the enemy row and the Magi;
+- **floor**: grass rows along the foot of the far wall, behind the Magi and
+  (low) at midfield.
+
+Shots marked `banners = "slide"` (attack, bigHit) scroll the strips with the
+2D scene's SCX table, mapped from the clip's progress; the others hold them
+still. Options:
+
+| Variable | Values | Default |
+|---|---|---|
+| `MN_B3D_BANNERS` | `on`, `attack` (only during attacks, dropping in like 2D), `ceiling`, `floor`, `off` | `on` |
+| `MN_B3D_FLOOR` | `arena` (backdrop tiles), `grass` (footer laid over them) | `arena` |
+| `MN_B3D_BANNER_SCENE` | a cached scene name | first of `Banners.SCENES` found |
+
+With no scene cache (tests, a fresh import) the arena is drawn without them.
 
 ## 4. Roadmap (intern-sized jobs)
 

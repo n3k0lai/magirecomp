@@ -72,6 +72,30 @@ function M.cells(img, f, mapname, col, row, w, h, px0, py0)
   end end
 end
 
+-- one full-width band of frame f's background map: map pixel rows y0 .. y0+h-1 (wrapping at
+-- 256), all 256 columns -> ImageData 256 x h. With key0, colour index 0 (the backdrop behind
+-- the art) comes out transparent, so the band can stand as a cut-out in 3D.
+function M.band(f, y0, h, key0)
+  load()
+  local img = love.image.newImageData(256, h)
+  local bp = palrgb(D.pals[f.bp + 1])
+  local m = D.maps[f.m[(math.floor(f.l / 8) % 2 == 1) and "1C00" or "1800"] + 1]
+  for y = 0, h - 1 do
+    local my = (y0 + y) % 256
+    for x = 0, 255 do
+      local k = (math.floor(my / 8) * 32 + math.floor(x / 8)) * 5
+      local t, p, xf, yf = tilepx(m[k + 1]), m[k + 2], m[k + 3], m[k + 4]
+      local tx, ty = x % 8, my % 8
+      if xf == 1 then tx = 7 - tx end
+      if yf == 1 then ty = 7 - ty end
+      local v = t[ty * 8 + tx]
+      if key0 and v == 0 then img:setPixel(x, y, 0, 0, 0, 0)
+      else local c = bp[p][v]; img:setPixel(x, y, c[1], c[2], c[3], 1) end
+    end
+  end
+  return img
+end
+
 -- full frame render (BG + window per line, then OBJ) -> ImageData 160x144
 function M.render(f)
   load()

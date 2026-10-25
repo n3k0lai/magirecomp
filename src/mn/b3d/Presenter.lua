@@ -8,12 +8,19 @@
 --   MN_B3D_SIZE=480x432    render size (composited into the 160x144 game canvas)
 --   MN_B3D_SHOT=dir        write render frames there as PNG (dev / review only)
 --   MN_B3D_EVERY=2         one PNG every N battle frames
+--   MN_B3D_BANNERS=on      the 2D fight scenes' header / footer strips (mn.b3d.Banners) as a vine
+--                          canopy overhead and grass rows on the floor; they scroll like the 2D
+--                          strips during attacks. on | attack (only during attacks, dropping in
+--                          the way 2D shows them) | ceiling | floor | off
+--   MN_B3D_FLOOR=arena     floor: arena (the backdrop tiled) | grass (footer strip laid over it)
+--   MN_B3D_BANNER_SCENE=   which cached fight scene the strips come from (default: first found)
 local Mat4 = require("mn.b3d.Mat4")
 local Timeline = require("mn.b3d.Timeline")
 local Shots = require("mn.b3d.Shots")
 local Font = require("mn.Font")
 local Card = require("mn.b3d.Card")
 local Ppu = require("mn.PpuFrame")
+local Banners = require("mn.b3d.Banners")
 
 local P = {}
 P.__index = P
@@ -24,6 +31,7 @@ uniform mat4 view;
 uniform mat4 model;
 uniform float flash;
 uniform float shade;
+uniform vec2 uvoff;
 #ifdef VERTEX
 vec4 position(mat4 tp, vec4 v) {
   vec4 p = proj * view * model * v;
@@ -33,7 +41,7 @@ vec4 position(mat4 tp, vec4 v) {
 #endif
 #ifdef PIXEL
 vec4 effect(vec4 col, Image tex, vec2 uv, vec2 sc) {
-  vec4 c = Texel(tex, uv) * col;
+  vec4 c = Texel(tex, uv + uvoff) * col;
   if (c.a < 0.5) discard;
   c.rgb = mix(c.rgb * shade, vec3(1.0), flash);
   return c;
@@ -48,6 +56,13 @@ local function quad(x0, y0, x1, y1, u0, v0, u1, v1, z)
   return love.graphics.newMesh(FMT, {
     { x0, y0, z, u0, v1 }, { x1, y0, z, u1, v1 }, { x1, y1, z, u1, v0 },
     { x0, y0, z, u0, v1 }, { x1, y1, z, u1, v0 }, { x0, y1, z, u0, v0 } }, "triangles", "static")
+end
+
+-- horizontal plane at height y, uv repeating ur x vr times
+local function plane(x0, x1, z0, z1, y, ur, vr)
+  return love.graphics.newMesh(FMT, {
+    { x0, y, z0, 0, 0 }, { x1, y, z0, ur, 0 }, { x1, y, z1, ur, vr },
+    { x0, y, z0, 0, 0 }, { x1, y, z1, ur, vr }, { x0, y, z1, 0, vr } }, "triangles", "static")
 end
 
 -- ground plane in XZ (y = 0), uv repeats `rep` times
@@ -90,10 +105,12 @@ function P.new(battle, opts)
   self.bg = battle.bg
   self.bgRep = love.graphics.newImage(battle.bgData)
   self.bgRep:setWrap("repeat", "repeat"); nearest(self.bgRep)
-  self.floor = ground(7, 2); self.floor:setTexture(self.bgRep)
+  -- same 7-unit tiles on the same grid as before, just wider so wide shots never see an edge
+  self.floor = ground(14, 4); self.floor:setTexture(self.bgRep)
   -- the far wall shows the upper (sky / scenery) half of the backdrop
   self.wall = quad(-9, 0, 9, 7, 0, 0, 1, 0.55); self.wall:setTexture(self.bg)
   self.card = quad(-0.5, 0, 0.5, 1, 0, 0, 1, 1)
+  self:buildBanners(opts)
   -- blob shadow and hit spark, drawn into small images at start-up
   local sd = love.image.newImageData(16, 8)
   sd:mapPixel(function(x, y) local dx, dy = (x - 7.5) / 8, (y - 3.5) / 4; return 0, 0, 0, (dx * dx + dy * dy) < 1 and 1 or 0 end)
@@ -109,6 +126,72 @@ function P.new(battle, opts)
   self.tony = ok and crop(td) or nil
   self.tl:push("intro", opts.introFrames or 96)
   return self
+end
+
+-- ---------------------------------------------------------------- banners
+-- The strips are 256 px wide; at the cards' scale (1.6 world units per 32 px) a strip is
+-- 12.8 units wide and 1.55 tall, so u repeats ARENA_W / 12.8 times across the arena.
+local PX = 0.05
+local ARENA_X = 9
+local MODES = { on = true, attack = true, ceiling = true, floor = true, off = true }
+
+function P:buildBanners(opts)
+  local mode = opts.banners or os.getenv("MN_B3D_BANNERS") or "on"
+  if not MODES[mode] then mode = "on" end
+  local floorMode = opts.floor or os.getenv("MN_B3D_FLOOR") or "arena"
+  self.bannerMode = mode
+  if mode == "off" and floorMode ~= "grass" then return end
+  local ok, info = pcall(Banners.build, Ppu, opts.bannerScene or os.getenv("MN_B3D_BANNER_SCENE"))
+  if not ok or not info then return end -- no scene cache (tests, fresh import): plain arena
+  self.banners = info
+  info.headerTex:setWrap("repeat", "repeat")
+  local hw, hh = 256 * PX, info.header.h * PX
+  local fh = info.footer.h * PX
+  local ur = 2 * ARENA_X / hw
+  local L = { ceiling = {}, floor = {} }
+  -- vine canopy over the back half of the arena, its front edge hanging down as a valance
+  local CY, CZ0, CZ1 = 5.4, -6.5, -3.0
+  L.ceiling[#L.ceiling + 1] = { mesh = plane(-ARENA_X, ARENA_X, CZ0, CZ1, CY, ur, (CZ1 - CZ0) / hh), tex = "h", drop = 1 }
+  L.ceiling[#L.ceiling + 1] = { mesh = quad(-ARENA_X, CY - hh, ARENA_X, CY, 0, 0, ur, 1, CZ1), tex = "h", drop = 1 }
+  -- grass: full height along the foot of the far wall, lower rows behind the Magi and midfield
+  L.floor[#L.floor + 1] = { mesh = quad(-ARENA_X, 0, ARENA_X, fh, 0, 0, ur, 1, -6.4), tex = "f", drop = -1 }
+  L.floor[#L.floor + 1] = { mesh = quad(-ARENA_X, 0, ARENA_X, fh * 0.6, 0, 0, ur, 1, -3.6), tex = "f", drop = -1 }
+  L.floor[#L.floor + 1] = { mesh = quad(-4.5, 0, 4.5, fh * 0.3, 0.3, 0, 0.3 + 9 / hw, 1, 0.0), tex = "f", drop = -1 }
+  if floorMode == "grass" then
+    info.footerTex:setWrap("repeat", "repeat")
+    self.grassFloor = plane(-7, 7, -7, 7, 0.005, 14 / hw, 14 / fh)
+    self.grassFloor:setTexture(info.footerTex)
+  end
+  for _, layer in pairs(L) do
+    for _, b in ipairs(layer) do b.mesh:setTexture(b.tex == "h" and info.headerTex or info.footerTex) end
+  end
+  self.bannerLayers = L
+end
+
+-- banner strips for this frame: scroll and drop-in follow the 2D scene while a shot slides
+function P:drawBanners(g)
+  local L = self.bannerLayers
+  if not L then return end
+  local mode, sliding = self.bannerMode, self.shotBanners == "slide"
+  if mode == "off" or (mode == "attack" and not sliding) then return end
+  local hu, fu, drop = 0, 0, 0
+  if sliding then
+    local up
+    hu, fu, up = Banners.scrollAt(self.banners, self.shotP or 0)
+    -- "attack" mode: the strips come in at the start of the attack the way 2D shows them
+    if mode == "attack" then drop = up and math.max(0, 1 - (self.shotP or 0) / 0.12) or 1 end
+  end
+  self.shader:send("flash", 0); self.shader:send("shade", 0.9)
+  for name, layer in pairs(L) do
+    if mode ~= (name == "ceiling" and "floor" or "ceiling") then
+      for _, b in ipairs(layer) do
+        self.shader:send("uvoff", { b.tex == "h" and hu or fu, 0 })
+        self.shader:send("model", Mat4.translate(0, b.drop * drop * 1.8, 0))
+        g.draw(b.mesh)
+      end
+    end
+  end
+  self.shader:send("uvoff", { 0, 0 }); self.shader:send("shade", 1)
 end
 
 -- texture for a slot's creature: its battle picture when the run has one, else a name card
@@ -163,7 +246,8 @@ function P:camera(sample)
   local ctx = (c and c.ctx) or {}
   local shot = Shots[Shots.resolve(c and c.kind, ctx)]
   local p = (c and self.tl:phase(c)) or 0
-  self.fov = shot.fov
+  self.fov = shot.fovAt and shot.fovAt(p, ctx) or shot.fov
+  self.shotBanners, self.shotP = shot.banners, p
   return shot.eye(p, ctx), shot.at(p, ctx)
 end
 
@@ -181,11 +265,13 @@ function P:render()
   g.setShader(self.shader)
   self.shader:send("proj", Mat4.perspective(math.rad(self.fov or 50), self.w / self.h, 0.1, 60))
   self.shader:send("view", Mat4.lookAt(eye, at))
-  self.shader:send("flash", 0); self.shader:send("shade", 1)
+  self.shader:send("flash", 0); self.shader:send("shade", 1); self.shader:send("uvoff", { 0, 0 })
   g.setColor(1, 1, 1, 1)
   self.shader:send("model", Mat4.identity()); g.draw(self.floor)
+  if self.grassFloor then self.shader:send("shade", 0.8); g.draw(self.grassFloor) end
   self.shader:send("shade", 0.85)
   self.shader:send("model", Mat4.translate(0, 0, -6.5)); g.draw(self.wall)
+  self:drawBanners(g)
   -- combatants (cylindrical billboards facing the camera)
   local vis = self.b.vis or {}
   for slot = 0, 9 do

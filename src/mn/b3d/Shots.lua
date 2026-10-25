@@ -3,6 +3,7 @@
 -- reads battle rules, so frame budgets, RNG and outcomes stay put.
 --
 --   shot = { eye = function(p, ctx) -> {x,y,z}, at = function(p, ctx) -> {x,y,z}, fov = degrees }
+--   (fovAt(p, ctx), when present, overrides fov for that moment: attacks widen for long exchanges)
 --   p    clip progress, 0..1
 --   ctx  { actor, target, slot, damage, energy } from Timeline:sample (positions are
 --        world-space copies; damage/energy are set only when the clip carries them)
@@ -61,7 +62,11 @@ end
 -- against the enemy Magi) frames as well as a short one; the attacker's whole card keeps a
 -- margin from the frame edge (it used to sit right on it). `dolly` is how far the eye slides
 -- in toward the pair (world units) by p = 1.
-local REACH, PER_UNIT, TILT, X_MAX = 5.5, 0.95, 0.35, 6.2
+local REACH, PER_UNIT, TILT, X_MAX, Z_MAX = 5.5, 0.95, 0.35, 6.2, 9.0
+local LIFT = 0.30 -- per unit of distance beyond 5: long exchanges rise instead of backing off the floor
+-- When the eye would have to back off past Z_MAX (off the floor) it stops there and the lens
+-- widens by the same ratio instead, so the pair keeps the framing it would have had.
+local FOV_MAX = 75
 local function sideEyeAt(p, ctx, dolly)
   ctx = ctx or {}
   local a = ctx.actor or { 0, 0, 1.6 }
@@ -80,10 +85,18 @@ local function sideEyeAt(p, ctx, dolly)
   local r = REACH + PER_UNIT * len
   local ex, ez = mx + nx * r, mz + nz * r
   if ex > X_MAX then ez = ez + (ex - X_MAX); ex = X_MAX elseif ex < -X_MAX then ez = ez + (-X_MAX - ex); ex = -X_MAX end
+  local ey = 1.90 + LIFT * math.max(0, len - 5)
+  local fov = FOV
+  if ez > Z_MAX then
+    local far = math.sqrt((ex - mx) ^ 2 + (ez - mz) ^ 2)
+    ez = Z_MAX
+    local near = math.sqrt((ex - mx) ^ 2 + (ez - mz) ^ 2)
+    fov = math.min(FOV_MAX, math.deg(2 * math.atan(math.tan(math.rad(FOV / 2)) * far / near)))
+  end
   local tx, tz = mx - ex, mz - ez
   local tl = math.sqrt(tx * tx + tz * tz)
   local d = dolly * p
-  return { ex + tx / tl * d, 1.90 + 0.30 * p, ez + tz / tl * d }, { mx, 1.00, mz }
+  return { ex + tx / tl * d, ey + 0.30 * p, ez + tz / tl * d }, { mx, 1.00, mz }, fov
 end
 
 local function focusOf(ctx)
@@ -119,6 +132,7 @@ S.intro = {
 
 S.attack = {
   fov = FOV, banners = "slide",
+  fovAt = function(p, ctx) return select(3, sideEyeAt(p, ctx, 0.75)) end,
   eye = function(p, ctx) return (sideEyeAt(p, ctx, 0.75)) end,
   at = function(p, ctx) return select(2, sideEyeAt(p, ctx, 0.75)) end,
 }
@@ -127,6 +141,7 @@ S.attack = {
 -- carries damage >= half the target's energy (Shots.resolve).
 S.bigHit = {
   fov = FOV, banners = "slide",
+  fovAt = function(p, ctx) return select(3, sideEyeAt(p, ctx, 1.35)) end,
   eye = function(p, ctx) return (sideEyeAt(p, ctx, 1.35)) end,
   at = function(p, ctx) return select(2, sideEyeAt(p, ctx, 1.35)) end,
 }
