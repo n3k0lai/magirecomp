@@ -30,7 +30,7 @@ to the decomp map tables.
 
 | Place | What | Gate | Decomp | Port |
 |---|---|---|---|---|
-| Tunnels north of the Underneath town (map 105), top of the cave at 15,3 | hidden spot on a `$B0` cell under the rock face; map-entry fallback script 19:4BE0 checks for action `$2A` on that cell, then sets `$A1AE` bit 6 and runs 19:4BFF (gives something and opens 15,2, the way up into map 106 and on to 107) | unknown action/item `$2A` | 19:4BE0, 19:4BFF, replay 19:4C7F | ? (pressing A there does nothing in the port) |
+| Tunnels north of the Underneath town (map 105), top of the cave at 15,3 | hidden spot on a `$B0` cell under the rock face; map-entry fallback script 19:4BE0 checks for action `$2A` on that cell, then sets `$A1AE` bit 6 and runs 19:4BFF. Probably opens 15,2, where map 106 lands you (106 links on to 107); not confirmed | unknown action/item `$2A` | 19:4BE0, 19:4BFF, replay 19:4C7F | ? (pressing A there does nothing in the port) |
 | Tunnel cave between the Underneath map and the rock-trap cave (map 108), 16,19 | another lone `$B0` cell, likely the same kind of hidden spot | ? | not traced | ? |
 | Cave east of map 103 (map 101) | lone `$B0` cell | ? | not traced | ? |
 
