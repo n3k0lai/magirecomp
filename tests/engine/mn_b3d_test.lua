@@ -52,5 +52,34 @@ do
   ok(pos[0][1] == 1 and pos[0][3] == 3 and pos[5][3] == -1, "sample leaves positions unchanged")
 end
 
+-- name cards are drawn with the 3D shader and depth test switched off, onto their own canvas,
+-- and the caller's canvas is restored (they used to come out blank inside render())
+do
+  local Card = require("mn.b3d.Card")
+  local log, state = {}, { shader = "3d", depth = "lequal", canvas = "scene" }
+  local stack = {}
+  local g = {
+    getCanvas = function() return state.canvas end,
+    push = function() stack[#stack + 1] = { shader = state.shader, depth = state.depth, canvas = state.canvas } end,
+    pop = function() local t = table.remove(stack); state.shader, state.depth, state.canvas = t.shader, t.depth, t.canvas end,
+    setShader = function(s) state.shader = s end,
+    setDepthMode = function(m) state.depth = m end,
+    setCanvas = function(c) state.canvas = c end,
+    origin = function() end, setBlendMode = function() end, setColor = function() end,
+    clear = function() log[#log + 1] = { "clear", state.canvas } end,
+    rectangle = function() log[#log + 1] = { "rect", state.canvas, state.shader, state.depth } end,
+  }
+  local font = { drawText = function(str) log[#log + 1] = { "text:" .. str, state.canvas, state.shader, state.depth } end }
+  local cv = Card.draw(g, font, "card", "Furok")
+  ok(cv == "card", "card: returns its canvas")
+  local texts = {}
+  for _, e in ipairs(log) do
+    if e[1] ~= "clear" then ok(e[2] == "card" and e[3] == nil and e[4] == nil, "card: " .. e[1] .. " drawn on the card with no 3D shader/depth") end
+    if e[1]:sub(1, 5) == "text:" then texts[#texts + 1] = e[1]:sub(6) end
+  end
+  ok(texts[1] == "Furo" and texts[2] == "k", "card: name split 4 letters per row")
+  ok(state.canvas == "scene" and state.shader == "3d" and state.depth == "lequal", "card: caller's canvas and 3D state restored")
+end
+
 print(("mn_b3d_test: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

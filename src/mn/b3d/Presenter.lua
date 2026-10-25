@@ -11,6 +11,7 @@
 local Mat4 = require("mn.b3d.Mat4")
 local Timeline = require("mn.b3d.Timeline")
 local Font = require("mn.Font")
+local Card = require("mn.b3d.Card")
 local Ppu = require("mn.PpuFrame")
 
 local P = {}
@@ -122,14 +123,8 @@ function P:texFor(slot, v)
   local name = v.name or "?"
   local t = self.tex[name]
   if not t then
-    local c = love.graphics.newCanvas(32, 40)
-    local prev = love.graphics.getCanvas()
-    love.graphics.push("all"); love.graphics.setCanvas(c); love.graphics.clear(0.1, 0.1, 0.15, 1)
-    love.graphics.setColor(1, 1, 1); love.graphics.rectangle("line", 0.5, 0.5, 31, 39)
-    local WIN = { [0] = { 0, 0, 0 }, { 0.4, 0.4, 0.4 }, { 0.75, 0.75, 0.75 }, { 1, 1, 1 } }
-    Font.drawText(name:sub(1, 4), 0, 8, WIN); Font.drawText(name:sub(5, 8), 0, 16, WIN)
-    love.graphics.pop(); love.graphics.setCanvas(prev)
-    nearest(c); t = c; self.tex[name] = t
+    t = Card.draw(love.graphics, Font, love.graphics.newCanvas(Card.W, Card.H), name)
+    nearest(t); self.tex[name] = t
   end
   return t, 1.6, 2.0
 end
