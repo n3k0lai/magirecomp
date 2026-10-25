@@ -9,7 +9,8 @@
 -- Opcode $68 unpacks banks 4 and 6 from the map record. That opcode is not
 -- handled here, so the overlay starts as a snapshot of the live planes the
 -- first time a handler touches it. $04/$0E patch the overlay. $7F copies it
--- onto the live planes. $03/$0D/$81 write the live planes through setCell.
+-- onto the live planes. $7E copies a rectangle inside the live planes.
+-- $03/$0D/$81 write the live planes through setCell.
 local bit = require("bit")
 local band, rshift = bit.band, bit.rshift
 
@@ -232,15 +233,17 @@ M.handlers[0x78] = function(vm, o, n)
   return o + n
 end
 
--- StageEightScriptBytesCopy_7F (plant_bank1_handler_4552.asm).
--- Eight bytes: source pointer, width, height, dest pointer, row, column
--- (stage_eight_script_bytes.asm). The planted handler is
--- CopyStagedByteFromBanks6And4: one cell, bank 6 -> bank 5 and bank 4 -> bank 3,
--- then AdvanceStagedCopy steps the row. Width and height of 0 count 256,
--- matching `dec` wrapping. StagedByteEdgeCheck's reload latch is not modeled;
--- the copy advances once per frame, as opcode $7E does. LCD-off map setup
--- fills the rect in one pass (runInit cannot resume the per-row return).
-M.handlers[0x7F] = function(vm, o, n)
+-- StageEightScriptBytes / StageEightScriptBytesCopy (stage_eight_script_bytes.asm).
+-- Eight script bytes: source pointer, width, height, dest pointer, row, column.
+-- AdvanceStagedCopy steps one cell. Width and height of 0 count 256 (`dec`
+-- wraps). The stride is the map width ($C847). StagedByteEdgeCheck's reload
+-- latch is not modeled.
+-- wLCDC == 0 (map setup, vm.init) fills a row inside the handler, and
+-- RunScriptLoop (finish_startup.asm) calls it again before DrawMetatileWindow,
+-- so the rect is in the planes before the first draw. runInit cannot resume a
+-- per-row return, so setup copies the whole rect in one pass. LCD on yields
+-- one cell a frame.
+local function stageRect(vm, o, n, blit)
   local r = vm.rom
   local src, w, rows = r:u16(o + 1), r:u8(o + 3), r:u8(o + 4)
   local dst, row, col = r:u16(o + 5), r:u8(o + 7), r:u8(o + 8)
@@ -252,7 +255,7 @@ M.handlers[0x7F] = function(vm, o, n)
   local across = w == 0 and 256 or w
   local left = across
   while true do
-    if vm.host and vm.host.blitOverlayCell then vm.host.blitOverlayCell(src, dst) end
+    blit(src, dst)
     frame(vm)
     left = left - 1
     if left > 0 then
@@ -273,6 +276,23 @@ M.handlers[0x7F] = function(vm, o, n)
     vm:wr8(0xFFA6, left >= 256 and 0 or left); vm:wr8(0xC704, rows)
   end
   return o + n
+end
+
+-- CopyStagedByteIntoBanks5And3: the bank-5 byte, then the bank-3 byte.
+-- Host copyCell writes the live collision plane and the live metatile plane.
+M.handlers[0x7E] = function(vm, o, n)
+  return stageRect(vm, o, n, function(src, dst)
+    local h = vm.host
+    if h and h.copyCell then h.copyCell(src - 0xD000, dst - 0xD000) end
+  end)
+end
+
+-- StageEightScriptBytesCopy_7F (plant_bank1_handler_4552.asm) plants
+-- CopyStagedByteFromBanks6And4: one cell, bank 6 -> bank 5 and bank 4 -> bank 3.
+M.handlers[0x7F] = function(vm, o, n)
+  return stageRect(vm, o, n, function(src, dst)
+    if vm.host and vm.host.blitOverlayCell then vm.host.blitOverlayCell(src, dst) end
+  end)
 end
 
 -- Record bases are $C189 + slot * $1B (record_slot_bases.asm). Spawned objects

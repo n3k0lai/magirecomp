@@ -451,15 +451,6 @@ function VM:run(bank, ptr)
         local g = 0
         while not h.nudge(tc, tr, spd) and g < 2000 do g = g + 1; coroutine.yield("wait", 1) end
       end
-    elseif op == 0x7E then -- StageEightScriptBytes: src word, w, h, dst word, 2 more; copies one cell/frame
-      local src, w, hh, dst = r:u16(o + 1) - 0xD000, r:u8(o + 3), r:u8(o + 4), r:u16(o + 5) - 0xD000
-      o = o + n
-      if h.copyCell and not self.init then
-        local W = h.mapWidth and h.mapWidth() or 1
-        for yy = 0, hh - 1 do for xx = 0, w - 1 do
-          h.copyCell(src + yy * W + xx, dst + yy * W + xx); coroutine.yield("wait", 1)
-        end end
-      end
     elseif op == 0x19 then -- opcode_19.asm: set bit 7 of the running record (dormant), yield
       o = o + n
       if self.curSlot == 0 or not self.curSlot then if h.release then h.release(self.curSlot) end
