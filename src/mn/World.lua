@@ -74,7 +74,10 @@ function M.walkable(v, mem)
   -- $40-$5F are A-press cells (signs, counters, fireplaces): PyBoy blocks Tony on them
   -- (map 59 counter $41, map 60 $45); $60-$7F are solid
   if v >= 0x40 and v < 0x80 then return false end
-  if v < 0x08 then
+  -- Only the colored gates $04-$07 are gated for now. $01-$03 are also
+  -- driven by $C12B/$C12C (clear_c12a_set_c12b.asm and siblings), which the
+  -- port does not run yet, so they keep their old meaning.
+  if v >= 0x04 and v < 0x08 then
     local b = gateByte(v, mem)
     if b ~= 0 then noteGate(v, b); return false end
   end
