@@ -342,10 +342,50 @@ muted). Snapshots stay outside git.
   the town door at 33,33 (rebase 32,11 / 33,19; to80s8.lua): at story 8 its
   init only swaps two glyph sets (1C:667E), no scene. The town elder's talk
   (1C:644C) has a story-8 line (he expects Gogor back) and a story-9 one.
-- Next (story 8 -> 9): the only story-9 store reachable from here is 15:4CCB,
-  in the 2F:44E1 record (bytes 01 05 18, read as 279 cell 5,24 if it is a
-  cell record). Probe s9a (to80s8.lua, route `80:far,74:0.24,279:5.24`)
-  left town by its west edge onto 279 at 18,22 (snapshot to279s8.lua) but
-  the planner found no path to 5,24 from that half. Untested: whether the
-  record is a cell at all, and the farm-side approach (279 32,26 pocket /
-  34,21 -> 112) at story 8.
+- Story 8 -> 9, confirmed up to the pocket. The record is the step script
+  2F:44DE (list 21:5599, entry 5), not a separate header at 2F:44E1. Its
+  first opcode names the arrival cell on the next map (column 5, row 24).
+  The expression is "story word is 8 or 9": that branch is 15:4BB4, whose
+  story-8 case is 15:4C10 (loads map 122, and 15:4CCB stores story 9). Any
+  other story word falls through to 15:5971, which loads the farm map 112.
+  The only cell on 279 that runs 2F:44DE is 34,21. It is not on the west
+  half (18,22 has no path) and not on the east half's town side (21,22
+  reaches 32,26 in 15 steps, and neither 34,21 nor the 121 door at 33,23).
+  121's north door (15:47B3) is what opens the pocket: it lands on 279 at
+  33,22, two steps from 34,21.
+- Route from house 80 at story 8 (to80s8.lua), behind MN_TO80S8 in
+  scripts/mn-route12.sh. Each leg is one headless run of at most 3000
+  frames and reloads the previous leg's door snapshot:
+  80 far -> town 74 east edge 59,21 (22:41B2, lands 279 at 21,22) ->
+  279 32,26 (2F:44D0, lands 115 at 0,16) -> 115 top 22-26,0 (15:4010,
+  lands 116 at 2,39) -> 116 40-43,39 (15:41B9, lands 117 at 12,0) ->
+  117 west 0,35-38 (15:4258, lands 120 at 59,8) -> 120 25-28,0 (15:4739,
+  lands 121 at 7,19) -> 121 4-7,0 (15:47B3, lands 279 at 33,22).
+  Maps 115, 116, 117 and 120 keep wandering monsters in slots 31 and 32.
+  On 116 the walk meets one; the battle alone runs about 2300 frames, so
+  with the 85-step walk it does not finish inside 3000. Those four legs
+  set MN_NOENC=1. Story step-ons still fire. $A123 stays 8 the whole way.
+- 116's path also steps on 15:4240 (a slot-2 anim, no story-word write)
+  just before the door into 117.
+
+## OPEN QUESTIONS
+
+Story 9 is not stored yet. The pocket leg ends with control at map 279,
+cell 33,22 (MN_FRAMES=3000, MN_NOENC=1, load of the 117->120 door, route
+`120:26.0,121:5.0,279:34.21`). The planner logs the 120 and 121 goals,
+then `door crossed -> map 279 at 33,22`, `place player 33,22`, and
+`npc slot 2 at 34,21` (anim 11:7604, behaviour 22:4005). It never logs a
+path to 34,21. For the rest of the run MN_STUCKDBG prints
+`stuck at 33,22 next -` (no next step, no text box, no thread). Final
+line: `final player 33,22 map 279`. The floor north of 33,22 is open;
+34,21 is the 2F:44DE step cell, and slot 2 stands on it.
+
+Suspect: 279's entry 2F:44F9. At story 8 or 9 it branches to 2F:453E,
+which spawns that slot on 34,21 and then runs opcode $0B on it
+(opcode_0b.asm clears the record's dormant bit). Overworld's step and
+the route planner both treat a non-dormant sprite as solid, so the step
+trigger cannot be entered. 22:4005 is only a parked script, and the slot
+has no talk. This job does not change the engine. Once a step onto 34,21
+is possible, the same route's last leg (`279:34.21`, watch $A123) should
+see `A123 <- 09 at 15:4CCB` and print `story 9 reached`. Until then
+MN_TO80S8 exits nonzero at that leg.

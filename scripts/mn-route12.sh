@@ -378,3 +378,54 @@ if [ -n "${MN_TO211:-}" ]; then
   grep -qF "A123 <- 08 at 22:6498" "$SNAP/home.log" || { echo "story 8: NOT SET" >&2; exit 1; }
   echo "story 8 set (22:6498)"
 fi
+
+# Story 8 -> 9 (optional). Set MN_TO80S8 to a snapshot on the town door into
+# house 80 at story 8 (1C:6645, to80s8.lua). The story-9 store is the step
+# on 279's 34,21 (2F:44DE -> 15:4BB4, case 8 -> 15:4C10, store at 15:4CCB).
+# That cell sits in the south pocket: east out of town, 279's 32,26 into 115,
+# the long cave way to 121, and 121's north door back onto 279 at 33,22.
+# Cave maps 115-120 have wandering monsters; one battle on 116 is longer than
+# the frame cap, so those legs set MN_NOENC=1. The last leg is blocked: see
+# docs/mn-route12.md (the slot-2 sprite on 34,21).
+if [ -n "${MN_TO80S8:-}" ]; then
+  S9=/tmp/mn-story9
+  mkdir -p "$S9"
+  # Out of house 80, across town, east edge 59,21 (22:41B2) onto 279 at 21,22.
+  run_leg s9east 2000 \
+    "80:far,74:59.21" \
+    279 "$S9/to279e.lua" \
+    "$MN_TO80S8"
+  # 279's 32,26 (2F:44D0) into 115 at 0,16.
+  run_leg s9c115 1500 \
+    "279:32.26" \
+    115 "$S9/to115.lua" \
+    "$S9/to279e.lua" MN_NOENC=1
+  # 115's top door (15:4010, goal 24,0; the line is 22-26,0) into 116 at 2,39.
+  run_leg s9c116 1800 \
+    "115:24.0" \
+    116 "$S9/to116.lua" \
+    "$S9/to115.lua" MN_NOENC=1
+  # 116's bottom-right door (15:41B9) into 117 at 12,0.
+  run_leg s9c117 2800 \
+    "116:41.39" \
+    117 "$S9/to117.lua" \
+    "$S9/to116.lua" MN_NOENC=1
+  # 117's west edge (15:4258) onto 120's east side at 59,8.
+  run_leg s9c120 2000 \
+    "117:0.36" \
+    120 "$S9/to120e.lua" \
+    "$S9/to117.lua" MN_NOENC=1
+  # 120's 26,0 (15:4739) into 121, then 121's 5,0 (15:47B3) onto 279 at 33,22.
+  run_leg s9pocket 2500 \
+    "120:26.0,121:5.0" \
+    279 "$S9/to279p.lua" \
+    "$S9/to120e.lua" MN_NOENC=1
+  # 34,21 is the story door. The planner cannot step on it while slot 2 stands
+  # there, so this leg does not reach 15:4CCB yet.
+  run_leg s9door 1500 \
+    "279:34.21" \
+    "" "" \
+    "$S9/to279p.lua" MN_NOENC=1 MN_WATCH=A123
+  grep -qF "A123 <- 09 at 15:4CCB" "$SNAP/s9door.log" || { echo "story 9: NOT SET" >&2; exit 1; }
+  echo "story 9 reached"
+fi
