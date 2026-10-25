@@ -395,7 +395,9 @@ function M:play(events)
       local v = self.vis[ev.slot]
       if v and ev.slot >= 1 and ev.slot <= 8 then
         local _, y = cardXY(ev.slot)
-        if self.p3d then self.p3d:eliminate(ev.slot, #Ppu.scene("elim_top")); wait(#Ppu.scene("elim_top"))
+        if self.p3d then -- same log line, frames and card clear (frame 12) as M:eliminate
+          local n = #Ppu.scene("elim_top"); self:L("battle eliminate " .. v.name)
+          self.p3d:eliminate(ev.slot, n); wait(math.min(11, n)); v.gone = true; wait(math.max(0, n - 11))
         else self:eliminate(v, y) end
         self.vis[ev.slot] = nil
       end
