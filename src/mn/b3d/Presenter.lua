@@ -10,6 +10,7 @@
 --   MN_B3D_EVERY=2         one PNG every N battle frames
 local Mat4 = require("mn.b3d.Mat4")
 local Timeline = require("mn.b3d.Timeline")
+local Shots = require("mn.b3d.Shots")
 local Font = require("mn.Font")
 local Card = require("mn.b3d.Card")
 local Ppu = require("mn.PpuFrame")
@@ -157,24 +158,16 @@ function P:step()
 end
 
 -- ---------------------------------------------------------------- camera
-local DEFAULT = { eye = { 0.6, 2.6, 7.4 }, at = { 0, 0.9, -0.6 } }
+-- Shot paths live in mn.b3d.Shots. This only picks one from the timeline clip
+-- (attack upgrades to bigHit when the clip carries damage >= half the target's
+-- energy) and reads it. Frame budgets stay on the clip.
 function P:camera(sample)
-  local c = sample.cam
-  if c and c.kind == "intro" then
-    -- orbit in from behind the enemy Magi to the default view behind Tony's side
-    local p = Timeline.smooth(self.tl:phase(c))
-    local ang = (1 - p) * math.pi * 0.85
-    local r, y = 7.4 + (1 - p) * 2.5, 2.6 + (1 - p) * 2.4
-    return { math.sin(ang) * r + 0.6 * p, y, math.cos(ang) * r }, DEFAULT.at
-  elseif c and c.kind == "attack" then
-    -- cut to a low side view of the exchange, dollying slightly while it plays
-    local a, b = slotPos(c.actor), slotPos(c.target)
-    local mid = { (a[1] + b[1]) / 2, 0.9, (a[3] + b[3]) / 2 }
-    local p = self.tl:phase(c)
-    local side = (b[3] - a[3]) >= 0 and -1 or 1
-    return { mid[1] + side * (5.2 - p * 0.8), 1.6 + p * 0.3, mid[3] + 1.2 }, mid
-  end
-  return DEFAULT.eye, DEFAULT.at
+  local c = sample and sample.cam
+  local ctx = (c and c.ctx) or {}
+  local shot = Shots[Shots.resolve(c and c.kind, ctx)]
+  local p = (c and self.tl:phase(c)) or 0
+  self.fov = shot.fov
+  return shot.eye(p, ctx), shot.at(p, ctx)
 end
 
 -- ---------------------------------------------------------------- drawing
@@ -189,7 +182,7 @@ function P:render()
   g.clear(0.55, 0.7, 0.9, 1, true, true)
   g.setDepthMode("lequal", true)
   g.setShader(self.shader)
-  self.shader:send("proj", Mat4.perspective(math.rad(50), self.w / self.h, 0.1, 60))
+  self.shader:send("proj", Mat4.perspective(math.rad(self.fov or 50), self.w / self.h, 0.1, 60))
   self.shader:send("view", Mat4.lookAt(eye, at))
   self.shader:send("flash", 0); self.shader:send("shade", 1)
   g.setColor(1, 1, 1, 1)

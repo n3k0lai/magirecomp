@@ -12,7 +12,10 @@ T.smooth = smooth
 function T.new() return setmetatable({ clips = {}, f = 0 }, T) end
 
 -- clip kinds: "attack" (actor lunges at target, target hit), "intro" (camera orbit),
--- "summon" (creature pops in). Each lasts exactly `frames` presentation frames.
+-- "summon" (creature pops in), "elim" (creature blinks out). Each lasts exactly
+-- `frames` presentation frames. attack, intro, summon and elim drive the camera.
+-- Optional attack fields `damage` and `energy` are copied onto the clip ctx for the
+-- shot table; the timeline never invents them.
 function T:push(kind, frames, a) a = a or {}; a.kind, a.frames, a.start = kind, frames, self.f; self.clips[#self.clips + 1] = a; return a end
 
 function T:step() self.f = self.f + 1; local live = {}
@@ -23,8 +26,15 @@ end
 -- 0..1 progress of clip c at the current frame
 function T:phase(c) return clamp((self.f - c.start) / math.max(1, c.frames)) end
 
+local function copy3(p)
+  if not p then return nil end
+  return { p[1], p[2], p[3] }
+end
+
 -- per-slot pose offsets and camera state for the current frame
 -- returns { pose = { [slot] = { dx, dy, dz, flash, scale } }, cam = clip-or-nil }
+-- When cam is set, cam.ctx is { actor, target, slot, damage, energy }: world-position
+-- copies for the shot table. `pos` itself is not written.
 function T:sample(pos)
   local pose, cam = {}, nil
   local function P(slot) pose[slot] = pose[slot] or { 0, 0, 0, false, 1 }; return pose[slot] end
@@ -48,14 +58,25 @@ function T:sample(pos)
       cam = cam or c
     elseif c.kind == "summon" then
       P(c.slot)[5] = smooth(p)
+      cam = cam or c
     elseif c.kind == "elim" then
       local q = P(c.slot)
       q[4] = math.floor((self.f - c.start) / 3) % 2 == 0 and p < 0.5
       q[5] = 1 - smooth((p - 0.3) / 0.7)
       q[2] = q[2] + p * 0.6
+      cam = cam or c
     elseif c.kind == "intro" then
       cam = cam or c
     end
+  end
+  if cam then
+    cam.ctx = {
+      actor = copy3(cam.actor and pos[cam.actor]),
+      target = copy3(cam.target and pos[cam.target]),
+      slot = copy3(cam.slot and pos[cam.slot]),
+      damage = cam.damage,
+      energy = cam.energy,
+    }
   end
   return { pose = pose, cam = cam }
 end
