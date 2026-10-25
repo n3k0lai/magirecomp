@@ -92,32 +92,41 @@ flips Y. g3d (MIT, GPL-compatible) would be acceptable, but the prototype uses
 ## 3. Architecture
 
 ```
-Engine.round(s) ──events──▶ Battle:play() ──▶ 2D path (unchanged)
-                                │
-                                └─(MN_BATTLE3D)─▶ Presenter (mn.b3d)
-                                                    ├─ Timeline: clips with frame budgets
-                                                    ├─ camera(sample) → view/proj Mat4
-                                                    └─ render(): arena, billboards, sparks
+Engine.round(s) ──events──▶ Battle:play()
+                                │  frame budget, bus:emit(ev, frames), then wait
+                                ▼
+                         mn.battle.Bus
+                          ├─ Screen2D (default)      2D clips, flash, fade
+                          ├─ Presenter (MN_BATTLE3D) onEvent → Timeline
+                          └─ recorder (tests)        {t, kind, slot, frames}
 ```
 
 - **Logic never sees the presenter.** All events are computed before `play()`
-  runs; the presenter only reads them. It holds no battle state of its own
-  except which slots are shown/gone.
-- **Event bus (next step).** Replace the direct `p3d:attack(...)` calls in
-  `Battle:play()` with `Battle:emit(ev, frames)`; subscribers (2D screen, 3D
-  presenter, SFX, a recorder for tests) each consume the same stream. The
-  2D path becomes one subscriber, which makes the toggle a pure swap.
+  runs; subscribers only read them. The presenter holds no battle state of its
+  own except which slots are shown/gone.
+- **Event bus.** `Bus.new()`, `bus:on(fn)`, `bus:emit(ev, frames)`. Subscribers
+  are called in subscription order with `(ev, frames)` and must not yield.
+  `play()` still picks the budget (damage: the 2D clip length, or 16; summon
+  8; eliminate the `elim_top` length) and waits that many frames on the battle
+  coroutine. Exactly one of `Screen2D` and `Presenter:onEvent` is subscribed,
+  so `MN_BATTLE3D` is a swap of subscriber. A recorder (`Bus.recorder`) collects
+  `{t, kind, slot, frames}` for tests. Untimed events (messages included) are
+  emitted too; `say` stays in `play()` because its length depends on input.
 - **Determinism.** The presenter steps in `Battle:update()` (one step per game
   frame), not in `draw()`, so frame-saving runs are reproducible.
 
 Files in the prototype:
+- `src/mn/battle/Bus.lua`: the bus and the test recorder. Pure Lua.
+- `src/mn/battle/Screen2D.lua`: 2D subscriber (clips, hit flash, summon fade,
+  elimination). `Battle:draw` still paints the fields it sets.
 - `src/mn/b3d/Mat4.lua`: row-major 4x4 math (perspective, lookAt, rotY, ...).
 - `src/mn/b3d/Timeline.lua`: clips (`attack`, `summon`, `elim`, `intro`) →
   per-slot pose offsets and a camera clip. Pure Lua, unit-tested.
 - `src/mn/b3d/Presenter.lua`: LÖVE meshes, shader, camera, compositing,
-  optional PNG dump (`MN_B3D_SHOT=dir`, `MN_B3D_EVERY=n`).
-- `src/mn/Battle.lua`: ~25 lines, all behind `self.p3d`.
-- `tests/engine/mn_b3d_test.lua`.
+  optional PNG dump (`MN_B3D_SHOT=dir`, `MN_B3D_EVERY=n`). `onEvent` pushes
+  the same clips the direct calls used to.
+- `src/mn/Battle.lua`: subscribes one presenter; `play()` has no `p3d` branch.
+- `tests/engine/mn_b3d_test.lua`, `tests/engine/mn_battle_bus_test.lua`.
 
 ## 4. Roadmap (intern-sized jobs)
 

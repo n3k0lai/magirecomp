@@ -134,7 +134,18 @@ function P:texFor(slot, v)
   return t, 1.6, 2.0
 end
 
--- ---------------------------------------------------------------- events (from mn.Battle:play)
+-- ---------------------------------------------------------------- events (mn.Battle:play emits these on the battle bus)
+function P:onEvent(ev, frames)
+  local act, anim = self.b.playAct, self.b.playAnim
+  if ev.t == "damage" then
+    self:attack(act and act.slot, ev.slot, frames, anim and anim.script)
+  elseif ev.t == "summon" and not ev.pending then
+    self:summon(ev.slot, frames)
+  elseif ev.t == "eliminated" and frames > 0 then
+    self:eliminate(ev.slot, frames)
+  end
+end
+
 function P:attack(actor, target, frames, script)
   if actor and target then self.tl:push("attack", frames, { actor = actor, target = target, script = script }) end
   self:log(("b3d attack %s -> %s (%d frames, anim %s)"):format(tostring(actor), tostring(target), frames, script and ("4C:%04X"):format(script) or "-"))

@@ -11,6 +11,8 @@ local Ppu = require("mn.PpuFrame")
 local Engine = require("mn.battle.Engine")
 local Data = require("mn.battle.Data")
 local Rng = require("mn.battle.Rng")
+local Bus = require("mn.battle.Bus")
+local Screen2D = require("mn.battle.Screen2D")
 local M = {}
 M.__index = M
 
@@ -21,8 +23,9 @@ M.__index = M
 M.GOD = os.getenv("MN_GOD") == "1"
 M.GOD_ENERGY = 999
 
--- MN_BATTLE3D=1: prototype 3D presentation (mn.b3d.Presenter), off by default. It is handed the
--- same events and frame budgets as the 2D screen below, so rules, RNG and timing are unchanged.
+-- MN_BATTLE3D=1: prototype 3D presentation (mn.b3d.Presenter), off by default. play()
+-- emits each event on mn.battle.Bus with the 2D frame budget; Screen2D or the presenter
+-- subscribes, so rules, RNG and timing are unchanged.
 M.B3D = os.getenv("MN_BATTLE3D") == "1"
 
 -- battle data is extracted once per run from the imported ROM copy in the save directory
@@ -106,7 +109,14 @@ function M.new(ow, setup)
   for slot = 0, 9 do b:refreshVis(slot) end
   b:L(("battle vs magi %02X, seed %d"):format(Engine.rd(b.state, 0xD338), seed))
   b:buildImages()
-  if M.B3D then b.p3d = require("mn.b3d.Presenter").new(b) end
+  b.bus = Bus.new()
+  if M.B3D then
+    b.p3d = require("mn.b3d.Presenter").new(b)
+    b.bus:on(function(ev, frames) b.p3d:onEvent(ev, frames) end)
+  else
+    b.screen = Screen2D.new(b)
+    b.bus:on(function(ev, frames) b.screen:onEvent(ev, frames) end)
+  end
   b.co = coroutine.create(function() return b:script() end)
   return b
 end
@@ -251,34 +261,6 @@ function M:pick(kind)
   self.view = nil; return true
 end
 
-function M:playScene(name)
-  local frames = Ppu.scene(name); self:L("battle anim " .. name)
-  self.animCache = self.animCache or {}
-  for i, f in ipairs(frames) do
-    local key = name .. i
-    if not self.animCache[key] then
-      local im = love.graphics.newImage(Ppu.render(f)); im:setFilter("nearest", "nearest"); self.animCache[key] = im
-    end
-    self.anim = self.animCache[key]; coroutine.yield()
-  end
-  self.anim = nil
-end
-
-function M:eliminate(who, dy)
-  local frames = Ppu.scene("elim_top"); self:L("battle eliminate " .. who.name)
-  self.elimCache = self.elimCache or {}
-  for i, f in ipairs(frames) do
-    if i == 12 then who.gone = true end -- card is cleared under the sparkle (observed ~frame 12)
-    local key = i .. ":" .. dy
-    if not self.elimCache[key] then
-      local img = love.image.newImageData(160, 144); Ppu.oam(img, f, nil, 0, dy)
-      self.elimCache[key] = love.graphics.newImage(img); self.elimCache[key]:setFilter("nearest", "nearest")
-    end
-    self.elim = self.elimCache[key]; coroutine.yield()
-  end
-  self.elim = nil
-end
-
 function M:fade(n) for i = 1, n do self.white = i / n; coroutine.yield() end end
 
 
@@ -368,41 +350,58 @@ end
 -- ---------------------------------------------------------------- playing a round
 local SCENES = { ["1C:53"] = "fight_furok_weebo", ["53:58"] = "fight_weebo_tony", ["53:1C"] = "fight_weebo_furok" }
 
+-- Frame 1 was applied by the subscriber during emit. Frames 2..n are shown after
+-- each yield, then one more yield: n yields in all, and the clip clears on the
+-- resume after the last frame (the old playScene / fade / eliminate shape).
+function M:spend(n, atFrame)
+  for i = 2, n do
+    coroutine.yield()
+    if atFrame then atFrame(i) end
+    if self.screen and self.screen.clip then self.screen:show(i) end
+  end
+  if n >= 1 then coroutine.yield() end
+  if self.screen and self.screen.clip then self.screen:finish() end
+end
+
 function M:play(events)
   local lastAct, lastAnim
   for _, ev in ipairs(events) do
-    if ev.t == "msg" then
-      self:say(ev.text, ev.actor == Engine.TONY_ID and "Tony" or nil)
-    elseif ev.t == "act" then
-      lastAct, lastAnim = ev, nil
-    elseif ev.t == "anim" then
-      lastAnim = ev
-    elseif ev.t == "damage" then
+    if ev.t == "act" then lastAct, lastAnim = ev, nil
+    elseif ev.t == "anim" then lastAnim = ev end
+    self.playAct, self.playAnim, self.playSceneName = lastAct, lastAnim, nil
+    local frames, who = 0, nil
+    if ev.t == "damage" then
       local key = lastAct and ("%02X:%02X"):format(lastAct.species, ev.species or 0)
-      if self.p3d then
-        -- same frame budget as the 2D clip or flash, so the battle's timing is unchanged
-        local n = key and SCENES[key] and #Ppu.scene(SCENES[key]) or 16
-        self.p3d:attack(lastAct and lastAct.slot, ev.slot, n, lastAnim and lastAnim.script)
-        wait(n)
-      elseif key and SCENES[key] then self:playScene(SCENES[key])
-      else self.flash = ev.slot; for _ = 1, 16 do coroutine.yield() end; self.flash = nil end
+      self.playSceneName = key and SCENES[key] or nil
+      -- same frame budget as the 2D clip or the 16-frame flash
+      frames = self.playSceneName and #Ppu.scene(self.playSceneName) or 16
     elseif ev.t == "summon" and not ev.pending then
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
-      if self.p3d then self.p3d:summon(ev.slot, 8); wait(8) else self:fade(8); self.white = nil end
+      frames = 8
     elseif ev.t == "appear" then
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
     elseif ev.t == "eliminated" then
       local v = self.vis[ev.slot]
       if v and ev.slot >= 1 and ev.slot <= 8 then
-        local _, y = cardXY(ev.slot)
-        if self.p3d then -- same log line, frames and card clear (frame 12) as M:eliminate
-          local n = #Ppu.scene("elim_top"); self:L("battle eliminate " .. v.name)
-          self.p3d:eliminate(ev.slot, n); wait(math.min(11, n)); v.gone = true; wait(math.max(0, n - 11))
-        else self:eliminate(v, y) end
-        self.vis[ev.slot] = nil
+        frames = #Ppu.scene("elim_top")
+        who = v
+        self:L("battle eliminate " .. v.name)
       end
+    end
+    self.bus:emit(ev, frames)
+    if ev.t == "msg" then
+      self:say(ev.text, ev.actor == Engine.TONY_ID and "Tony" or nil)
     elseif ev.t == "unimplemented" then
       self:L("battle unimplemented: " .. tostring(ev.what))
+    elseif frames > 0 then
+      local atFrame
+      if who then
+        atFrame = function(i)
+          if i == 12 then who.gone = true end -- card clears under the sparkle (~frame 12)
+        end
+      end
+      self:spend(frames, atFrame)
+      if who then self.vis[ev.slot] = nil end
     end
   end
 end
