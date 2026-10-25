@@ -342,3 +342,10 @@ muted). Snapshots stay outside git.
   the town door at 33,33 (rebase 32,11 / 33,19; to80s8.lua): at story 8 its
   init only swaps two glyph sets (1C:667E), no scene. The town elder's talk
   (1C:644C) has a story-8 line (he expects Gogor back) and a story-9 one.
+- Next (story 8 -> 9): the only story-9 store reachable from here is 15:4CCB,
+  in the 2F:44E1 record (bytes 01 05 18, read as 279 cell 5,24 if it is a
+  cell record). Probe s9a (to80s8.lua, route `80:far,74:0.24,279:5.24`)
+  left town by its west edge onto 279 at 18,22 (snapshot to279s8.lua) but
+  the planner found no path to 5,24 from that half. Untested: whether the
+  record is a cell at all, and the farm-side approach (279 32,26 pocket /
+  34,21 -> 112) at story 8.
