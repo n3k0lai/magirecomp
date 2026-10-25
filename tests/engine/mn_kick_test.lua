@@ -92,6 +92,7 @@ do
     ok(ow.vm:rd8(0xFF8D) + bit.lshift(ow.vm:rd8(0xFF8E), 8) == 0x5DB5, facing .. " head is RunHeadWordScript")
     ok(Kick.tick(ow) == true, facing .. " lunge frame")
     ok(ow.px == 48 + 1 and ow.py == 48, facing .. " steps the script delta")
+    ok(Sprites.lungeList(ow.kick) == nil, facing .. " blank list keeps the walker")
     ok(Kick.tick(ow) == false, facing .. " lunge ends")
     ok(ow.px == 48 and ow.py == 48, facing .. " returns to the cell")
     ok(ow.vm:rd8(0xC186) + bit.lshift(ow.vm:rd8(0xC187), 8) == Kick.WALK_HEAD, facing .. " head word $5D81")
@@ -99,9 +100,51 @@ do
   end
 end
 
+-- Per-step list follows the $4C records. A zero pointer is the walker.
+do
+  local ow = world(2, "up", Kick.CELL)
+  local ptr = Kick.DIR.up[3]
+  local off = 0x20 * 0x4000 + ptr - 0x4000
+  -- 2 frames of list $2211 (dy +1), 1 frame with no list, 3 frames of $4433 (dy -1)
+  ow.vm.rom = romWith(off, string.char(
+    0x4C,
+    2, 0, 1, 0x11, 0x22,
+    1, 0, 0, 0x00, 0x00,
+    3, 0, 0xFF, 0x33, 0x44,
+    0))
+  ok(Kick.try(ow) == true, "pose script owns A")
+  ok(Sprites.lungeList(ow.kick) == nil, "pose waits for the first record")
+  local expect = {
+    { 0, 1, 0x2211 },
+    { 0, 2, 0x2211 },
+    { 0, 2, 0 },
+    { 0, 1, 0x4433 },
+    { 0, 0, 0x4433 },
+    { 0, -1, 0x4433 },
+  }
+  for i, e in ipairs(expect) do
+    ok(Kick.tick(ow) == true, "pose frame " .. i)
+    ok(ow.px == 48 + e[1] and ow.py == 48 + e[2], "pose wobble " .. i)
+    local step = ow.kick.steps[ow.kick.i]
+    ok(step.list == e[3], "pose step list " .. i)
+    ok((Sprites.lungeList(ow.kick) or 0) == e[3], "pose drawn list " .. i)
+  end
+  ok(Kick.tick(ow) == false, "pose lunge ends")
+  ok(ow.kick == nil and Sprites.lungeList(ow.kick) == nil, "walker returns when the lunge ends")
+  ok(ow.px == 48 and ow.py == 48, "pose returns to the cell")
+end
+
+local function listSprites(rom, lp)
+  if not lp or lp == 0 then return 0 end
+  local o, n = MnRom.off(lp, 0x20), 0
+  while rom:u8(o) ~= 0x80 and n < 24 do n = n + 1; o = o + 4 end
+  return n
+end
+
 local path = os.getenv("MN_ROM")
 if path then
   local rom = MnRom.fromFile(path)
+  local allSteps, allListed = 0, 0
   for _, ptr in ipairs({ 0x55E3, 0x5609, 0x562F, 0x5655 }) do
     local frames = Sprites.frames(rom, 0x20, ptr)
     local n, x, y = 0, 0, 0
@@ -111,7 +154,19 @@ if path then
       y = y + frames[i].dy * frames[i].n
     end
     ok(n == 12 and x == 0 and y == 0, string.format("ROM kick script %04X is a 12-frame lunge", ptr))
+    local steps = Kick.steps(rom, ptr)
+    local listed, seen = 0, {}
+    for i = 1, #steps do
+      local lp = steps[i].list or 0
+      if listSprites(rom, lp) > 0 then listed = listed + 1; seen[lp] = true end
+    end
+    local kinds = 0
+    for _ in pairs(seen) do kinds = kinds + 1 end
+    ok(#steps == 12 and listed == #steps and kinds >= 2, string.format("ROM kick script %04X pose", ptr))
+    allSteps = allSteps + #steps
+    allListed = allListed + listed
   end
+  print(("pose kick %d/%d"):format(allListed, allSteps))
 end
 
 if failures == 0 then print(("ok %d"):format(checks)) else print(("FAIL %d/%d"):format(failures, checks)); os.exit(1) end

@@ -214,4 +214,85 @@ function M.drawList(ow, rom, abank, lp, base)
   local im = love.graphics.newImage(img); im:setFilter("nearest", "nearest")
   return im
 end
+
+-- One step per frame of a QueueRepeatedSpriteList tail (00:1560).
+-- x,y are the fine deltas summed so far ($C6D2 then $C6D3). list is the
+-- sprite-list pointer in the same bank; 0 means the record named none,
+-- and the walker stays up. The kick and push lunges both use this.
+function M.lunge(rom, bank, ptr)
+  if not rom or not ptr then return {} end
+  local frames = M.frames(rom, bank or 0x20, ptr)
+  local steps, x, y = {}, 0, 0
+  for i = 1, #frames do
+    local fr = frames[i]
+    for _ = 1, fr.n do
+      x, y = x + fr.dx, y + fr.dy
+      steps[#steps + 1] = { x, y, list = fr.list or 0 }
+      if #steps >= 32 then return steps end
+    end
+  end
+  return steps
+end
+
+-- Apply the next lunge frame. Nil when the records are finished.
+-- kind ("kick" / "push") is only for the MN_DEBUG_POSE line.
+function M.lungeAdvance(ow, state, kind)
+  state.i = (state.i or 0) + 1
+  local step = state.steps[state.i]
+  if not step then return nil end
+  ow.px = ow.x * 16 + step[1]
+  ow.py = ow.y * 16 + step[2]
+  if os.getenv("MN_DEBUG_POSE") then
+    local lp = step.list or 0
+    local f = ow.vm and ow.vm.tk or 0
+    if lp == 0 then print(("[pose] f%d %s walker"):format(f, kind))
+    else print(("[pose] f%d %s %04X"):format(f, kind, lp)) end
+  end
+  return step
+end
+
+-- List pointer the lunge is showing, or nil so the walker is drawn.
+function M.lungeList(state)
+  if not state or not state.steps then return nil end
+  local step = state.steps[state.i or 0]
+  local lp = step and step.list or 0
+  if lp == 0 then return nil end
+  return lp
+end
+
+-- Tony's walker tiles: OBJ VRAM bank 1 $8000-$87FF is ROM $60:$7000.
+-- The script ROM stops at bank $3C, so the pixels come from the cached
+-- full ROM (the same bytes the walker sheet was built from).
+function M.walkerTiles()
+  if M._walker ~= nil then return M._walker or nil end
+  local Importer = require("mn.MnImporter")
+  local bytes = love.filesystem.read(Importer.CACHE .. "/rom.bin")
+  local base = require("mn.MnRom").off(0x7000, 0x60)
+  if not bytes or #bytes < base + 0x800 then M._walker = false; return nil end
+  M._walker = bytes:sub(base + 1, base + 0x800)
+  return M._walker
+end
+
+-- Draw one bank-$20 player list (tile base 0). Nil keeps the walker:
+-- a zero pointer, an empty list, or no tile source.
+function M.playerList(ow, lp)
+  if not lp or lp == 0 or not ow or not ow.vm or not ow.vm.rom then return nil end
+  ow.poseImgs = ow.poseImgs or {}
+  if ow.poseImgs[lp] ~= nil then return ow.poseImgs[lp] or nil end
+  local rom = ow.vm.rom
+  local q = 0x20 * 0x4000 + lp - 0x4000
+  if rom:u8(q) == 0x80 then ow.poseImgs[lp] = false; return nil end
+  local obj, tiles = {}, M.walkerTiles()
+  if tiles then
+    for k = 1, #tiles do obj[0x1000 + k - 1] = tiles:byte(k) end
+  elseif ow.obj then
+    for k = 0, 0x7FF do obj[0x1000 + k] = ow.obj[0x1000 + k] end
+  else
+    return nil
+  end
+  local img = M.drawList({ obj = obj }, rom, 0x20, lp, 0)
+  ow.poseImgs[lp] = img or false
+  return img
+end
+
 return M

@@ -20,9 +20,9 @@
 -- WalkTwoCells* does not write hObjectCellX/Y. Tony stays on his cell.
 -- The near cell is left as $81, which ProbeCells* treats as clear
 -- (a cell >= $80 does not set the occupancy bit).
--- TODO(QueueRepeatedSpriteList): the lunge's sprite lists are not in the
--- cached walker sheet, so the pose stays the idle walker. The pixel
--- wobble from that script is applied.
+-- QueueRepeatedSpriteList (00:1560) puts a bank-$20 list pointer on each
+-- record of the tail. Sprites.lunge keeps it on the step; the overworld
+-- draws that list until WalkTwoCells* hands back to the walker.
 
 local bit = require("bit")
 local World = require("mn.World")
@@ -116,18 +116,7 @@ local function commit(ow, dx, dy, walk)
 end
 
 function M.steps(rom, ptr)
-  if not rom or not ptr then return {} end
-  local frames = Sprites.frames(rom, 0x20, ptr)
-  local steps, x, y = {}, 0, 0
-  for i = 1, #frames do
-    local fr = frames[i]
-    for _ = 1, fr.n do
-      x, y = x + fr.dx, y + fr.dy
-      steps[#steps + 1] = { x, y }
-      if #steps >= 32 then return steps end
-    end
-  end
-  return steps
+  return Sprites.lunge(rom, 0x20, ptr)
 end
 
 -- Called when A is down. True means this cell owns A.
@@ -157,11 +146,7 @@ end
 function M.tick(ow)
   local p = ow.push
   if not p then return false end
-  p.i = p.i + 1
-  local step = p.steps[p.i]
-  if not step then commit(ow, p.dx, p.dy, p.walk); return false end
-  ow.px = ow.x * 16 + step[1]
-  ow.py = ow.y * 16 + step[2]
+  if not Sprites.lungeAdvance(ow, p, "push") then commit(ow, p.dx, p.dy, p.walk); return false end
   return true
 end
 
