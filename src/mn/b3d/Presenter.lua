@@ -146,7 +146,8 @@ function P:log(s) if self.b.L then self.b:L(s) end end
 -- one battle frame
 function P:step()
   self.tl:step(); self.frame = self.frame + 1
-  self.wantShot = self.shotDir and self.frame % self.every == 0 and self.shots < 900
+  -- sticky: the test harness may not draw every frame, so the next render takes the shot
+  if self.shotDir and self.frame % self.every == 0 and self.shots < 900 then self.wantShot = true end
 end
 
 -- ---------------------------------------------------------------- camera
@@ -231,7 +232,8 @@ function P:render()
   if self.wantShot then
     self.wantShot = false; self.shots = self.shots + 1
     local f = io.open(("%s/b3d_%04d.png"):format(self.shotDir, self.frame), "wb")
-    if f then f:write(self.canvas:newImageData():encode("png"):getString()); f:close() end
+    if f then f:write(self.canvas:newImageData():encode("png"):getString()); f:close()
+    elseif self.shots == 1 then print("[b3d] cannot write shots to " .. tostring(self.shotDir)) end
   end
 end
 

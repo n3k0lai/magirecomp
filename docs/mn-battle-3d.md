@@ -48,7 +48,7 @@ A damage event plays the matching clip (or a 16-frame flash); summon is an
   5:5EFE (Spell..Beam), 5:60BE (Flash..Frenzy), 5:62EE (Scratch..Shake), list at
   5:5EAE.
 - Sprite lists for the effects live in banks $0E-$11, $25, $40, $41 (table at
-  05:5D16). Script ops `$46/$4C/$4D` have no codec yet (`docs/codec-workers.md`).
+  05:5D16). Script ops `$46/$4C/$4D` have no codec in the port yet.
 - Blinking (hit flash) is `QueueBlinkSprite` (`$CCA8/$CD7F/$CD80/$CCB9`).
 
 **Branch state.** `battle-system` has no commits that are not on master (it is
