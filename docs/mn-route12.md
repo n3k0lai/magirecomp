@@ -327,6 +327,18 @@ muted). Snapshots stay outside git.
   town icon 19,22 (MN_SNAP_TO=75, to75s8.lua). On arrival the town scene
   stores story word 8 at 22:6498 (watched on $A123). Both legs are in
   scripts/mn-route12.sh behind MN_TO211.
-- Open: after the arrival scene the player stays hidden with the script
-  waiting (vmwait) at 41,14 for the rest of a 4000-frame run; not yet
-  investigated.
+- Arrival scene: not a port bug. The town scene (22:4205 -> talk thread
+  22:44EB .. 22:4B0D, then 22:441A .. 22:44EA) is long: the brother thanks
+  Tony, a quake hits, the townsfolk argue, the sister arrives hurt by a
+  Shadow creature, Gogor leaves and the sister asks Tony to wait at Gogor's
+  house. With the autopilot's text pacing it runs to about frame 7200 from
+  to75s8.lua; the old 4000-frame run stopped mid-dialogue. Control comes
+  back at 41,14 (hide off) by frame ~7300.
+- Story 8 scripts (ROM scan for story-word compares): the town init switch
+  22:5962 (case 8 -> 22:5EE9), house 79 (1C:6098, case 8 -> 1C:625B), house
+  80's init 1C:6670 (story 8 -> 1C:667E) and a talk at 1C:644D, and the 279
+  record that enters the farm side (2F:44E1: story 8 or 9 -> 15:4BB4, whose
+  switch sends 8 to 15:4C10, which stores story 9 at 15:4CCB). House 80 is
+  the town door at 33,33 (rebase 32,11 / 33,19; to80s8.lua): at story 8 its
+  init only swaps two glyph sets (1C:667E), no scene. The town elder's talk
+  (1C:644C) has a story-8 line (he expects Gogor back) and a story-9 one.
