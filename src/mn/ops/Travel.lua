@@ -115,22 +115,6 @@ local function floorByte(vm, addr)
   vm:wr8(addr, v)
 end
 
--- AddByteToScanC ($743C). Bank7CopyIndexedName (give-table category 2)
--- jumps here with HL = $A019+id. The byte gains $C9FE. A carry stores $FF
--- and clears $C9FD; no carry stores the sum and sets $C9FD to 1.
--- The chest treats a zero $C9FD as full (22:4074).
-function M.addScanByte(vm, addr, cnt)
-  local sum = vm:rd8(addr) + cnt
-  if sum > 0xFF then
-    vm:wr8(addr, 0xFF)
-    vm:wr8(0xC9FD, 0)
-    return false
-  end
-  vm:wr8(addr, sum)
-  vm:wr8(0xC9FD, 1)
-  return true
-end
-
 -- StoreIndex3RecordByte (07:72FF). Give-table category 3, shared with
 -- opcode $87: $A5A5+id becomes the ROM byte eight before that spell's
 -- record. $C9FD becomes 1. The count is not used.
@@ -140,10 +124,10 @@ function M.grantSpell(vm, id)
   return true
 end
 
--- Categories opcode $A4 hands to CopyThreeBank7. The chest stores 1 at
+-- Categories opcode $A4 hands to CopyThreeBank7 (spells only for now;
+-- category 2 roster chests are a separate job). The chest stores 1 at
 -- $C9FE first (LCDOnAfterOffset7Record). Nil means some other category.
-function M.grant(vm, cat, id, cnt)
-  if cat == 2 then return M.addScanByte(vm, 0xA019 + id, cnt) end
+function M.grant(vm, cat, id)
   if cat == 3 then return M.grantSpell(vm, id) end
   return nil
 end

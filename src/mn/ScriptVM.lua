@@ -551,7 +551,6 @@ function VM:run(bank, ptr)
       if cat == 0 then -- item count A3A7+id, clamped to the cap 6 bytes before the record
         local a, cap = 0xA3A7 + id, r:u8(self:recordOff(0, id) - 6)
         self:wr8(a, math.min(cap, self:rd8(a) + cnt))
-      elseif cat == 2 then Travel.addScanByte(self, 0xA019 + id, cnt) -- Bank7CopyIndexedName
       elseif cat == 3 then Travel.grantSpell(self, id) -- StoreIndex3RecordByte
       elseif cat == 4 then -- Animite: little-endian word, capped at 999
         local v = math.min(999, self:rd8(0xA3A5) + self:rd8(0xA3A6) * 256 + cnt)

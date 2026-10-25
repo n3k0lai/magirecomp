@@ -78,32 +78,11 @@ do
   ok(#cells == 0, "the empty branch does not change the cell")
 end
 
--- Category 2: $A019+id gains the chest count (1). A byte at $FF is full.
-do
-  local vm, cells = run(0x4010, function(m) m:wr8(0xA01C, 2) end)
-  ok(vm:rd8(0xA01C) == 3, "$A4 category 2 adds 1 at $A019+id")
-  ok(vm:rd8(0xC9FD) == 1, "$A4 category 2 leaves $C9FD set")
-  ok(vm:rd8(0xA328) == 0x02, "$A4 category 2 sets the flag bit")
-  ok(cells[1] and cells[1][2] == 0xFF, "$A4 category 2 clears the cell")
-  ok(vm:rd8(0xC000) == 0x48, "$A4 category 2 continues at 22:4048")
-  vm, cells = run(0x4020, function(m) m:wr8(0xA01D, 0xFF) end)
-  ok(vm:rd8(0xA01D) == 0xFF, "$A4 category 2 saturates a full roster byte at $FF")
-  ok(vm:rd8(0xC9FD) == 0, "$A4 category 2 clears $C9FD when the add carries")
-  ok(vm:rd8(0xA328) == 0, "a full roster chest does not set the flag")
-  ok(#cells == 0, "a full roster chest does not change the cell")
-  ok(vm:rd8(0xC000) == 0x74, "a full roster chest takes 22:4074")
-  vm = run(0x4020, function(m) m:wr8(0xA01D, 0xFE) end)
-  ok(vm:rd8(0xA01D) == 0xFF and vm:rd8(0xA328) == 0x04, "$A4 category 2 can land on $FF")
-end
-
 -- The same helpers serve opcode $87.
 do
   local vm = run(0x4030)
   ok(vm:rd8(0xA5A6) == COST, "$87 category 3 stores the same spell byte")
   ok(vm:rd8(0xC9FD) == 1, "$87 category 3 sets $C9FD")
-  vm = run(0x4038, function(m) m:wr8(0xA01E, 4) end)
-  ok(vm:rd8(0xA01E) == 6, "$87 category 2 adds the count at $A019+id")
-  ok(vm:rd8(0xC9FD) == 1, "$87 category 2 sets $C9FD")
 end
 
 print(("mn_chest: %d checks, %d failed"):format(checks, failures))
