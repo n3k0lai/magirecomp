@@ -169,7 +169,9 @@ end
 
 -- stage_script_byte_enter_bank1.asm -> ApplyScriptByteToC12E (bank 1 $45E6):
 -- $C12E-$C131 cleared, then $FF in each byte whose bit 0-3 of the operand is set.
--- What the four bytes mean is still unknown. The script continues.
+-- Those four bytes are the $C12A pattern for cells $04-$07 (probe_cells_up.asm):
+-- a set bit makes that colored gate solid, a clear bit makes it open.
+-- The script continues.
 local function stageC12E(vm, o, n, cur)
   local e = vm.rom:u8(o + 1)
   for i = 0, 3 do vm:wr8(0xC12E + i, band(e, lshift(1, i)) ~= 0 and 0xFF or 0) end
