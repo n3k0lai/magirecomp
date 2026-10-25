@@ -69,7 +69,8 @@ do
     clear = function() log[#log + 1] = { "clear", state.canvas } end,
     rectangle = function() log[#log + 1] = { "rect", state.canvas, state.shader, state.depth } end,
   }
-  local font = { drawText = function(str) log[#log + 1] = { "text:" .. str, state.canvas, state.shader, state.depth } end }
+  local xs = {}
+  local font = { drawText = function(str, x) xs[#xs + 1] = x; log[#log + 1] = { "text:" .. str, state.canvas, state.shader, state.depth } end }
   local cv = Card.draw(g, font, "card", "Furok")
   ok(cv == "card", "card: returns its canvas")
   local texts = {}
@@ -77,8 +78,27 @@ do
     if e[1] ~= "clear" then ok(e[2] == "card" and e[3] == nil and e[4] == nil, "card: " .. e[1] .. " drawn on the card with no 3D shader/depth") end
     if e[1]:sub(1, 5) == "text:" then texts[#texts + 1] = e[1]:sub(6) end
   end
-  ok(texts[1] == "Furo" and texts[2] == "k", "card: name split 4 letters per row")
+  ok(texts[1] == "Fur" and texts[2] == "ok", "card: a plain name splits in half")
+  ok(xs[1] == 4 and xs[2] == 8, "card: rows are centred on the card")
   ok(state.canvas == "scene" and state.shader == "3d" and state.depth == "lequal", "card: caller's canvas and 3D state restored")
+end
+
+-- name cards fit the whole name (BlackAgovo used to come out as "Blac" / "kAgo")
+do
+  local Card = require("mn.b3d.Card")
+  local function L(n) local r, w, h = Card.layout(n); return table.concat(r, "/"), w, h end
+  local r, w, h = L("BlackAgovo")
+  ok(r == "Black/Agovo" and w == 48 and h == 40, "card: BlackAgovo splits at the capital on a 48x40 card (" .. r .. " " .. w .. ")")
+  r, w = L("Korg"); ok(r == "Korg" and w == 32, "card: a short name stays on one 32 px row")
+  r, w = L("Hyren Kor"); ok(r == "Hyren/Kor" and w == 48, "card: a space splits the name")
+  r, w = L("Abcdefghijklmnop"); ok(r == "Abcdef/gh/ijklmn/op" and w == 56, "card: long rows are cut at 6 letters (" .. r .. ")")
+  local all = {}
+  for _, n in ipairs({ "BlackAgovo", "Korg", "Furok", "Abcdefghijklmnop", "" }) do
+    local rows = Card.layout(n); all[#all + 1] = table.concat(rows)
+  end
+  ok(all[1] == "BlackAgovo" and all[3] == "Furok" and all[4] == "Abcdefghijklmnop" and all[5] == "?", "card: no letters dropped")
+  local ww, wh = Card.worldSize("BlackAgovo")
+  ok(math.abs(ww - 2.4) < 1e-9 and math.abs(wh - 2.0) < 1e-9, "card: world quad keeps the pixel scale")
 end
 
 print(("mn_b3d_test: %d checks, %d failures"):format(checks, failures))

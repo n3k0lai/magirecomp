@@ -57,13 +57,9 @@ local function ground(half, rep)
     { -half, 0, -half, 0, 0 }, { half, 0, half, rep, rep }, { -half, 0, half, 0, rep } }, "triangles", "static")
 end
 
--- arena layout: player creatures 1-4 near the camera, enemies 5-8 across, the two Magi behind
-local function slotPos(slot)
-  if slot >= 1 and slot <= 4 then return { (slot - 2.5) * 1.5, 0, 1.6 } end
-  if slot >= 5 and slot <= 8 then return { (slot - 6.5) * 1.5, 0, -1.6 } end
-  if slot == 0 then return { 2.4, 0, 3.4 } end
-  return { -2.4, 0, -3.4 }
-end
+-- arena layout (player creatures 1-4 near the camera, enemies 5-8 across, the Magi at the
+-- row ends) lives with the camera shots, which are tuned against it
+local slotPos = Shots.slotPos
 P.slotPos = slotPos
 
 local function nearest(im) im:setFilter("nearest", "nearest"); return im end
@@ -124,10 +120,11 @@ function P:texFor(slot, v)
   local name = v.name or "?"
   local t = self.tex[name]
   if not t then
-    t = Card.draw(love.graphics, Font, love.graphics.newCanvas(Card.W, Card.H), name)
+    local _, cw, ch = Card.layout(name)
+    t = Card.draw(love.graphics, Font, love.graphics.newCanvas(cw, ch), name)
     nearest(t); self.tex[name] = t
   end
-  return t, 1.6, 2.0
+  return t, Card.worldSize(name)
 end
 
 -- ---------------------------------------------------------------- events (mn.Battle:play emits these on the battle bus)
