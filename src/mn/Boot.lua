@@ -397,6 +397,7 @@ function love.load()
             local def = ow.def
             -- with Crystal Gloves ($A3A3 >= 2) a dig wall ($0B) is a step: face it and press A (Kick.try)
             local canDig = ow.vm and ow.vm:rd8(0xA3A3) >= 2
+            local avoidPads = false
             local function search(crossDoors)
             local prev, q, h = {}, { { ow.x, ow.y } }, 1
             prev[ow.y * def.w + ow.x] = -1
@@ -422,6 +423,9 @@ function love.load()
                   local t = v >= 0xC0 and def.triggers[bit.band(v, 0x3F) + 1]
                   -- only map doors; event lines (to = -1, e.g. 110 5-9,17) must stay crossable
                   if t and (t.to or -1) >= 0 and v ~= W.cell(def, g[1], g[2]) then occ = true end
+                  -- MN_AVOIDPADS=1 (harness, geyser dungeon): also step around other trigger cells,
+                  -- so a gate-color pad off the planned chain does not change $A224 mid-leg
+                  if avoidPads and v >= 0xC0 and not (g[1] == nx and g[2] == ny) then occ = true end
                 end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and (W.walkable(W.cell(def, nx, ny)) or (canDig and W.cell(def, nx, ny) == 0x0B)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
@@ -432,7 +436,9 @@ function love.load()
             end
             -- other doors are stepped around; when one is the only connector (279 19-20,22 is the
             -- town-74 icon, a kind-0 trigger that always enters 74) cross it as a last resort
-            local best, prev, hadGoal = search(false)
+            local best, prev, hadGoal
+            if os.getenv("MN_AVOIDPADS") == "1" then avoidPads = true; best, prev, hadGoal = search(false); avoidPads = false end
+            if not best then best, prev, hadGoal = search(false) end
             if not best and hadGoal then
               best, prev = search(true)
               if best then ow.log[#ow.log + 1] = "route far: goal only reachable across another door" end
@@ -615,6 +621,11 @@ function love.update()
       print(("[mn-test] final player %d,%d map %d hide=%s box=%s vmwait=%s moving=%s sw=%s tw=%s"):format(s.x, s.y, s.map, tostring(s.hidePlayer), tostring(s.textBox and (tostring(s.textBox.done) .. "/" .. tostring(s.textBox.wait) .. "/" .. tostring(s.textBox.owner and coroutine.status(s.textBox.owner)))), tostring(s.vm.wait), tostring(s.moving), tostring(s.scriptWaiting), tostring(s.vm.textWait)))
       do local o = s.vm.pcs and s.vm.co and s.vm.pcs[s.vm.co]; print(("[mn-test] main vm pc %s"):format(o and ("%02X:%04X op %02X"):format(math.floor(o / 0x4000), o % 0x4000 + 0x4000, s.vm.rom:u8(o)) or "?")) end
       for yy = s.y - 3, s.y + 1 do local t = {} for xx = s.x - 3, s.x + 3 do t[#t + 1] = ("%02X"):format(W.cell(s.def, xx, yy) or 0) end print("[mn-test] cells " .. table.concat(t, " ")) end
+      if os.getenv("MN_DUMPMAP") == "1" then -- harness debug: the live block grid ($00 floor ".", $08 "#")
+        for yy = 0, s.def.h - 1 do local t = {} for xx = 0, s.def.w - 1 do local v = W.cell(s.def, xx, yy) or 0
+          t[#t + 1] = v == 0 and "." or v == 8 and "#" or ("%X"):format(math.floor(v / 16)) end
+          print(("[mn-test] map %2d %s"):format(yy, table.concat(t))) end
+      end
     end
     for _, l in ipairs(s.log) do print("[mn-test] " .. l) end
     for _, l in ipairs(s.vm.log) do print("[mn-test] " .. l) end

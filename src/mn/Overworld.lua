@@ -598,7 +598,7 @@ function M:update()
     -- SaveCellBelowAndStageThirdScript: bit 5/6 set, bit 7 clear -> index v-$40
     if v < 0x80 and bit.band(v, 0x60) ~= 0 and self.aList then
       local _, b, p = self:listEntry(self.aList, v - 0x40)
-      if b then self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil end
+      if b then self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil; self.kickSeen = true end -- harness: a cell script ends a ">" goal like a kick
     end
     return
   end
