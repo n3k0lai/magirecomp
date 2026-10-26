@@ -448,4 +448,33 @@ if [ -n "${MN_TO80S8:-}" ]; then
     "125:16.48>29.28,132:7.0,130:10.25>16.36>27.41" \
     133 "$S9/to133.lua" \
     "$S9/to125.lua" MN_NOENC=1
+  # Core switches. The four $40-$43 cells (30,17 / 13,6 / 2,21 / 2,31) each
+  # advance $A225 once and widen three passages (west, east, south) by one
+  # cell; after all four the centre room is open. Only the first switch is
+  # reachable from Ogar's room, so the tour leaves through the core pads and
+  # comes back in through 132 (north), 126 (west) and 129 (south). The galleries'
+  # gate pads are listed in the goals; MN_AVOIDPADS keeps the planner off the
+  # others so $A224 matches the plan.
+  run_leg s9sw1 14000 \
+    "133:30.18u>32.37|13.7u>32.5,130:16.36>28.31>28.9>10.25>8.46|6.20>0.8,132:27.9|9.0,129:13.10>22.46" \
+    126 "$S9/to126.lua" \
+    "$S9/to133.lua" MN_NOENC=1 MN_AVOIDPADS=1
+  run_leg s9sw3 8000 \
+    "126:5.9|23.6>23.0,133:2.20d>2.7,129:19.36" \
+    129 "$S9/to129b.lua" \
+    "$S9/to126.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A225
+  grep -qF "A225 <- 03" "$SNAP/s9sw3.log" || { echo "core switch 3: NOT PRESSED" >&2; exit 1; }
+  run_leg s9sw4in 4000 \
+    "129:19.36>10.46|4.38,128:4.15>13.1,133:2.32" \
+    133 "$S9/to133s.lua" \
+    "$S9/to129b.lua" MN_NOENC=1 MN_AVOIDPADS=1
+  # Last switch, then A on the stone (18,20): its talk 13:697F posts $01 to
+  # Ogar's mailbox and starts the duel (opponent $5A). The stone's record
+  # script 13:6C68 stores story $0A.
+  run_leg s9ogar 8000 \
+    "133:2.32u>18.21u" \
+    "" "" \
+    "$S9/to133s.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A123
+  grep -qF "A123 <- 0A" "$SNAP/s9ogar.log" || { echo "story 10: NOT SET" >&2; exit 1; }
+  echo "story 10 reached"
 fi
