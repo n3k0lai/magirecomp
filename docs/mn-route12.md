@@ -415,8 +415,12 @@ mouth scene and control returns at 122 6,19; the s9mouth leg walks to the
   stone's record script 13:6C68 stores `A123 <- 0A at 13:6C74` (story 10),
   and the leg prints `story 10 reached`.
 
-Open: the port runs the stone's record script 13:6C68 (story $0A) on the
-same A press as the talk, before the duel. On hardware the duel's win tail
-13:6CD9 also stores $0A; whether 6C68 should only run after the win has
-not been checked against PyBoy. Talking to Ogar (13:6ADF) directly loops
-and does nothing, which matches the mailbox design (he waits for $01).
+With 16000 frames (MN_GOD, MN_BAUTO) the duel ends `battle end: win`, the
+win tail 13:6CD9 stores $0A again, and the game moves to map 279 (control at
+33,21); the leg snapshots that entry (afterogar.lua).
+
+Open: the port also runs the stone's record script 13:6C68 (story $0A at
+13:6C74) on the A press, before the duel. Whether hardware stores $0A only
+in the win tail has not been checked against PyBoy. Talking to Ogar
+(13:6ADF) directly loops and does nothing, which matches the mailbox design
+(he waits for $01).
