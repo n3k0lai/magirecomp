@@ -423,10 +423,19 @@ if [ -n "${MN_TO80S8:-}" ]; then
     "$S9/to120e.lua" MN_NOENC=1
   # 34,21 is the story door. Slot 2 stands on it, but a sprite only blocks a
   # $00 cell (MarkZeroMapCell), so the step reaches 15:4CCB.
+  # The leg snapshots that door (to122.lua); the 279:34.21 goal ends here, so
+  # the planner does not bounce back out of 122 after the mouth scene.
   run_leg s9door 1500 \
     "279:34.21" \
-    "" "" \
+    122 "$S9/to122.lua" \
     "$S9/to279p.lua" MN_NOENC=1 MN_WATCH=A123
   grep -qF "A123 <- 09 at 15:4CCB" "$SNAP/s9door.log" || { echo "story 9: NOT SET" >&2; exit 1; }
   echo "story 9 reached"
+  # Geyser mouth (122). The door replays 2F:44DE -> 15:4C10 (the mouth scene);
+  # control comes back at 6,19. The up-trigger at 6,13 (15:481D) enters the
+  # entry hall (125) at 14,49. See docs/mn-dungeons.md for the door graph.
+  run_leg s9mouth 3000 \
+    "122:6.13" \
+    125 "$S9/to125.lua" \
+    "$S9/to122.lua" MN_NOENC=1
 fi
