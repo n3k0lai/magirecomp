@@ -417,10 +417,19 @@ mouth scene and control returns at 122 6,19; the s9mouth leg walks to the
 
 With 16000 frames (MN_GOD, MN_BAUTO) the duel ends `battle end: win`, the
 win tail 13:6CD9 stores $0A again, and the game moves to map 279 (control at
-33,21); the leg snapshots that entry (afterogar.lua).
+33,21, player still hidden at the frame limit). That entry is a script warp,
+not a door trigger, so MN_SNAP_TO does not checkpoint it yet.
 
 Open: the port also runs the stone's record script 13:6C68 (story $0A at
 13:6C74) on the A press, before the duel. Whether hardware stores $0A only
 in the win tail has not been checked against PyBoy. Talking to Ogar
 (13:6ADF) directly loops and does nothing, which matches the mailbox design
 (he waits for $01).
+
+River leg (222 28,4): the stall reproduces on every seed tried (1001-1004)
+and on older master (50ae814f) and a4f15bc6, so it is not flaky and not from
+the sprite-cell change. The log stops after `use slot 2 -> 1F:5EAE` and the
+mid-scene `talk to slot 2` (1F:5D95). Swallowing A while the slot's thread is
+live drops that talk but the leg still stalls at 28,4, so the talk is not
+the cause; the next lead is why the 1F:5EAE cave-in thread stops before its
+warp to map 40 (2A:4774).

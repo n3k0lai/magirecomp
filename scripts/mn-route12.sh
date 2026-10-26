@@ -471,12 +471,14 @@ if [ -n "${MN_TO80S8:-}" ]; then
   # Last switch, then A on the stone (18,20): its talk 13:697F posts $01 to
   # Ogar's mailbox and starts the duel (opponent $5A). The stone's record
   # script 13:6C68 stores story $0A; the duel's win tail 13:6CD9 stores it
-  # again and the game leaves the dungeon for the Underneath map 279.
+  # again and the game leaves the dungeon for the Underneath map 279 (a script
+  # warp, not a door, so MN_SNAP_TO cannot checkpoint it).
   run_leg s9ogar 16000 \
     "133:2.32u>18.21u" \
-    279 "$S9/afterogar.lua" \
+    "" "" \
     "$S9/to133s.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A123
   grep -qF "A123 <- 0A" "$SNAP/s9ogar.log" || { echo "story 10: NOT SET" >&2; exit 1; }
   grep -qF "battle end: win" "$SNAP/s9ogar.log" || { echo "Ogar duel: not won" >&2; exit 1; }
+  grep -qF "enter map 279" "$SNAP/s9ogar.log" || { echo "Ogar duel: no exit to 279" >&2; exit 1; }
   echo "story 10 reached (Ogar beaten)"
 fi
