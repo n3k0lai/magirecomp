@@ -438,4 +438,14 @@ if [ -n "${MN_TO80S8:-}" ]; then
     "122:6.13" \
     125 "$S9/to125.lua" \
     "$S9/to122.lua" MN_NOENC=1
+  # Entry hall to the core. The four colored gates share SRAM $A224 (one color
+  # open at a time; see docs/mn-dungeons.md). The 125 pad at 16,48 (state 1)
+  # opens the row-46 $06 gate; the hall's north field is a dead end from the
+  # south, so the path is east to 132, north to 130, then the 130 pads at
+  # 10,25 (state 4) and 16,36 (state 3) open the way to the core pad at 27,41.
+  # A ">" goal on a plain pad cell advances once the pad script has run.
+  run_leg s9core 4000 \
+    "125:16.48>29.28,132:7.0,130:10.25>16.36>27.41" \
+    133 "$S9/to133.lua" \
+    "$S9/to125.lua" MN_NOENC=1
 fi

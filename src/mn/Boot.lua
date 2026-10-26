@@ -395,6 +395,8 @@ function love.load()
             ow.replan = nil
             ow.farMap = ow.map
             local def = ow.def
+            -- with Crystal Gloves ($A3A3 >= 2) a dig wall ($0B) is a step: face it and press A (Kick.try)
+            local canDig = ow.vm and ow.vm:rd8(0xA3A3) >= 2
             local function search(crossDoors)
             local prev, q, h = {}, { { ow.x, ow.y } }, 1
             prev[ow.y * def.w + ow.x] = -1
@@ -421,7 +423,7 @@ function love.load()
                   -- only map doors; event lines (to = -1, e.g. 110 5-9,17) must stay crossable
                   if t and (t.to or -1) >= 0 and v ~= W.cell(def, g[1], g[2]) then occ = true end
                 end
-                if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and W.walkable(W.cell(def, nx, ny)) then
+                if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and (W.walkable(W.cell(def, nx, ny)) or (canDig and W.cell(def, nx, ny) == 0x0B)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 end
               end
@@ -440,6 +442,7 @@ function love.load()
               local id = best[2] * def.w + best[1]
               while prev[id] and prev[id] ~= -1 do table.insert(ow.farPath, 1, { id % def.w, math.floor(id / def.w) }); id = prev[id] end
               ow.log[#ow.log + 1] = ("route far -> %d,%d (%d steps)"):format(best[1], best[2], #ow.farPath)
+            elseif hadGoal then ow.log[#ow.log + 1] = ("route far: no path from %d,%d"):format(ow.x, ow.y)
             end
           end
           if ow.farFace and ow.farPath and #ow.farPath == 0 then -- at the goal: face and press A (talk / counter cell)
@@ -455,6 +458,27 @@ function love.load()
             if k == "a" then return frame % 30 == 0 and ow.facing == ow.farFace and not (ow.talkSeen and vl and (ow.step or 1) < #vl) end
             -- turn only when needed: a press toward an open cell would walk off the goal
             if k == "dir" and not ow.talkSeen and ow.facing ~= ow.farFace then return ow.farFace end
+            return nil
+          end
+          -- a ">" chain of plain cells (no face): once on the goal and idle 30 frames
+          -- (a floor pad's script has run, e.g. 125 16,48 opens the row-46 gate), take the next goal
+          if not ow.farFace and ow.farPath and #ow.farPath == 0 then
+            local gl = goals[ow.map]; local vl = gl and gl[math.min(visits[ow.map] or 1, #gl)]
+            local g = vl and vl[math.min(ow.step or 1, #vl)]
+            if g and g[1] == ow.x and g[2] == ow.y and (ow.step or 1) < #vl then
+              if ow.textBox or ow.moving or ow.scriptWaiting then ow.padIdle = 0 else ow.padIdle = (ow.padIdle or 0) + 1 end
+              if ow.padIdle > 30 then ow.padIdle = nil; ow.step = (ow.step or 1) + 1; ow.farMap = nil; ow.replan = true; ow.log[#ow.log + 1] = ("route far: pad %d,%d done, goal %d"):format(ow.x, ow.y, ow.step) end
+              if k == "a" then return ow.textBox ~= nil and frame % 20 == 0 end
+              return nil
+            end
+          end
+          -- next path cell is a dig wall: turn toward it (a bump only turns), then A digs it
+          local dn = ow.farPath and ow.farPath[1]
+          if dn and dn[1] == ow.x and dn[2] == ow.y then dn = ow.farPath[2] end
+          if dn and W.cell(ow.def, dn[1], dn[2]) == 0x0B then
+            local dd = dn[1] > ow.x and "right" or dn[1] < ow.x and "left" or dn[2] < ow.y and "up" or "down"
+            if k == "a" then return ow.facing == dd and not ow.moving and frame % 15 == 0 end
+            if ow.facing ~= dd then return dd end
             return nil
           end
           if k == "a" then return false end
