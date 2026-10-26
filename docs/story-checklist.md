@@ -31,4 +31,6 @@ Story word 8 -> 9 (after the Underneath town arrival): the store is
 15:4CCB, reached by stepping on world-map 279 cell 34,21 (2F:44DE). The
 walk there is in scripts/mn-route12.sh (MN_TO80S8) and stores story 9.
 The sprite 2F:453E puts on the cell does not block it (a record only marks
-a $00 cell solid). Next: the map-122 scene, see docs/mn-route12.md.
+a $00 cell solid). The geyser dungeon route (122 mouth, 125, 132, 130, the core 133, the four
+core switches, the stone at 18,20) reaches story word 0x0A (13:6C74) and
+starts the Ogar duel; see docs/mn-route12.md.

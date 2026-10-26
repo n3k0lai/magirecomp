@@ -392,10 +392,31 @@ $4A6B records like this one never mark a cell at all. The port does not
 track head-word changes yet, so it keeps treating every live sprite on a
 $00 cell as solid.
 
-## Story 9 (next lead)
+## Story 9 to 10 (geyser dungeon)
 
-With 8000 frames from to279p.lua, the map-122 scene (15:4BB4 case 8 ->
-15:4C10; slots 0 and 3-8, talks 15:482C, 15:48AC, 15:48D6) runs to
-`player control at 6,19` on map 122. The route goal `279:34.21` then keeps
-the planner bouncing through 122's 15:4812 exit and 2F:44DE, so the next
-leg should snapshot at control on 122 and pick a story-9 goal there.
+The s9door leg snapshots the 122 door (to122.lua). The door replays the
+mouth scene and control returns at 122 6,19; the s9mouth leg walks to the
+6,13 up-trigger and snapshots the entry hall (to125.lua).
+
+- s9core: 125 pad 16,48 (state 1), east to 132, north to 130, 130 pads
+  10,25 and 16,36, core pad 27,41 into 133 (to133.lua). The hall's north
+  field is a dead end from the south.
+- Core switches ($40-$43 at 30,17 / 13,6 / 2,21 / 2,31) are A-press
+  one-shots (`$A125` bits). Each fresh press advances `$A225` and widens
+  the west, east and south passages to the centre room by one cell; all
+  four open it. From Ogar's room only 30,17 is reachable, so the legs
+  s9sw1, s9sw3 and s9sw4in leave through the core pads and re-enter through
+  132 (north room), 126 (west room) and 129 (south room). The galleries'
+  gate pads are listed as route goals; `MN_AVOIDPADS=1` keeps the far
+  planner off other trigger cells so `$A224` follows the plan.
+- s9ogar: the last switch, then A on the stone at 18,20 from 18,21. Its talk
+  13:697F ends at 13:699A, which posts $01 to Ogar's mailbox ($C6FC), so
+  Ogar's thread 13:6C7E starts the duel (opponent $5A, level $14). The
+  stone's record script 13:6C68 stores `A123 <- 0A at 13:6C74` (story 10),
+  and the leg prints `story 10 reached`.
+
+Open: the port runs the stone's record script 13:6C68 (story $0A) on the
+same A press as the talk, before the duel. On hardware the duel's win tail
+13:6CD9 also stores $0A; whether 6C68 should only run after the win has
+not been checked against PyBoy. Talking to Ogar (13:6ADF) directly loops
+and does nothing, which matches the mailbox design (he waits for $01).
