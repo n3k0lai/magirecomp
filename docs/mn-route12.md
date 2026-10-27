@@ -426,10 +426,15 @@ in the win tail has not been checked against PyBoy. Talking to Ogar
 (13:6ADF) directly loops and does nothing, which matches the mailbox design
 (he waits for $01).
 
-River leg (222 28,4): the stall reproduces on every seed tried (1001-1004)
-and on older master (50ae814f) and a4f15bc6, so it is not flaky and not from
-the sprite-cell change. The log stops after `use slot 2 -> 1F:5EAE` and the
-mid-scene `talk to slot 2` (1F:5D95). Swallowing A while the slot's thread is
-live drops that talk but the leg still stalls at 28,4, so the talk is not
-the cause; the next lead is why the 1F:5EAE cave-in thread stops before its
-warp to map 40 (2A:4774).
+River leg (222 28,4): fixed. The stall reproduced on every seed tried
+(1001-1004) and on older master, so it was not flaky. Cause: after the shake,
+the talk record ($C71B) runs 1F:5EFB into 1F:5BD7, which refills $C71B with
+22:4004 (op $5B at 1F:5BE0) from inside that same record. The port's $5B
+waited for the talk thread to end before planting the new record, so the
+talk thread waited on itself forever (MN_THR showed `talk@1F:5BE0` from f1800
+on). On hardware the fill only overwrites the record and dispatch carries on
+in the running script. ScriptVM now skips the self-wait when the talk record
+runs $5B (only C6EE == 1 still holds it). The leg now enters map 40, writes
+after40.lua at the west door into 0 and follows Eidon through 0, 1, 277 and
+2 into 43 within 12000 frames. Regression check in
+tests/engine/mn_ops_flow_test.lua.

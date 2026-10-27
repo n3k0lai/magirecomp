@@ -478,7 +478,13 @@ function VM:run(bank, ptr)
     elseif op == 0x5B then -- FillScriptRecordC71BUnlessC6EEIs1: stalls while C6EE==1
       -- the main script plants it too (Shadow Geyser revisit 14:6B0C posts its text
       -- record, then waits on C6FD for the record's $01)
-      if not self.init then
+      if not self.init and self.curKey == "talk" then
+        -- the talk record refilling itself (cave-in 1F:5BE0 plants 22:4004 from inside
+        -- C71B): hardware overwrites the record and keeps dispatching this script, whose
+        -- next yield stores its own pointer back, so it carries on. Waiting for the talk
+        -- thread to end here waited on itself (map 222 river stall).
+        while self:rd8(0xC6EE) == 1 do coroutine.yield("wait", 1) end
+      elseif not self.init then
         -- C6EE == 1 while a dialogue owns the window: one talk record at a time
         while self:rd8(0xC6EE) == 1 or (self.threads and self.threads.talk and coroutine.status(self.threads.talk.co) ~= "dead") do coroutine.yield("wait", 1) end
         self:spawnTalk(r:u8(o + 1), r:u16(o + 2))

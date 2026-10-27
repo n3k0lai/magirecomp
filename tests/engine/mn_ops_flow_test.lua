@@ -146,6 +146,16 @@ do
   ok(vm:rd8(0xC91F) == 1 and vm.threads.c706 == nil, "$59 record runs on the next thread pass")
 end
 
+-- $5B run by the talk record itself (cave-in 1F:5BE0 refills C71B with 22:4004)
+-- carries on with its own script instead of waiting on itself.
+do
+  local vm = run({ 0x97, 0x5B, 0x12, 0x09, 0x40, 0x21, 0x97, 0, 0, 0x97 })
+  vm.mem[0xC6F3] = 1
+  vm:spawnTalk(0x12, 0x4001)
+  for _ = 1, 4 do vm:tickThreads(false) end
+  ok(vm:rd8(0xC91F) == 1 and vm.threads.talk == nil, "$5B from the talk record does not wait on itself")
+end
+
 -- $95 copies the fallback triple and continues.
 do
   local vm = run({ 0x95, 0x05, 0x06, 0x07, 0x1E, 0x97 })
