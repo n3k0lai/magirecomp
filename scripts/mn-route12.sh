@@ -9,6 +9,7 @@
 #   MN_ROM=/path/to/magination.gbc bash scripts/mn-route12.sh
 #   MN_FROM=town bash scripts/mn-route12.sh   # reuse earlier legs' snapshots and logs
 #   MN_LEGS=bracelet bash scripts/mn-route12.sh  # only the bracelet legs, from into15.lua
+#   MN_LEGS=story9 MN_TO80S8=to80s8.lua bash scripts/mn-route12.sh  # story 8 -> Ogar -> 279
 #
 # Prints one "beat N: ..." line when that beat's log marker appears.
 # Exits nonzero if a beat marker is missing or a snapshot was not written.
@@ -16,7 +17,8 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 
 ROM="${MN_ROM:-$HOME/Code/magination/roms/magination.gbc}"
-HEAD="${MN_HEADLESS:-$HOME/Code/interns/bin/mn-headless}"
+HEAD="${MN_HEADLESS:-$HOME/Code/soul/skills/intern/scripts/interns/bin/mn-headless}"
+ISTATE="${INTERNS_STATE_DIR:-$HOME/.local/state/interns}"
 SNAP=/tmp/mn-route12
 FRAMES=/tmp/mn-route12/frames
 mkdir -p "$SNAP" "$FRAMES"
@@ -140,7 +142,7 @@ run_leg() {
 # They start from into15.lua (the door into 15) and keep their checkpoints in
 # $BSNAP (MN_SNAP_DIR overrides). The puzzle bits are $A125 bits 0-3; see
 # docs/mn-route12.md, "Bracelet legs".
-BSNAP="${MN_SNAP_DIR:-$HOME/Code/interns/state/snaps/magirecomp}"
+BSNAP="${MN_SNAP_DIR:-$ISTATE/snaps/magirecomp}"
 run_bracelet() {
   mkdir -p "$BSNAP"
   # levers: 20's two levers (1A:62AB 9,14 and 1A:6304 16,15), then 19's lever
@@ -242,6 +244,125 @@ run_bracelet() {
     exit 1
   }
 }
+# Story 8 -> 9 (optional). Set MN_TO80S8 to a snapshot on the town door into
+# house 80 at story 8 (1C:6645, to80s8.lua). The story-9 store is the step
+# on 279's 34,21 (2F:44DE -> 15:4BB4, case 8 -> 15:4C10, store at 15:4CCB).
+# That cell sits in the south pocket: east out of town, 279's 32,26 into 115,
+# the long cave way to 121, and 121's north door back onto 279 at 33,22.
+# Cave maps 115-120 have wandering monsters; one battle on 116 is longer than
+# the frame cap, so those legs set MN_NOENC=1. 279's entry puts a slot-2
+# sprite on 34,21; it does not block the $C5 cell (World.blocks, see
+# docs/mn-route12.md).
+run_story9() {
+  S9="${MN_S9_DIR:-/tmp/mn-story9}"
+  mkdir -p "$S9"
+  # Out of house 80, across town, east edge 59,21 (22:41B2) onto 279 at 21,22.
+  run_leg s9east 2000 \
+    "80:far,74:59.21" \
+    279 "$S9/to279e.lua" \
+    "$MN_TO80S8"
+  # 279's 32,26 (2F:44D0) into 115 at 0,16.
+  run_leg s9c115 1500 \
+    "279:32.26" \
+    115 "$S9/to115.lua" \
+    "$S9/to279e.lua" MN_NOENC=1
+  # 115's top door (15:4010, goal 24,0; the line is 22-26,0) into 116 at 2,39.
+  run_leg s9c116 1800 \
+    "115:24.0" \
+    116 "$S9/to116.lua" \
+    "$S9/to115.lua" MN_NOENC=1
+  # 116's bottom-right door (15:41B9) into 117 at 12,0.
+  run_leg s9c117 2800 \
+    "116:41.39" \
+    117 "$S9/to117.lua" \
+    "$S9/to116.lua" MN_NOENC=1
+  # 117's west edge (15:4258) onto 120's east side at 59,8.
+  run_leg s9c120 2000 \
+    "117:0.36" \
+    120 "$S9/to120e.lua" \
+    "$S9/to117.lua" MN_NOENC=1
+  # 120's 26,0 (15:4739) into 121, then 121's 5,0 (15:47B3) onto 279 at 33,22.
+  run_leg s9pocket 2500 \
+    "120:26.0,121:5.0" \
+    279 "$S9/to279p.lua" \
+    "$S9/to120e.lua" MN_NOENC=1
+  # 34,21 is the story door. Slot 2 stands on it, but a sprite only blocks a
+  # $00 cell (MarkZeroMapCell), so the step reaches 15:4CCB.
+  # The leg snapshots that door (to122.lua); the 279:34.21 goal ends here, so
+  # the planner does not bounce back out of 122 after the mouth scene.
+  run_leg s9door 1500 \
+    "279:34.21" \
+    122 "$S9/to122.lua" \
+    "$S9/to279p.lua" MN_NOENC=1 MN_WATCH=A123
+  grep -qF "A123 <- 09 at 15:4CCB" "$SNAP/s9door.log" || { echo "story 9: NOT SET" >&2; exit 1; }
+  echo "story 9 reached"
+  # Geyser mouth (122). The door replays 2F:44DE -> 15:4C10 (the mouth scene);
+  # control comes back at 6,19. The up-trigger at 6,13 (15:481D) enters the
+  # entry hall (125) at 14,49. See docs/mn-dungeons.md for the door graph.
+  run_leg s9mouth 3000 \
+    "122:6.13" \
+    125 "$S9/to125.lua" \
+    "$S9/to122.lua" MN_NOENC=1
+  # Entry hall to the core. The four colored gates share SRAM $A224 (one color
+  # open at a time; see docs/mn-dungeons.md). The 125 pad at 16,48 (state 1)
+  # opens the row-46 $06 gate; the hall's north field is a dead end from the
+  # south, so the path is east to 132, north to 130, then the 130 pads at
+  # 10,25 (state 4) and 16,36 (state 3) open the way to the core pad at 27,41.
+  # A ">" goal on a plain pad cell advances once the pad script has run.
+  run_leg s9core 4000 \
+    "125:16.48>29.28,132:7.0,130:10.25>16.36>27.41" \
+    133 "$S9/to133.lua" \
+    "$S9/to125.lua" MN_NOENC=1
+  # Core switches. The four $40-$43 cells (30,17 / 13,6 / 2,21 / 2,31) each
+  # advance $A225 once and widen three passages (west, east, south) by one
+  # cell; after all four the centre room is open. Only the first switch is
+  # reachable from Ogar's room, so the tour leaves through the core pads and
+  # comes back in through 132 (north), 126 (west) and 129 (south). The galleries'
+  # gate pads are listed in the goals; MN_AVOIDPADS keeps the planner off the
+  # others so $A224 matches the plan.
+  run_leg s9sw1 14000 \
+    "133:30.18u>32.37|13.7u>32.5,130:16.36>28.31>28.9>10.25>8.46|6.20>0.8,132:27.9|9.0,129:13.10>22.46" \
+    126 "$S9/to126.lua" \
+    "$S9/to133.lua" MN_NOENC=1 MN_AVOIDPADS=1
+  run_leg s9sw3 8000 \
+    "126:5.9|23.6>23.0,133:2.20d>2.7,129:19.36" \
+    129 "$S9/to129b.lua" \
+    "$S9/to126.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A225
+  grep -qF "A225 <- 03" "$SNAP/s9sw3.log" || { echo "core switch 3: NOT PRESSED" >&2; exit 1; }
+  run_leg s9sw4in 4000 \
+    "129:19.36>10.46|4.38,128:4.15>13.1,133:2.32" \
+    133 "$S9/to133s.lua" \
+    "$S9/to129b.lua" MN_NOENC=1 MN_AVOIDPADS=1
+  # Last switch, then A on the stone (18,20): its talk 13:697F posts $01 to
+  # Ogar's mailbox and starts the duel (opponent $5A). The stone's record
+  # script 13:6C68 stores story $0A; the duel's win tail 13:6CD9 stores it
+  # again and the game leaves the dungeon for the Underneath map 279 (a script
+  # warp, not a door: MN_SNAP_TO=s279 checkpoints the script that loads 279,
+  # and to279w.lua replays the win tail from map 133).
+  run_leg s9ogar 16000 \
+    "133:2.32u>18.21u" \
+    s279 "$S9/to279w.lua" \
+    "$S9/to133s.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A123
+  grep -qF "A123 <- 0A" "$SNAP/s9ogar.log" || { echo "story 10: NOT SET" >&2; exit 1; }
+  grep -qF "battle end: win" "$SNAP/s9ogar.log" || { echo "Ogar duel: not won" >&2; exit 1; }
+  grep -qF "enter map 279" "$SNAP/s9ogar.log" || { echo "Ogar duel: no exit to 279" >&2; exit 1; }
+  echo "story 10 reached (Ogar beaten)"
+  # After Ogar (story $0A): replay the win tail from to279w.lua. Its slot 0
+  # thread (2F:44F9) loads 279 and plants the $5B1E pad head with Tony's
+  # sprite, which hands control back at 33,21 (east pocket, next to the farm
+  # cell 34,21; with no route the autopilot walks on into the farm 112-114).
+  # Next goal (not routed yet): the town at story $0A, where 22:595E case $0A
+  # (22:67BD) stages the duel 22:6977 whose tails 22:6B1A store story $0B.
+  run_leg s10map 2000 "" "" "" "$S9/to279w.lua"
+  grep -qF "player record at" "$SNAP/s10map.log" && grep -qF "enter map 112" "$SNAP/s10map.log" ||
+    { echo "after Ogar: no control on 279" >&2; exit 1; }
+  echo "story 10: control on 279"
+}
+if [ "${MN_LEGS:-}" = story9 ]; then
+  [ -n "${MN_TO80S8:-}" ] || { echo "MN_LEGS=story9 needs MN_TO80S8" >&2; exit 1; }
+  run_story9
+  exit 0
+fi
 if [ "${MN_LEGS:-}" = bracelet ]; then
   run_bracelet
   echo "bracelet legs: bracelet given, first kick done (farm legs need to120.lua)"
@@ -379,106 +500,4 @@ if [ -n "${MN_TO211:-}" ]; then
   echo "story 8 set (22:6498)"
 fi
 
-# Story 8 -> 9 (optional). Set MN_TO80S8 to a snapshot on the town door into
-# house 80 at story 8 (1C:6645, to80s8.lua). The story-9 store is the step
-# on 279's 34,21 (2F:44DE -> 15:4BB4, case 8 -> 15:4C10, store at 15:4CCB).
-# That cell sits in the south pocket: east out of town, 279's 32,26 into 115,
-# the long cave way to 121, and 121's north door back onto 279 at 33,22.
-# Cave maps 115-120 have wandering monsters; one battle on 116 is longer than
-# the frame cap, so those legs set MN_NOENC=1. 279's entry puts a slot-2
-# sprite on 34,21; it does not block the $C5 cell (World.blocks, see
-# docs/mn-route12.md).
-if [ -n "${MN_TO80S8:-}" ]; then
-  S9=/tmp/mn-story9
-  mkdir -p "$S9"
-  # Out of house 80, across town, east edge 59,21 (22:41B2) onto 279 at 21,22.
-  run_leg s9east 2000 \
-    "80:far,74:59.21" \
-    279 "$S9/to279e.lua" \
-    "$MN_TO80S8"
-  # 279's 32,26 (2F:44D0) into 115 at 0,16.
-  run_leg s9c115 1500 \
-    "279:32.26" \
-    115 "$S9/to115.lua" \
-    "$S9/to279e.lua" MN_NOENC=1
-  # 115's top door (15:4010, goal 24,0; the line is 22-26,0) into 116 at 2,39.
-  run_leg s9c116 1800 \
-    "115:24.0" \
-    116 "$S9/to116.lua" \
-    "$S9/to115.lua" MN_NOENC=1
-  # 116's bottom-right door (15:41B9) into 117 at 12,0.
-  run_leg s9c117 2800 \
-    "116:41.39" \
-    117 "$S9/to117.lua" \
-    "$S9/to116.lua" MN_NOENC=1
-  # 117's west edge (15:4258) onto 120's east side at 59,8.
-  run_leg s9c120 2000 \
-    "117:0.36" \
-    120 "$S9/to120e.lua" \
-    "$S9/to117.lua" MN_NOENC=1
-  # 120's 26,0 (15:4739) into 121, then 121's 5,0 (15:47B3) onto 279 at 33,22.
-  run_leg s9pocket 2500 \
-    "120:26.0,121:5.0" \
-    279 "$S9/to279p.lua" \
-    "$S9/to120e.lua" MN_NOENC=1
-  # 34,21 is the story door. Slot 2 stands on it, but a sprite only blocks a
-  # $00 cell (MarkZeroMapCell), so the step reaches 15:4CCB.
-  # The leg snapshots that door (to122.lua); the 279:34.21 goal ends here, so
-  # the planner does not bounce back out of 122 after the mouth scene.
-  run_leg s9door 1500 \
-    "279:34.21" \
-    122 "$S9/to122.lua" \
-    "$S9/to279p.lua" MN_NOENC=1 MN_WATCH=A123
-  grep -qF "A123 <- 09 at 15:4CCB" "$SNAP/s9door.log" || { echo "story 9: NOT SET" >&2; exit 1; }
-  echo "story 9 reached"
-  # Geyser mouth (122). The door replays 2F:44DE -> 15:4C10 (the mouth scene);
-  # control comes back at 6,19. The up-trigger at 6,13 (15:481D) enters the
-  # entry hall (125) at 14,49. See docs/mn-dungeons.md for the door graph.
-  run_leg s9mouth 3000 \
-    "122:6.13" \
-    125 "$S9/to125.lua" \
-    "$S9/to122.lua" MN_NOENC=1
-  # Entry hall to the core. The four colored gates share SRAM $A224 (one color
-  # open at a time; see docs/mn-dungeons.md). The 125 pad at 16,48 (state 1)
-  # opens the row-46 $06 gate; the hall's north field is a dead end from the
-  # south, so the path is east to 132, north to 130, then the 130 pads at
-  # 10,25 (state 4) and 16,36 (state 3) open the way to the core pad at 27,41.
-  # A ">" goal on a plain pad cell advances once the pad script has run.
-  run_leg s9core 4000 \
-    "125:16.48>29.28,132:7.0,130:10.25>16.36>27.41" \
-    133 "$S9/to133.lua" \
-    "$S9/to125.lua" MN_NOENC=1
-  # Core switches. The four $40-$43 cells (30,17 / 13,6 / 2,21 / 2,31) each
-  # advance $A225 once and widen three passages (west, east, south) by one
-  # cell; after all four the centre room is open. Only the first switch is
-  # reachable from Ogar's room, so the tour leaves through the core pads and
-  # comes back in through 132 (north), 126 (west) and 129 (south). The galleries'
-  # gate pads are listed in the goals; MN_AVOIDPADS keeps the planner off the
-  # others so $A224 matches the plan.
-  run_leg s9sw1 14000 \
-    "133:30.18u>32.37|13.7u>32.5,130:16.36>28.31>28.9>10.25>8.46|6.20>0.8,132:27.9|9.0,129:13.10>22.46" \
-    126 "$S9/to126.lua" \
-    "$S9/to133.lua" MN_NOENC=1 MN_AVOIDPADS=1
-  run_leg s9sw3 8000 \
-    "126:5.9|23.6>23.0,133:2.20d>2.7,129:19.36" \
-    129 "$S9/to129b.lua" \
-    "$S9/to126.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A225
-  grep -qF "A225 <- 03" "$SNAP/s9sw3.log" || { echo "core switch 3: NOT PRESSED" >&2; exit 1; }
-  run_leg s9sw4in 4000 \
-    "129:19.36>10.46|4.38,128:4.15>13.1,133:2.32" \
-    133 "$S9/to133s.lua" \
-    "$S9/to129b.lua" MN_NOENC=1 MN_AVOIDPADS=1
-  # Last switch, then A on the stone (18,20): its talk 13:697F posts $01 to
-  # Ogar's mailbox and starts the duel (opponent $5A). The stone's record
-  # script 13:6C68 stores story $0A; the duel's win tail 13:6CD9 stores it
-  # again and the game leaves the dungeon for the Underneath map 279 (a script
-  # warp, not a door, so MN_SNAP_TO cannot checkpoint it).
-  run_leg s9ogar 16000 \
-    "133:2.32u>18.21u" \
-    "" "" \
-    "$S9/to133s.lua" MN_NOENC=1 MN_AVOIDPADS=1 MN_WATCH=A123
-  grep -qF "A123 <- 0A" "$SNAP/s9ogar.log" || { echo "story 10: NOT SET" >&2; exit 1; }
-  grep -qF "battle end: win" "$SNAP/s9ogar.log" || { echo "Ogar duel: not won" >&2; exit 1; }
-  grep -qF "enter map 279" "$SNAP/s9ogar.log" || { echo "Ogar duel: no exit to 279" >&2; exit 1; }
-  echo "story 10 reached (Ogar beaten)"
-fi
+if [ -n "${MN_TO80S8:-}" ]; then run_story9; fi

@@ -291,7 +291,7 @@ its real effect shows on the next load of map 20.
 - A `x.yD>next` goal with a lever (no text box) advances only after the
   repeat press shows the already-pulled message; give the next goal a cell
   that is reachable, or the planner idles silently.
-- Snapshots stay out of git: ~/Code/interns/state/snaps/magirecomp/
+- Snapshots stay out of git: ~/.local/state/interns/snaps/magirecomp/ ($INTERNS_STATE_DIR overrides)
   (override with MN_SNAP_DIR).
 - A map listed twice in a route overwrites its first goals; use `|` for
   per-visit goals, e.g. `23:6.14u>11.21|0.6`.
@@ -416,9 +416,31 @@ mouth scene and control returns at 122 6,19; the s9mouth leg walks to the
   and the leg prints `story 10 reached`.
 
 With 16000 frames (MN_GOD, MN_BAUTO) the duel ends `battle end: win`, the
-win tail 13:6CD9 stores $0A again, and the game moves to map 279 (control at
-33,21, player still hidden at the frame limit). That entry is a script warp,
-not a door trigger, so MN_SNAP_TO does not checkpoint it yet.
+win tail 13:6CD9 stores $0A again, and the game moves to map 279. That entry
+is a script warp, not a door: the tail plants slot 0's anim 13:6D54, and that
+slot's thread (2F:44F9, pc 2F:4508) loads 279 after the tail has ended.
+`MN_SNAP_TO=s279` checkpoints script warps: Overworld:scriptSnapshot runs
+before enterMap and records the last main script (`vm.started`, here
+13:6CD9), not the thread doing the load. Replaying 6D54 alone stalls on its
+$5C. to279w.lua is written on map 133, and loading it replays the tail into
+279 in about 100 frames. A plain number in MN_SNAP_TO still means doors only.
+
+s10map (story 10): 2F:44F9 refills slot 0 with handler $5B1E and Tony's
+sprite 20:4F73. $5B1E is bank 1's pad direction-dispatch head, the sibling
+of $5D81, so the record is the player itself. Overworld spawn used to treat
+only $5D81 that way, so the duel's hidden stand-in stayed and the player was
+never shown or moved. Both heads now drop the stand-in (test:
+tests/engine/mn_player_record_test.lua). Control comes back at 33,21 in the
+east pocket. Walking right crosses 34,21 (2F:44DE; story 10 falls through to
+15:5971) into the farm 112, then 113 and 114.
+
+Next goal (story $0A -> $0B, not routed yet): the town. 279's town records
+enter 22:595E, whose story switch sends $0A to 22:67BD. That scene stages
+slot 0 with 22:6977, which sets both duel tails to 22:6B1A, and 6B1A stores
+story $0B. Later stores: $0C at 1A:76AF, $0D at 1E:75EA, $0E at 1E:5572.
+From the pocket the way back to the town side is presumably 33,23 into 121
+and back through 120..115 (the story-9 legs in reverse). That has not been
+checked.
 
 Open: the port also runs the stone's record script 13:6C68 (story $0A at
 13:6C74) on the A press, before the duel. Whether hardware stores $0A only

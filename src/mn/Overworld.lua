@@ -54,6 +54,7 @@ function M:host()
       local keep = (s.vm.curSlot ~= nil or s.sceneFresh) and s.objects or nil
       local keepThreads = s.sceneFresh and s.vm.threads
       s.sceneFresh = nil
+      s:scriptSnapshot(i)
       s:enterMap(i, s.x, s.y); s.rebased = false
       if keepThreads then s.vm.threads = keepThreads end
       if s.sfade and s.sfade.to == 1 then s.sfade = { c = s.sfade.c, from = 1, to = 0, t = 0, dur = 16 } end
@@ -188,8 +189,10 @@ function M:host()
       if slot == 0 and not Sprites.SPRITE_BANKS[abank] then s.hidePlayer = true end
       -- slot 0 with a sprite anim and the $5D81 pad handler is the player itself, not a
       -- stand-in: drop a leftover stand-in so the pad works (1A:6841 into room 10 after
-      -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB)
-      if slot == 0 and handler == 0x5D81 and Sprites.SPRITE_BANKS[abank] then
+      -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB). $5B1E is the other
+      -- pad head (bank 1 direction dispatch): 2F:44F9 plants it with 20:4F73 when the
+      -- Ogar duel tail drops Tony on 279, and the duel's stand-in must go then too
+      if slot == 0 and (handler == 0x5D81 or handler == 0x5B1E) and Sprites.SPRITE_BANKS[abank] then
         if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
         s.objects[0] = nil; s.hidePlayer = false; return
       end
@@ -356,27 +359,43 @@ function M:triggerTo(idx)
 end
 
 function M:snapshot(b, p)
-  local want, files = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
-  if not (want and files) then return end
+  if not (os.getenv("MN_SNAP_TO") and os.getenv("MN_SNAP_FILE")) then return end
   local to = self:triggerTo(bit.band(World.cell(self.def, self.x, self.y), 0x3F))
-  if not to then return end
+  if to then self:snapMatch(to, "", b, p) end
+end
+
+-- Script warps (MN_SNAP_TO=s279): a $65 map load run by a script, e.g. after the
+-- Ogar win tail 13:6CD9, has no door to replay. Checkpoint the current map and
+-- the last main script; Overworld.load reruns it there.
+function M:scriptSnapshot(to)
+  local want = os.getenv("MN_SNAP_TO")
+  if not (want and want:find("s") and os.getenv("MN_SNAP_FILE")) then return end
+  -- replay the last main script, not the thread doing the load: the Ogar tail
+  -- 13:6CD9 plants slot 0's anim 13:6D54, whose thread (2F:4508) loads 279
+  -- after the tail has ended; 6D54 alone stalls on its $5C
+  local b, p = (self.vm.started or ""):match("^(%x+):(%x+)$")
+  if b then self:snapMatch(to, "s", tonumber(b, 16), tonumber(p, 16)) end
+end
+
+function M:snapMatch(to, kind, b, p)
+  local want, files = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
   -- comma lists pair up: MN_SNAP_TO=279,113 MN_SNAP_FILE=a.lua,b.lua (one checkpoint per map)
   local fl = {}
   for f in files:gmatch("[^,]+") do fl[#fl + 1] = f end
   local i = 0
   for spec in want:gmatch("[^,]+") do
     i = i + 1
-    local m, n = spec:match("^(%d+):?(%d*)$")
+    local k, m, n = spec:match("^(s?)(%d+):?(%d*)$")
     local file = fl[i]
-    if file and m and to == tonumber(m) then
+    if file and m and k == kind and to == tonumber(m) then
       self.snapCount = self.snapCount or {}
       self.snapCount[i] = (self.snapCount[i] or 0) + 1
-      if self.snapCount[i] == (tonumber(n) or 1) then self:writeSnapshot(file, b, p, to) end
+      if self.snapCount[i] == (tonumber(n) or 1) then self:writeSnapshot(file, b, p, to, kind) end
     end
   end
 end
 
-function M:writeSnapshot(file, b, p, to)
+function M:writeSnapshot(file, b, p, to, kind)
   local parts = {}
   -- SRAM (story word, flags, items, saved script) and the title-card flag; other WRAM is per-scene
   for a, v in pairs(self.vm.mem) do
@@ -386,7 +405,7 @@ function M:writeSnapshot(file, b, p, to)
   local f = assert(io.open(file, "w"))
   f:write(("return {map=%d,x=%d,y=%d,facing=%q,bank=%d,ptr=%d,tony=%s,mem={%s}}\n"):format(self.map, self.x, self.y,
     self.facing, b, p, tostring(self.tonyEnergy or "nil"), table.concat(parts, ",")))
-  f:close(); self.log[#self.log + 1] = ("snapshot -> %s (door %02X:%04X into %d)"):format(file, b, p, to)
+  f:close(); self.log[#self.log + 1] = ("snapshot -> %s (%s %02X:%04X into %d)"):format(file, kind == "s" and "script" or "door", b, p, to)
 end
 
 function M.load(file, input)
