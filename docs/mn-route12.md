@@ -1199,3 +1199,10 @@ must start from k241 or earlier.
   k185, about 1.5 min headless). Note: run the `tests/engine/mn_*` suite with no `MN_*`
   variables set; a leftover `MN_NOENC` and friends from a leg shell fail 5 cases of
   `mn_grass_test.lua`.
+- a4 (same as a1 plus `>14.48r` before `46.63`, `MN_DUMPMAP=1`, 5200 frames): lever `$45`
+  fires too (`script 1F:6516 (A on cell $45)`), so all six levers work in the port. The route
+  still stops with "no path from 14,48". A flood of the a4 grid from 14,48 reaches only the
+  middle strip (columns 9-31). The 187 door pockets (44,44-62 / 46-49,57-63 and
+  54-55,53-63) and the 32-42 x 42-62 rooms sit behind `$02` bands 3 or more wide, which only
+  the platforms (slots `$22`/`$23`/`$25`-`$27`, the `2*2` cells at 18,54-56 in a4) can cross.
+  So the next step is the platform handler `$5ED2`, not more lever routing.
