@@ -425,6 +425,27 @@ run_story10() {
     "$S9/to145s11.lua" MN_NOENC=1 MN_WATCH=A123
   grep -qF "A123 <- 0C" "$SNAP/s12talk.log" || { echo "story 12: NOT SET" >&2; exit 1; }
   echo "story 12 reached"
+  # Story 13 (1E:75EA) is the ring forge in map 144: town 136's third trigger
+  # (17:5DB2, 8,34) enters 1E:76E0. Path from 146: 145 0,9 -> 280 19,19 ->
+  # 138 9,0 -> 135 0,30 -> 136 8,34.
+  run_leg s13walk 16000 \
+    "146:4.8u>5.12,145:0.9,280:19.19,138:9.0,135:0.30,136:8.34" \
+    144 "$S9/to144s13.lua" \
+    "$S9/to146s12.lua" MN_NOENC=1 MN_WATCH=A123
+  grep -qF "A123 <- 0C" "$SNAP/s13walk.log" || { echo "s13walk: story 12 not set" >&2; exit 1; }
+  # The forge counter is cell $40 at 2,10 (A-list index 0, 1E:72AB). Forge is the
+  # 1E:7537 choice (once, then the autopilot's Done); MN_FORGE=2A picks ring $2A in the $8E window, which 1E:75EA
+  # wants in $C726 with story $0C before it stores $0D.
+  run_leg s13forge 9000 "144:2.11u>6.12" 136 "$S9/to136s13.lua" "$S9/to144s13.lua" \
+    MN_NOENC=1 MN_WATCH=A123 MN_PICK='1E:7537!' MN_FORGE=2A
+  grep -qF "A123 <- 0D" "$SNAP/s13forge.log" || { echo "s13forge: story 13 not set" >&2; exit 1; }
+  echo "story 13 reached"
+  # Story 14 ($0E, 1E:55E2). The forge's last line sends Tony to Valkan: with story
+  # $0D, 146's entry (1A:773B) runs 1A:78D6, Valkan in slot 2 at 3,8 (1A:79A1).
+  # Path back: 136 19,32 -> 135 28,44 -> 138 4,19 -> 280 24,20 -> 145 12,11.
+  run_leg s14walk 16000 "136:19.32,135:28.44,138:4.19,280:24.20,145:12.11" \
+    146 "$S9/to146s14.lua" "$S9/to136s13.lua" MN_NOENC=1 MN_WATCH=A123
+  run_leg s14valkan 12000 "146:3.9u" "" "" "$S9/to146s14.lua" MN_NOENC=1 MN_WATCH=A123
 }
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10

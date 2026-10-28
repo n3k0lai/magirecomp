@@ -637,10 +637,17 @@ function VM:run(bank, ptr)
         local c = r:u8(o + 1); local k
         if self.init then return end
         -- MN_PICK="2B:43F0,...": a choice whose record targets one of these takes it
+        -- a "!" suffix takes it once: the forge menu (1E:74EE) comes back after each ring,
+        -- and the autopilot's Done then leaves it ("1E:7537!")
         local want = os.getenv("MN_PICK")
         if want then
+          self.pickedOnce = self.pickedOnce or {}
           for i = 0, c - 1 do
-            if want:find(("%02X:%04X"):format(r:u8(o + 2 + 3 * i), r:u16(o + 3 + 3 * i)), 1, true) then k = i end
+            local key = ("%02X:%04X"):format(r:u8(o + 2 + 3 * i), r:u16(o + 3 + 3 * i))
+            local at = want:find(key, 1, true)
+            if at and not (want:sub(at + 7, at + 7) == "!" and self.pickedOnce[key]) then
+              k = i; self.pickedOnce[key] = true
+            end
           end
         end
         -- autopilot: first option; a 3+ option shop menu (Forge/Equip/Power/Done) takes the exit
