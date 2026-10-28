@@ -576,3 +576,39 @@ $0E itself is stored at 1E:55E2, entered from 12:7608 when C6F9 reads $01;
 12:7608 comes from 1E:6204 once $A1A5 bit 3 is set (1E:620D sets it). 1E:5572
 is a separate map-init record behind hub 280's C0 door (2F:455E -> 138) and
 does not store the story word.
+
+## Story 15 ($0F) leg notes (s15, Oct 28)
+
+Reconstructed from the s15 scratch legs (g1-g7, s2-s4b) and commits 32435720,
+43a78022, 3118f251.
+
+Start checkpoint `c180e.lua` (s15 scratch): map 180 at 0,11 facing left,
+story word $A123 = $0E, after the story 14 scene hands control back.
+
+Leg route used: `180:0.11,277:37.54|40.55,159:19.24|8.49,158:0.7,181:17.8l`
+with `MN_PICK=2A:5255`, `MN_GOD=1 MN_BAUTO=1`. Map 180's step trigger 2A:516B
+leads out to overworld 277; 277 trig16 2F:4072 -> 159, 159 1A:467D -> 158,
+158 1A:460E -> 159, 159 1A:4686 -> 277, 277 trig17 2F:4079 -> 181.
+
+- Battles on the way (g5): battle Animite was missing, so $A3A5 never grew;
+  fixed in 32435720 ((D06C>>1)+1 per win, cap 999).
+- Map 181 has the ferryman, slot 2 at 16,8 (talk 2A:58ED, use 2A:5CDE).
+  Talking from 17,8 facing left (s4) stopped on `$A7 StoreLookupWordIntoSram`
+  (unimplemented), the ferry fare. 3118f251 sizes and runs the $A5/$A6/$A7
+  expression stores (`tests/engine/mn_expr_store_test.lua`), and `MN_SEED`
+  seeds love.math so random battles on a leg replay the same.
+- After the fix (s4b), the ferry pays and warps 181 -> 277 -> map 184 at
+  15,4 (music $1E, many scheduled NPCs: a ferry/cutscene map).
+- g7 (seed 4, `MN_WATCH=A2AD`, `MN_SNAP_TO=181,c183`): `A2AD <- 02 at
+  2A:6276` during the ferry, and the c183 checkpoint was written: map 183 at
+  18,7 facing left, $A123 still $0E (s15 scratch `c183.lua`). Map 183's only
+  exit is trig0 2A:5FA9 -> 277.
+- MN_ROUTE dead end (g2): `route far -> 21,39 (0 steps)` loops forever on
+  277 when the target is an NPC cell; don't route onto NPC cells.
+
+Story $0F store: of the three `A9 0F 00` hits, 2A:5115 is inside an
+Opcode16 argument run at 2A:5102 (data, not a store). 19:7838 is real:
+19:7834 ends a script (`MarkScriptDone21B2`), 19:7835
+`StageNextScriptIfByteAtMostC6F7 03 02`, then 19:7838 stores $0F, followed
+by 19:783B $07 / 19:783F $09 / 19:7844 `InstallParkedScript`. So the
+entry is 19:7835, gated on C6F7 <= 3. 28:63BE is unchecked.
