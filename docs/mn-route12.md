@@ -1174,7 +1174,7 @@ must start from k241 or earlier.
   toggles bit `$40`). A missing prerequisite runs 666D (a "won't" text). Each lever unpacks
   the collision overlay (65:63E0 / 69:7AD0, or 51:4BEA / 64:7B0E for the toggles) and plants
   rects with `$7F` into the live plane. `$46`-`$4A` are no-ops; `$4B`-`$5D` are chests
-  ("Tony got ...", `$A335`-`$A342` flags), and `$50` 59,31 needs trig9 first.
+  ("Tony got ...", PlantOffset7 `$A3xx` flags), and `$50` 59,31 needs trig9 first.
 - a1/a2 (k185, `MN_NOENC=1`, route
   `185:14.2,186:23.15r>23.24r>15.33d>23.34r>23.42r>46.63`): all five levers fire in order
   (`A on cell $40` ... `$44`; the planner hops 23,27 -> 23,29 -> 23,31 on the way), then
