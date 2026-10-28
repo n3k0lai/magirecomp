@@ -71,7 +71,7 @@ checked snapshot chain) in the headless port.
 | $0C | Wence's home, Morag legend; Lava Arboll ask | Cald | - | routed (1A:76AF) |
 | $0D | ring forge in Cald | Cald | - | routed (1E:75FD) |
 | $0E | Valkan's scene, fire distraction, Ashgar's key | Cald | - | routed (1E:55E2) |
-| $0F | Pirate's horn (item $1E) after the 250 pirate wake | Cald | - | routed (19:7838, 249 scene 19:77F2; checkpoint k249h2, see mn-route12.md) |
+| $0F | Cald elder / vault errand, ferry (G); stored by the pirate's horn scene (item $1E) | Cald | - | routed (19:7838, 249 scene 19:77F2; checkpoints k249h2, k182h (2A:6172 scene ran), see mn-route12.md) |
 | $10 | Cald Shadow Geyser closed (G) | Cald | - | no |
 | $11 | first Orothe chapter (G) | Orothe | - | no |
 | $12-$13 | Orothe geyser approach (G) | Orothe | - | no |
