@@ -1008,3 +1008,28 @@ must start from k241 or earlier.
   `$A224` stayed 3. Blocker: find how the original runs the 21:533E script on entry to 250 (which
   map-record slot it is and who walks it) and port that with a failing-then-passing test. Run u3
   (k249d, route with two separate 249 legs) stuck at 1,7 with no path; not followed up.
+
+### 250 pirate wake: 19:7B14 is the `$C1` step trigger, not an entry script (story `$0F`)
+
+- 250's live trigger list is 21:5337 (`trig=21303` in k250b): count 2, `[02 19:7AFC]` (`$C0`),
+  `[02 19:7B14]` (`$C1`). The init list follows at 21:5340 (`[01 19:7B30] [01 19:7B74]`). So
+  21:533E is trigger `$C1`'s pointer, not a second entry script. Map 250's block has `$C1` at
+  9,16 and 10,16 (`$C0`, the exit, at 9-10,19). Both are kind 2: World.gate fires them only when
+  Tony steps onto the cell moving down.
+- 19:7B14 is `$43` on `AND($A224 == 3, story == $0E)` -> 19:7B24 (`$07`, `$09`, `$0B 02`). Run u4
+  did run it, on the walk out from k250b, but slot 2 does not exist on that visit; it is spawned
+  (parked at 9,21, walk-in 19:7D34) only by the fresh entry from 249. After re-entering at 9,19
+  the route walked up over row 16 (no fire) and never stepped down onto it again.
+- No engine change was needed: the port already matches. Regression test
+  `tests/engine/mn_down_trigger_wake_test.lua` pins the condition and the down-only gate
+  (synthetic bytes). All 42 `tests/engine/mn_*` pass.
+- Run w2 (k250b, `250:9.19|9.16d,249:27.3u>27.2`): 250 -> 249 -> 250 at 9,19, route 7 steps to
+  9,16 entering from 9,15 down, 19:7B14 fires, the pirate walks in, MN_TALK -> `A224 <- 04` at
+  19:7C99.
+- Run w3 (same, `250:9.19|9.16d>9.19`, `MN_WATCH=A123`): after the talk, 9,19 -> 19:7AFC -> 249
+  scene (slot 0 talk 19:7281 at 27,2), "got 0:30 x1" (item `$1E`, the horn) and
+  `A123 <- 0F` at 19:7838. Control returns in 249 at 24,4. New checkpoints (s15 snaps):
+  k250w (250 at 9,16, `$A224 = 4`, story `$0E`) and k249h2 (249 at 24,4, story `$0F`, horn).
+- Next: from k249h2 back across the island to 182 (k241r's leg t4 route: 241 -> 255 -> 257 ->
+  277 D6 -> 182) to check the 2A:6172 `$0F` scene ("The ferry's gone!", `$A1AC |= $10`), then on
+  toward `$10` (Shadow Geyser).
