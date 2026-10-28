@@ -238,6 +238,8 @@ function M:host()
     slotFields = function(slot, a, b) local ob = s.objects[slot]; if ob then ob.f1, ob.f2 = a, b end end,
     music = function(v) s.log[#s.log + 1] = ("music $%02X"):format(v); s:playMusic(v) end,
     -- record handler word ($13): $65A4 = "start my tail script when the player stands on me"
+    -- $00 copies the door pair into slot 0's record: a stand-in (hidePlayer) stands there too
+    moveStandIn = function(x, y) local ob = s.objects[0]; if ob and s.hidePlayer then ob.x, ob.y, ob.ox, ob.oy = x, y, 0, 0 end end,
     setHandler = function(slot, w) local ob = s.objects[slot]; if ob then ob.handler = w end end,
     battleBegin = function(a)
       s.battleSetup = { args = a, ops = {} }

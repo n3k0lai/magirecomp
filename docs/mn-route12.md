@@ -1045,3 +1045,26 @@ must start from k241 or earlier.
   1F:7A9E) of map 189 (trigger list 21:4F5A, entries 1F:79E5 / 1F:7AAC; 1F:7AAC's slot templates
   at 15,16 and 12,16). Map-cache doors into 189 come from 187 and 188. Next: OPLOG 2A from k182h
   (talk 2A:61CF and what it plants), then find the walk or horn use that leads to 187/188.
+
+### Toward `$10`: off the island is 257, not the horn (k182h)
+
+- Talk 2A:61CF is Tony's own line, not an NPC: slot 0 in the 2A:6172 `$0F` variant is the
+  cutscene stand-in (template `$4A6B`, behaviour 2A:61B1: walk 20:4FDD/20:50BF, then the
+  61CF text, `$13 $5D81` hands control back). It plants nothing; the only state it leaves is
+  `A1AC |= $10` (2A:61AC). OPLOG 2A (run x3, k257h -> 182) shows that order.
+- `A1AC & $10` is read in one other place: 257's entry 1B:4E6A (from 255 trig0 1B:4000 and 277 D3
+  2F:4087) sets `$A2B2 = 1` and picks by story word (`$4B`): `$0E`/`$0F` -> 1B:4FDE, `$12`/`$13` ->
+  1B:4EEA, `$14` -> 1B:4F0D. 1B:4FDE is `AND(story == $0F, $A2AD == 2, $A1AC & $10)` -> 1B:5042:
+  257 with slot 2 at 7,12 whose talk 1B:509A walks Tony and enters 2A:6547 (a 182/183 scene with
+  four 6B4A stand-ins that ends in 1B:46B4). That is the way off the island at `$0F`. Run w4
+  crossed 257 before the 182 scene, so the flag was not set yet.
+- Engine bug found on the way: k182h left Tony at 11,3, inside the 182 wall (only row 11 is
+  floor). The `$0F` entry fills slot 0 as a stand-in at its template cell 11,3, then `$00`
+  copies the D6 pair 29,11 to `$C18E`, which is slot 0's record cell. The port moved only the
+  player, so the stand-in walked from 11,3 and released control there. Fix: `$00` also moves a
+  live slot-0 stand-in (`moveStandIn`). Test `tests/engine/mn_standin_pair_test.lua` fails
+  before, passes after; all 43 `tests/engine/mn_*` pass. k182h is stale (wall cell); use k257h
+  and replay the D6 leg.
+- Route to the `$10` store (graph from the trigger lists): 134 -> 185 (28:63B6) -> 186 ->
+  187 (1F:628F..62BC) -> 189 (1F:694F/6958), or 187 -> 188 -> 189. 189's 1F:7B0B handler is
+  planted by 1F:7A99 (`$A3A4 = 4`) and the entry skips its slot 2 once `$A1AC & $80`.

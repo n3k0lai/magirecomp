@@ -255,7 +255,13 @@ function VM:run(bank, ptr)
       self.pairNeedsMap = true -- still the map being left until $65
       o = o + n
     elseif op == 0x00 then -- Opcode00 -> bank 1 $4423: C9A1 copied to C18E (player map cell)
-      if self.pair then h.placePlayer(self.pair[1], self.pair[2]); self.pair = nil end; o = o + n
+      -- $C18E is slot 0's record cell: a cutscene stand-in filled by an earlier $05
+      -- moves with it (182 story $0F entry 2A:6172: template 11,3, door pair 29,11)
+      if self.pair then
+        h.placePlayer(self.pair[1], self.pair[2])
+        if h.moveStandIn then h.moveStandIn(self.pair[1], self.pair[2]) end
+        self.pair = nil
+      end; o = o + n
     elseif op == 0x13 then -- Opcode13 (word): this record's handler := word, yield
       o = o + n
       if not self.init then
