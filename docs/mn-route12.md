@@ -965,3 +965,13 @@ must start from k241 or earlier.
 - The far planner now enters a goal that sits on a direction-gated step trigger (kind 1-4) only
   from the side it fires on. Probe t3d: 7,7 -> 7,6 up ran 19:6B06, "door crossed -> map 255 at
   11,5".
+
+### Back across the island to 182 (leg t4, k241r)
+
+- `241:7.6,255:15.19,257:8.19,277:55.46` from k241r: 241 (19:6B06) -> 255 at 11,5 -> 257 (1B:4000)
+  at 15,19 -> 277 (1B:4876) at 10,19 -> D6 at 55,46 (2F:409C) -> 182 at 29,11. New control
+  checkpoints (story `$0E`, boots): k255r, k257r, k182r.
+- The island is not walkable to 159 (277 is sea; the 241-276 cluster + 257 only connects through
+  the 277 island's D3/D6 and 182). In 182 MN_TALK talked to slot 2 (10,11, talk 2A:60EE) and
+  slot 3 (6,11, talk 2A:671D); neither moved the ship in 9000 frames. Next: OPLOG 2A from k182r
+  with a route onto 10,12u / 6,12u to read what those talks gate on (likely `$A2AB`/`$A2AD`).
