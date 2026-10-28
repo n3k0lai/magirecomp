@@ -741,3 +741,14 @@ c134 has `$A3A3 = 2`, so the route skipped the boots. Warp path to map 250:
 134 -> 135 -> 138 -> 280 -> 147 -> 159 -> 277 (trig19 2F:4087) -> 257
 (1B:488C) -> 255 (1B:4007) -> 241 (19:6B2C) -> 242 (19:6C89) -> 247
 (19:6F64) -> 249 (19:71B7) -> 250 (A-list 21:5340 -> 19:7B30).
+
+Scratch check of the hop (not a legal route): c134 with `$A3A3` forced to
+3, `134:24.18u`, `MN_WATCH=A123`. The far search now takes hops and found
+24,18 in 63 steps; the walk logged `hop 34,14 -> 31,14` (a second count-2
+seam, east of the x=25 one) and ended at 24,17 on map 134 with no `$A123`
+write. The live cells around 24,17 were all `$00`: the 28:6945 3x4 door blit
+(C2 at 24,18) is missing from the live plane, so trigger 2 (28:63B6:
+`$A2B2 <- 0`, `A123 <- 0F`, warp to 185) never fired. Next: find out why the
+`$68` overlay is not in the live plane after an `MN_LOAD` into 134 (sim.lua
+applies the blits by hand, the live run does not show them), then get the
+boots legitimately (map 250) and rerun from a real checkpoint.
