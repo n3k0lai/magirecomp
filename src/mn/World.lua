@@ -69,6 +69,14 @@ local function gateByte(cell, mem)
   return b
 end
 
+-- $C9A6, the walk-entry copy of SRAM $A3A3, from the seeded VM (0 if none).
+function M.mark()
+  local src = wram
+  if not src then return 0 end
+  if src.rd8 then return src:rd8(0xC9A6) end
+  return src[0xC9A6] or 0
+end
+
 local function noteGate(cell, byte)
   local flag = os.getenv("MN_DEBUG_GATES")
   if flag == nil or flag == "" then return end
@@ -89,14 +97,47 @@ function M.walkable(v, mem)
   -- $40-$5F are A-press cells (signs, counters, fireplaces): PyBoy blocks Tony on them
   -- (map 59 counter $41, map 60 $45); $60-$7F are solid
   if v >= 0x40 and v < 0x80 then return false end
-  -- Only the colored gates $04-$07 are gated for now. $01-$03 are also
-  -- driven by $C12B/$C12C (clear_c12a_set_c12b.asm and siblings), which the
-  -- port does not run yet, so they keep their old meaning.
+  -- Only the colored gates $04-$07 are gated here. $01/$02 are crossed
+  -- by M.hop (CountCellRun); the $C12A-$C12C swaps only matter for the
+  -- layer walks ($01 at $C9A6 >= 4, $02 runs at >= 5), not modelled yet.
   if v >= 0x04 and v < 0x08 then
     local b = gateByte(v, mem)
     if b ~= 0 then noteGate(v, b); return false end
   end
   return true
+end
+
+-- CountCellRun (01:517C): HL is the cell Tony walks into, DE the stride.
+-- With $C9A6 < 4, $01 and $02 both continue the run; with $C9A6 >= 4 only
+-- $02 does (a $01 cell then goes to Plant5969WhenCellIs01 instead). The
+-- first non-run cell ends it: $00 or $82 keep the count, anything else
+-- forces 3. Returns the count and the landing cell (nil when forced).
+function M.cellRun(def, x, y, dx, dy, mark)
+  local function run(v) return v == 0x02 or (v == 0x01 and (mark or 0) < 4) end
+  local c = 0
+  local cx, cy = x, y
+  while run(M.cell(def, cx, cy)) do
+    c = c + 1; cx, cy = cx + dx, cy + dy
+    if c >= 3 then break end
+  end
+  if c == 0 then return 0 end
+  local v = M.cell(def, cx, cy)
+  if c >= 3 or not (v == 0x00 or v == 0x82) then return 3 end
+  return c, cx, cy
+end
+
+-- DispatchZeroStepCellRun and its three siblings (01:51B6 down, 01:526A up,
+-- 01:51F2 left, 01:522E right), run when a step into the cell is blocked:
+-- a run of one hops it with no item ($56F9 / $5813 heads), a run of two
+-- needs $C9A6 >= 3 (Agadon's Boots, 19:7B66 stores $A3A3 = 3), and a run of
+-- three or more needs $C9A6 >= 5 and switches the record to the $02 layer
+-- heads (ResumeHead00-03Record, which swap $C12A/$C12C). Returns the landing
+-- cell for a hop, or nil. The $02 layer walk is not modelled yet.
+function M.hop(def, x, y, dx, dy, mark)
+  local c, lx, ly = M.cellRun(def, x, y, dx, dy, mark)
+  if c == 1 then return lx, ly end
+  if c == 2 and (mark or 0) >= 3 then return lx, ly end
+  return nil
 end
 
 function M.trigger(def, x, y, dx, dy)

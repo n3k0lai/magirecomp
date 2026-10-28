@@ -667,6 +667,14 @@ function M:update()
   for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, nx, ny) then return end end
   if nx >= 0 and ny >= 0 and nx < self.def.w and ny < self.def.h and World.walkable(World.cell(self.def, nx, ny)) then
     self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
+    return
+  end
+  -- a blocked step into a $01/$02 run: DispatchZeroStepCellRun and siblings
+  local lx, ly = World.hop(self.def, nx, ny, d[1], d[2], self.vm and self.vm:rd8(0xC9A6) or 0)
+  if lx then
+    for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, lx, ly) then return end end
+    self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, lx, ly)
+    self.x, self.y = lx, ly; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
   end
 end
 

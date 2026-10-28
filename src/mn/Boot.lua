@@ -143,6 +143,11 @@ local function bfs(def, sx, sy, goal)
       local nx, ny = x + d[1], y + d[2]; local k = ny * def.w + nx
       if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[k] and World.walkable(World.cell(def, nx, ny)) then
         prev[k] = { y * def.w + x, d[3] }; q[#q + 1] = { nx, ny }
+      elseif nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
+        -- a $01/$02 run Overworld hops (World.hop): one press lands past it
+        local lx, ly = World.hop(def, nx, ny, d[1], d[2], World.mark())
+        local lk = lx and (ly * def.w + lx)
+        if lk and not prev[lk] then prev[lk] = { y * def.w + x, d[3] }; q[#q + 1] = { lx, ly } end
       end
     end
   end

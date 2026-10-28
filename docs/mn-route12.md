@@ -704,3 +704,40 @@ not run. If the ROM lets Tony cross $02 cells (the Agadon's boots plan from
 the story 14 scene), that is the engine gap: route `134:24.18u` needs $02
 handled like the ROM, with a regression test. Check against a reference
 run, or decode bank 1 $57F9/$5888/$5A5B, before changing walkability.
+
+### What the ROM does with $01-$03 cells (story 15 work)
+
+Decoded from bank 1 (decomp names, ~/Code/magination):
+
+- `$C12A-$C131` is an 8-byte gate table indexed by cell value; ProbeCells*
+  blocks a cell under `$08` when its byte is nonzero. The ground pattern is
+  `00 FF FF 00 FF FF FF FF`: `$00`/`$03` open, `$01`/`$02` solid.
+- A blocked step runs `Dispatch*ZeroStepCellRun` (01:51B6 down, 01:526A up,
+  01:51F2 left, 01:522E right), which calls `CountCellRun` (01:517C) on the
+  cells ahead. `$01` and `$02` continue the run (at `$C9A6 >= 4` only `$02`;
+  a `$01` instead enters the `$01` layer via Plant5969WhenCellIs01). The run
+  ends on `$00`/`$82` and keeps its count; any other end cell forces 3.
+- Count 1: a free hop. Count 2: needs `$C9A6 >= 3`. Count 3+: needs
+  `$C9A6 >= 5` and switches to the `$02`-layer record heads
+  (ClearC12CAndSetC12A etc. rewrite `$C12A-$C12C` per layer).
+- `$C9A6` is the walk copy of SRAM `$A3A3` (item level). Stores of `$A3A3`:
+  3 at 19:7B66 (map 250 A-list 19:7B30, "Tony got Agadon's Boots!", also
+  `$A224 = 3`), 3 at 1C:4168 ("Hey! This is my stuff!"), 3 at 2A:5118
+  (debug room); 4 at 2F:4738; 5 at 19:63C3, 2A:50CE, 2A:5144.
+
+Port: `World.cellRun`/`World.hop` mirror counts 1 and 2; Overworld takes the
+hop on a blocked step, and the Boot route BFS adds the hop as an edge
+(`World.mark()` reads `$C9A6`). The `$01`/`$02` layer walks (count 3+, mark
+4+) are still not modelled. `tests/engine/mn_hop_test.lua` covers the rule.
+Landing on the first `$00`/`$82` cell is inferred: the hop scripts
+(`$56F9`, `$5813`, ...) are still INCBIN. No PyBoy reference: PyBoy is not
+installed on kiss and there is no reference save at this point.
+
+### Why 24,18 is cut off at story $0E
+
+The x=25 seam into the 24,18 region is `$00` (row 24), `$02 $02` (rows
+25-26), `$00` (row 27): a count-2 hop, so it needs Agadon's Boots. Checkpoint
+c134 has `$A3A3 = 2`, so the route skipped the boots. Warp path to map 250:
+134 -> 135 -> 138 -> 280 -> 147 -> 159 -> 277 (trig19 2F:4087) -> 257
+(1B:488C) -> 255 (1B:4007) -> 241 (19:6B2C) -> 242 (19:6C89) -> 247
+(19:6F64) -> 249 (19:71B7) -> 250 (A-list 21:5340 -> 19:7B30).
