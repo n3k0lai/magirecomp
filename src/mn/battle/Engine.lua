@@ -1931,6 +1931,14 @@ function E.round(s)
   return s.events
 end
 
+-- Animite after a won battle: have + ($D06C >> 1) + 1, capped at 999.
+-- Returns the new total and the amount actually added.
+function E.awardAnimite(have, d06c)
+  local add = bit.rshift(bit.band(d06c, 0xFF), 1) + 1
+  local total = math.min(have + add, 999)
+  return total, total - have
+end
+
 -- DispatchNonzeroD016 ($6316): rewards and the closing message
 function E.finish(s)
   local code = rd(s, 0xD016)
@@ -1949,8 +1957,12 @@ function E.finish(s)
         s.partyOut[idx] = nil
       end
     end
-    local an = rd(s, 0xD06C)
-    if an > 0 then say(s, 0x43E2, { tostring(an) }) end
+    -- ApplyHalfD06CThenMaybeScan (bank 5 $42F6): ($D06C >> 1) + 1 joins the
+    -- Animite word at $A3A5 through AddC9FEToMapWord0 (capped at 999); the
+    -- message prints the amount actually added and is skipped when that is 0.
+    local total, gain = E.awardAnimite(s.setup.animite or 0, rd(s, 0xD06C))
+    s.animiteTotal, s.animiteGain = total, gain
+    if gain > 0 then say(s, 0x43E2, { tostring(gain) }) end
     for i = 0, 7 do
       local sp = rd(s, 0xD0B8 + i)
       if sp ~= 0xFF then say(s, 0x43F9, { nameOf(s, sp) }) end

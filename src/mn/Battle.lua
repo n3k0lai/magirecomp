@@ -87,7 +87,8 @@ function M.setupFrom(ow, setup, data)
       if n > 0 then items[#items + 1] = { ptr = 0x5DFF + id * 0x22, count = n, id = id } end
     end
   end
-  return { magi = magi, arg3 = setup.args and setup.args[3], tony = Engine.tonySaved({ energy = math.min(energy, 999), max = 100 }),
+  local animite = vm and vm.rd8 and (vm:rd8(0xA3A5) + vm:rd8(0xA3A6) * 256) or 0
+  return { magi = magi, animite = animite, arg3 = setup.args and setup.args[3], tony = Engine.tonySaved({ energy = math.min(energy, 999), max = 100 }),
     party = M.party(ow, data), script = script, spells = spells, items = items }
 end
 
@@ -430,6 +431,12 @@ function M:finish(result)
     self.ow.tonyEnergy = math.max(1, s.tonyEnergy or Engine.rw(s, 0xD14E))
     local vm = self.ow.vm
     if vm and vm.wr8 then for _, it in ipairs(s.items) do if it.id then vm:wr8(0xA3A7 + it.id, it.count) end end end
+  end
+  -- Animite is story progress (the ferry fare), so it is kept even under MN_GOD.
+  if s.animiteTotal then
+    local vm = self.ow.vm
+    if vm and vm.wr8 then vm:wr8(0xA3A5, s.animiteTotal % 256); vm:wr8(0xA3A6, math.floor(s.animiteTotal / 256)) end
+    self:L(("battle animite +%d -> %d"):format(s.animiteGain or 0, s.animiteTotal))
   end
   self:L(("battle result %s tony %d"):format(tostring(result), Engine.rw(s, 0xD14E)))
   self.result = result
