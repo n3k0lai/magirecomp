@@ -438,6 +438,11 @@ function love.load()
                 end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and (W.walkable(W.cell(def, nx, ny)) or (canDig and W.cell(def, nx, ny) == 0x0B)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
+                elseif nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not occ then
+                  -- a $01/$02 run the step hops (World.hop): one press lands past it
+                  local lx, ly = W.hop(def, nx, ny, dd[1], dd[2], W.mark(ow.vm))
+                  local lid = lx and (ly * def.w + lx)
+                  if lid and not prev[lid] then prev[lid] = id; dist[lid] = dist[id] + 1; q[#q + 1] = { lx, ly } end
                 end
               end
             end

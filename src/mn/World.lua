@@ -69,12 +69,13 @@ local function gateByte(cell, mem)
   return b
 end
 
--- $C9A6, the walk-entry copy of SRAM $A3A3, from the seeded VM (0 if none).
-function M.mark()
-  local src = wram
+-- The walk mark. The ROM copies SRAM $A3A3 into $C9A6 on walk entry
+-- (CopySRAMMarkThenHead*), so read $A3A3 from the seeded VM (0 if none).
+function M.mark(vm)
+  local src = vm or wram
   if not src then return 0 end
-  if src.rd8 then return src:rd8(0xC9A6) end
-  return src[0xC9A6] or 0
+  if src.rd8 then return src:rd8(0xA3A3) end
+  return src[0xA3A3] or 0
 end
 
 local function noteGate(cell, byte)

@@ -670,7 +670,7 @@ function M:update()
     return
   end
   -- a blocked step into a $01/$02 run: DispatchZeroStepCellRun and siblings
-  local lx, ly = World.hop(self.def, nx, ny, d[1], d[2], self.vm and self.vm:rd8(0xC9A6) or 0)
+  local lx, ly = World.hop(self.def, nx, ny, d[1], d[2], World.mark(self.vm))
   if lx then
     for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, lx, ly) then return end end
     self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, lx, ly)
