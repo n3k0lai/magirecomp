@@ -1069,3 +1069,23 @@ must start from k241 or earlier.
   187 (1F:628F..62BC) -> 189 (1F:694F/6958), or 187 -> 188 (1F:6946/6961/6993) -> 189
   (1F:74F5). In 189, 1F:7A99 stores `$A3A4 = 4` and 1F:7A9D installs 1F:7AEE (record 1F:6271,
   walk 50B5/505D, then 1F:7B0B `$A123 = $10`, door pair 24,18, enter 28:721F).
+
+### Leaving the island at `$0F` (legs x5-x8, k182f -> k257g -> 256)
+
+- With the `$00` stand-in fix, k257h -> 277 D6 -> 182 releases Tony at 26,11 on the bridge row:
+  checkpoint **k182f** (story `$0F`, `A1AC = $11`, `A2AD = 2`). Route note: two `277:` keys in
+  one MN_ROUTE overwrite each other (the later wins), which looped 257 <-> 277 in x4; use
+  `277:55.46|58.45` for per-entry goals.
+- From k182f, `182:29.11,277:58.45,257:7.13u` reaches 257 entry 1B:5042 (boatman, slot 2 at
+  7,12). In the original, using him runs his record 1B:509A: `$5B` plants talk 1B:4D16 ("I guess
+  you're stuck here..."), whose tail `$9A $58 01` posts C6FC -> C6FD; the record's `$4B` branch
+  waits on C6FD == 1, then 1B:50ED walks him and enters 2A:6547 (`A2B2 = 1`, the crossing).
+- Engine bug 2: the port only ran a record script on use when it did not start with `$5B`, so
+  every `$5B` record ran just its talk and 509A's wait-and-branch tail never ran (x5: sixteen
+  4D16 talks, no scene). Fix: `Overworld.useRunsRecord` runs the record as the slot thread unless it
+  is exactly `$5B bank ptr, $42` (plain NPC talk). Test `tests/engine/mn_use_record_test.lua`;
+  all 44 `tests/engine/mn_*` pass. x8: `use slot 2 -> 1B:509A`, then 182 (scene) -> 256 at 22,11
+  -> 256 at 12,4. k257g (snapshot at 257 entry) does not respawn the boatman on load; replay from
+  k182f instead.
+- Next: from 256 (checkpoint k256a if saved), map the 256 exits toward 134 -> 185 -> 186 -> 187
+  -> 189 with MN_WATCH=A123.

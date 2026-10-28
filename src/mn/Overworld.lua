@@ -664,7 +664,10 @@ function M:update()
     -- answers from 15,6 up, 14,5 / 14,6 right, 16,6 left, 15,4 down; only 15,5 blocks)
     for slot, ob in pairs(self.objects) do
       local hit = ob.x == fx and (ob.y == fy or ob.y + 1 == fy)
-      if hit and ob.beh and self.vm.rom:u8(ob.beh[1] * 0x4000 + ob.beh[2] - 0x4000) ~= 0x5B
+      -- a record script that only plants its talk ($5B ..., $42) is the talk itself; one that
+      -- carries on after the $5B (257 boatman 1B:509A waits on C6FD for the talk's $58 01
+      -- post, then 1B:50ED) has to run as the slot's thread
+      if hit and ob.beh and M.useRunsRecord(self.vm.rom, ob.beh[1], ob.beh[2])
         and not (self.vm.threads and self.vm.threads[slot]) then
         -- the record's own script (sbank:sptr) runs as the slot's thread when used
         self.log[#self.log + 1] = ("use slot %d -> %02X:%04X"):format(slot, ob.beh[1], ob.beh[2])
@@ -878,6 +881,14 @@ function M:playMusic(v)
     src = love.audio.newSource(sd, "static"); src:setLooping(true); musicCache[v] = src
   end
   self.music = src; src:play()
+end
+
+-- Using an object runs its record script as the slot's thread, unless that script only
+-- plants its talk ($5B bank ptr then $42): then the talk itself runs (plain NPCs).
+function M.useRunsRecord(rom, bank, ptr)
+  local o = bank * 0x4000 + ptr - 0x4000
+  if rom:u8(o) ~= 0x5B then return true end
+  return rom:u8(o + 4) ~= 0x42
 end
 
 return M
