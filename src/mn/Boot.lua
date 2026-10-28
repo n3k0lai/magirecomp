@@ -647,10 +647,15 @@ function love.update()
       print(("[mn-test] final player %d,%d map %d hide=%s box=%s vmwait=%s moving=%s sw=%s tw=%s"):format(s.x, s.y, s.map, tostring(s.hidePlayer), tostring(s.textBox and (tostring(s.textBox.done) .. "/" .. tostring(s.textBox.wait) .. "/" .. tostring(s.textBox.owner and coroutine.status(s.textBox.owner)))), tostring(s.vm.wait), tostring(s.moving), tostring(s.scriptWaiting), tostring(s.vm.textWait)))
       do local o = s.vm.pcs and s.vm.co and s.vm.pcs[s.vm.co]; print(("[mn-test] main vm pc %s"):format(o and ("%02X:%04X op %02X"):format(math.floor(o / 0x4000), o % 0x4000 + 0x4000, s.vm.rom:u8(o)) or "?")) end
       for yy = s.y - 3, s.y + 1 do local t = {} for xx = s.x - 3, s.x + 3 do t[#t + 1] = ("%02X"):format(W.cell(s.def, xx, yy) or 0) end print("[mn-test] cells " .. table.concat(t, " ")) end
-      if os.getenv("MN_DUMPMAP") == "1" then -- harness debug: the live block grid ($00 floor ".", $08 "#", $01-$0F as one digit, else the high nibble)
+      local dumpMode = os.getenv("MN_DUMPMAP")
+      if dumpMode == "1" or dumpMode == "2" then -- harness debug: the live block grid ($00 floor ".", $08 "#", $01-$0F as one digit, else the high nibble; "2" adds a full-byte hex grid)
         for yy = 0, s.def.h - 1 do local t = {} for xx = 0, s.def.w - 1 do local v = W.cell(s.def, xx, yy) or 0
           t[#t + 1] = v == 0 and "." or v == 8 and "#" or v < 0x10 and ("%X"):format(v) or ("%X"):format(math.floor(v / 16)) end
           print(("[mn-test] map %2d %s"):format(yy, table.concat(t))) end
+        if dumpMode == "2" then
+          for yy = 0, s.def.h - 1 do local t = {} for xx = 0, s.def.w - 1 do t[#t + 1] = ("%02X"):format(W.cell(s.def, xx, yy) or 0) end
+            print(("[mn-test] hex %2d %s"):format(yy, table.concat(t))) end
+        end
         for k, ob in pairs(s.objects or {}) do
           print(("[mn-test] obj %s at %s,%s handler %s dormant=%s blank=%s img=%s blocks=%s"):format(tostring(k), tostring(ob.x), tostring(ob.y),
             ob.handler and ("$%04X"):format(ob.handler) or "-", tostring(ob.dormant), tostring(ob.blank), tostring(ob.image ~= nil or ob.anim ~= nil),

@@ -1241,3 +1241,22 @@ must start from k241 or earlier.
 - So the earlier "blocks vanish" was the route, not the engine: the a4 route presses `$44` and `$45` once each, which turns the `$81` block rooms into `$02` bands. Route q2 (`23.15r>23.24r>15.33d>23.34r>23.36`, levers `$40`-`$43` only) leaves the `$09` blocks at 36,48 37,48 and 18,54-56 on `$81` floor.
 - Walk/hop flood from 23,36 on q2 (no pushes) reaches both block rooms but not: 27-38 x 52-60 (trig7 `$C7` at 27,56), 32-40 x 42-44 (trig8 `$C8` at 37,43, cell `$57` at 34,42), 48-55 x 43-62 (cell `$58` at 51,44, door `$C2` at 54,63), or the x=44 `$82` column to door `$C1` at 46-49,63.
 - Next: route the pushes (Tony has A3A3 = 3); the block in room B (18,54-56, x=17 edge) and room A (36-37,48, south edge row 49 open at 34-42) are the candidates for opening 27-38 x 52-60. Also decode what `$57`/`$58` and the `$4F` at 43,37 do.
+
+### Map 186: `$4F` at 43,37 turns into a push block and opens the east side (leg b2)
+
+- `$43` asm check: kind `00` (lookup at $1262) returns `$FFFF` when `[addr] & mask` is nonzero, and kind `0A` ($12D8) calls $1397 for a nested expression and inverts the result. `SRAMLookupInstallScript` jumps when DE is nonzero, so 64B1 / 6599 jump to 64DC / 65D5 when `$A127` bit `$10` / `$08` is clear. The port's reading matches.
+- A list 21:4E3E: `$4F` → 1F:66E0, `$50` → 6702, `$57` → 67E2, `$58` → 680F.
+  - `$57` (34,42) is a `$A337` bit `$04` chest ("Tony got 200"). `$58` (51,44) is a `PlantOffset7` record on `$A337` bit `$08`.
+  - `$4F` (43,37) is a chest on `$A336` bit `$04`. Both branches run `80 .. 6B D9 09 FF`. That is `WriteScriptBytesAcrossWramBanks`, which writes `$09` into WRAM 5 (collision) and `$FF` into WRAM 3 (metatile) at $D96B = 43,37 (write_script_bytes_across_wram_banks.asm). So pressing A there leaves a push block on the `$81` plus at 42-44,37 / 43,36-38.
+  - `$50` (59,31): if `$A128` bit `$04` is set, it unpacks the bands overlay `65:63E0` / `69:7AD0` and runs `7F FB D7 03 01 FB D7` (it copies 59-61,31 from the overlay). Otherwise it is a `$A336` bit `$08` chest that also writes `$09` at $D7FB = 59,31.
+- Door warps (`Opcode02` pair = cell - b0 + b1, cell - b2 + b3):
+  - 186 T1 (46-49,63) → 187 35-38,0, and 187 T2 / T3 go back to 186 46-49,63.
+  - 186 T2 (54-55,63) ↔ 187 54-55,0.
+  - 186 T3-T6 (1F:62A1-62BC) have no `$C3`-`$C6` cells in the base, in either overlay, or in any `$80` / `$7F` write found so far.
+  - So the only way from 186 to 187 is the two south pockets: x=44 rows 44-58 down to 44-49 x 57-63, and 49-55 x 43-46 down to 54-55 x 47-63. Both are walled by `$08` in the live grid and in `64:7B0E`.
+- Port leg b2 (k185, `MN_NOENC=1`, route `...>23.36>42.37r>43.36d`): A on `$4F` gives item 1 (Baloo Leaf) and sets metatile (43,37) to `$FF`. The push 43,37 → 43,38 works. The flood from 43,36 then reaches 43-48 x 35-39 and 47-58 x 30-35 up to `$50` at 59,31, but still not either pocket.
+- `MN_DUMPMAP=2` now also prints full-byte `hex YY` rows, because the `1` grid shows `$81` and `$82` both as `8`.
+- Next:
+  - Find what sets `$A128` bit `$04`. That bit switches `$50` from a chest-block to the bands copy.
+  - Push or route the `$50` block at 59,31 and flood again.
+  - Look for the `$7F` / `$80` write that opens x=44 rows 40-43 or the 49-55 x 42 wall. The `69:7AD0` overlay has floor at 42-47 x 40-44 and 44,44-46, but no rect found so far copies it.
