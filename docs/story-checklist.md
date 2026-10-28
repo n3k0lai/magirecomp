@@ -4,7 +4,12 @@ Source: GameFAQs FAQ #12490 (local copy policy: docs/ref/, gitignored; the
 page 403'd to curl and was read once via the fetch tool, not stored verbatim).
 Order of beats, our map ids where known, and port status.
 
-| # | Beat | Maps | Port |
+The numbered rows below are **walkthrough beats** (how the FAQ splits the
+early game), not the game's story word. The story word is $A123: it runs
+$01..$1A (26 values, each with its own setter), and the second table, "Story
+words", lines the port up against it.
+
+| Beat # | Walkthrough beat | Maps | Port |
 |---|------|------|------|
 | 1 | New game, Tavel Gorge, kids dare Tony into the cave | 216, 219 | yes |
 | 2 | Cave maze to the crystal; cave-in, Tony trapped | 220-222 | yes: route leg 2 reaches the crystal talk 1F:5D95 and runs 1F:5EAE |
@@ -19,7 +24,7 @@ Order of beats, our map ids where known, and port status.
 | 11 | Earthquake; go east to the Glade (first wild Dream Creature battles) | 61 (leave west at 0,9: Eidon's No/Yes, quake 13:5D5F sets A123=3, Yaki 13:5DBF) -> 2 (14:50BA quake scene: Orwin/Eidon/townsman, control 12,8) -> 277 (37,13) -> Glade 3 -> 4 -> 5 (6 is a side clearing; 7 exits north) | yes: e2e text matches gt/b11_quake (9/9), b11_after (8/8); wild Weebo fights run with MN_GOD; Yaki's optional tutorial (gt/b11_yaki) not routed |
 | 12 | End of the Glade path: Korg/Zet return, Orwin vanishes, Korg duel | 7 -> 277 (step-on record at 37,8, 2F:4210) -> 8 (Shadow Geyser 14:6A95; duel 14:4174, win tail 14:6B30: Orwin, Energy Band; control 8,8) | yes: text matches gt/b12_scene (16/16) and gt/b12_duel (20/20); the duel itself still uses the stub battle (Korg's creature shows as Weebo), won with MN_GOD |
 | 13 | Orwin's bracelet (kick blocks), Seer, Cloud Frond quest, Weave, Gia, Core Glyph | | no |
-| 14 | Shadow Geyser 1, Core Keeper Togoth | | no |
+| 14 | Shadow Geyser 1, Core Keeper Togoth | 15-26 (guardian room 25) | partly: story $06 is stored in 25 (leg duel25); beat text not checked |
 
 Dream creatures early on: Furok (first ring); Glade wild: Weebo, Furok, Twee,
 Bhatar, Plith. Items: crystal, translation ring, Furok ring, Jelly Beans,
@@ -41,3 +46,41 @@ ask in 146 (1A:76AF), $0D the ring forge in 144 (1E:75FD), and $0E comes after
 Valkan's scene, the 135 fire distraction and the key in Ashgar's house 141
 (1E:620D, then the 11,15 exit 1E:6204 -> 12:7608 -> 1E:55E2). Each leg checks
 its `A123 <-` line; the route reaches story $0E.
+
+## Story words ($A123, $01-$1A)
+
+Paraphrased from ~/Code/magination/docs/progress-names.md (decomp notes, read
+only) and docs/mn-route12.md. Chapter names marked (G) are guesses there.
+"Routed" means scripts/mn-route12.sh stores that word from a new game (or a
+checked snapshot chain) in the headless port.
+
+| Word | Chapter (paraphrase) | World | Walkthrough beats | Port |
+|---|---|---|---|---|
+| $00 | new game, Tavel Gorge | prologue | 1 | routed |
+| $01 | crystal in the cave, fall to the Moonlands river | Naroom | 2-5 | routed |
+| $02 | Vash Naroom, meet Orwin | Naroom | 6-10 | routed |
+| $03 | training with Yaki, the quake | Naroom | 11 | routed |
+| $04 | end of the Glade: geyser appears, Orwin gone, Korg duel | Naroom | 12 | routed |
+| $05 | Gia's village: Gia, the Prophecy, the Core Glyph | Naroom | 13 | routed |
+| $06 | inside the Naroom Shadow Geyser, guardian Togoth | Naroom | 14 | routed |
+| $07 | back at Gia's village, digging gloves, down to the Underneath | Underneath | - | routed |
+| $08 | Underneath town after Gruk is freed from the tower | Underneath | - | routed |
+| $09 | a new geyser near the farm; Tony goes in | Underneath | - | routed (15:4CCB) |
+| $0A | Underneath geyser closed, Core Stone 2 | Underneath | - | routed (13:6C74) |
+| $0B | Morag wrecks the Underneath town; Wence's rescue | Underneath -> Cald | - | routed (22:6B1A) |
+| $0C | Wence's home, Morag legend; Lava Arboll ask | Cald | - | routed (1A:76AF) |
+| $0D | ring forge in Cald | Cald | - | routed (1E:75FD) |
+| $0E | Valkan's scene, fire distraction, Ashgar's key | Cald | - | routed (1E:55E2) |
+| $0F | Cald elder / vault errand, ferry (G) | Cald | - | not yet: store found at 19:7838 (map 249 entry, see mn-route12.md) |
+| $10 | Cald Shadow Geyser closed (G) | Cald | - | no |
+| $11 | first Orothe chapter (G) | Orothe | - | no |
+| $12-$13 | Orothe geyser approach (G) | Orothe | - | no |
+| $14 | Oscent Mar | Orothe | - | no |
+| $15 | fourth and last Core Stone; the Prophecy is a warning | Orothe | - | no |
+| $16 | arrival in Arderial (G) | Arderial | - | no |
+| $17 | Queen Jaela, Eye of the Storm; Agram shows himself | Arderial | - | no |
+| $18 | Arderial geyser, Morag fight | Arderial | - | no |
+| $19-$1A | the Core: Agram beaten, ending | Core | - | no |
+
+The beat column is approximate, and beats past 14 are not in this file yet. $A224 is a per-chapter phase
+byte, cleared on each new story word.
