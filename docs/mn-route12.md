@@ -752,3 +752,30 @@ write. The live cells around 24,17 were all `$00`: the 28:6945 3x4 door blit
 `$68` overlay is not in the live plane after an `MN_LOAD` into 134 (sim.lua
 applies the blits by hand, the live run does not show them), then get the
 boots legitimately (map 250) and rerun from a real checkpoint.
+
+### Door missing after MN_LOAD: control checkpoints lose plane edits (fixed)
+
+Cause: a control checkpoint (`MN_SNAP_TO=c<map>`) saved only the map, cell,
+trigger lists and SRAM, and `Overworld.load` builds the map from the stored
+record without rerunning the entry script (Boot skips "map entry" under
+`MN_LOAD`). Everything 134's entry 28:68C1 did to the live planes (the `$68`
+overlay unpack, the 28:693C / 28:6945 `$7F` blits with C2 at 24,18, the
+28:6924 `$7E` bridge copy) was gone after a load. The old c134.lua also
+predates a224af1a, so it never had the door even at save time.
+
+Fix: `writeSnapshot` for kind `c` now stores `planes={i,col,mt,...}`, the
+diff of the live collision/metatile planes against the stored map
+(`Overworld.planeDiff`, base from `Overworld.baseMap`), and `Overworld.load`
+puts it back through `applyPlanes` (also queued as draw patches).
+`tests/engine/mn_control_snapshot_test.lua` covers save, restore and the
+no-diff case. Snapshot-replay checkpoints (`s`/door) still rerun a script and
+are unchanged.
+
+New checkpoint s15 scratch `c134p.lua` (leg h3: c135.lua ->
+`135:15.0u,134:far`, `MN_SNAP_TO=c134`): map 134 at 40,59, story `$0E`,
+`$A3A3 = 2`, 76 plane cells including C2 at 24,18 and the `$02` seam at x 24-25.
+
+Scratch check only (not the route): `c134pb.lua` = c134p with `$A3A3` forced
+to 3, `134:24.18u`, `MN_WATCH=A123`: `hop 25,27 -> 25,24`, then trigger 2
+28:63B6 fires, `A123 <- 0F at 28:63BE`, warp to 185 at 24,18. So the door
+and the count-2 hop both work once the boots are real.
