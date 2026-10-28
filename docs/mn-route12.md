@@ -656,3 +656,9 @@ and wrote checkpoint s15 scratch `c134.lua` (map 134 at 40,59, story
 $0E). Next step: from c134.lua, read h1's log for the copy/metatile
 lines, find the cell that becomes $C2 (or the script that writes it), and
 route up onto it to fire 28:63B6 (`A123 <- 0F`) and warp to 185.
+h1 result: 135 15,0 -> 12:4000 -> 134 (triggers 21:49E9), then
+`134:far` found only the $C0 exit (39,59) and stopped at 39,58: no copy
+or metatile logs and no reachable $C2 cell at story $0E. So the $C2 cell
+needs an event first (an NPC/slot script in 134 or a prior story
+step); dump 134's planted slots (Opcode05 records in 28:68C1) and their
+use/talk scripts next.
