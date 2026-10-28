@@ -662,3 +662,15 @@ or metatile logs and no reachable $C2 cell at story $0E. So the $C2 cell
 needs an event first (an NPC/slot script in 134 or a prior story
 step); dump 134's planted slots (Opcode05 records in 28:68C1) and their
 use/talk scripts next.
+
+Found the $C2 cell (engine bug). 134's entry 28:68C1 runs
+`CallScriptUnpackIntoWRAM4And6` at 28:692D (metatile 73:5C69 skip 7 ->
+WRAM 4, collision 7A:7BD2 skip 3 -> WRAM 6), then at story <= $0F the two
+$7F blits 28:693C (7x19 from 7,0 -> 21,0) and 28:6945 (3x4 from 29,0 ->
+23,16). The overlay collision has $C2 at 30,2, a 3x4 door template, so the
+ROM places the trigger 2 cell at 24,18 (open floor at 24,19 below it).
+The port skipped $68 and blitted a snapshot of the live planes, so the
+door never appeared. Fix: `$68` now unpacks both streams from the full ROM
+(`h.fullRom`, mn_cache/rom.bin) into the overlay planes;
+`tests/engine/mn_ops_records_test.lua` covers it. Next leg (h2): c135.lua
+-> 135:15.0u -> 134:24.18u with `MN_WATCH=A123`.

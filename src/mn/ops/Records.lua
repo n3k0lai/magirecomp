@@ -6,9 +6,9 @@
 -- the overworld:
 --   bank 5 = collision  (def.block)   bank 3 = metatile (def.cells)
 --   bank 6 = collision overlay        bank 4 = metatile overlay
--- Opcode $68 unpacks banks 4 and 6 from the map record. That opcode is not
--- handled here, so the overlay starts as a snapshot of the live planes the
--- first time a handler touches it. $04/$0E patch the overlay. $7F copies it
+-- Opcode $68 unpacks banks 4 and 6 from two packed streams (often another
+-- variant of the map). Until a map runs $68 the overlay is a snapshot of the
+-- live planes, taken the first time a handler touches it. $04/$0E patch the overlay. $7F copies it
 -- onto the live planes. $7E copies a rectangle inside the live planes.
 -- $03/$0D/$81 write the live planes through setCell.
 local bit = require("bit")
@@ -295,6 +295,21 @@ M.handlers[0x7F] = function(vm, o, n)
   end)
 end
 
+-- $68 CallScriptUnpackIntoWRAM4And6 (call_script_unpack_wram4_and_wram6.asm):
+-- (ptr, bank) twice. The first stream skips 7 header bytes and unpacks to
+-- WRAM 4 (metatile overlay), the second skips 3 and unpacks to WRAM 6
+-- (collision overlay). The streams sit outside the script banks, so the host
+-- unpacks them from the full ROM. Map 134 at story $0E-$0F: 28:692D unpacks
+-- 73:5C69 / 7A:7BD2, then 28:6945 ($7F) blits the 3x4 door with the $C2
+-- trigger cell (story 15 store 28:63BE) onto 23,16.
+M.handlers[0x68] = function(vm, o, n)
+  local r = vm.rom
+  if vm.host and vm.host.unpackOverlay then
+    vm.host.unpackOverlay(r:u16(o + 1), r:u8(o + 3), r:u16(o + 4), r:u8(o + 6))
+  end
+  return o + n
+end
+
 -- Record bases are $C189 + slot * $1B (record_slot_bases.asm). Spawned objects
 -- already hold cell X/Y (.x/.y) and the tile base (.base). Fine X/Y and the
 -- cell pointer are the bytes opcode $05 writes as $08,$08 and the address word;
@@ -342,6 +357,16 @@ function M.host(ow, h)
       ow.ovCol[i] = (d.block and d.block[i]) or 0
       ow.ovMt[i] = (d.cells and d.cells[i]) or 0
     end
+  end
+
+  -- rom: h.fullRom() (MnRom over every bank). No ROM: keep the snapshot.
+  h.unpackOverlay = function(mtPtr, mtBank, colPtr, colBank)
+    local R = h.fullRom and h.fullRom()
+    if not R then return end
+    local MnRom = require("mn.MnRom")
+    local mt = R:unpack(MnRom.off(mtPtr, mtBank) + 7)
+    local col = R:unpack(MnRom.off(colPtr, colBank) + 3)
+    ow._ovDef, ow.ovMt, ow.ovCol = ow.def, mt, col
   end
 
   h.setOverlayCell = function(addr, col, mt)

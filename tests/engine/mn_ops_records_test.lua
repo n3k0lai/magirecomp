@@ -186,5 +186,31 @@ do
   ok(ob.cellPtr == 0xD040 and ob.x == 6, "$08 keeps the explicit cell pointer")
 end
 
+-- $68 unpacks the overlay planes from two ROM streams (metatile skips 7, collision
+-- skips 3); $7F then blits overlay cells, not a snapshot of the live map. Map 134's
+-- story 15 door (28:692D then 28:6945) needs this for its $C2 trigger cell.
+do
+  local function script(withRom)
+    local b = { 0x68, 0x20, 0x40, 0x12, 0x40, 0x40, 0x12,
+      0x7F, 0x09, 0xD0, 1, 1, 0x12, 0xD0, 0x02, 0x02, 0x42 }
+    while #b < 0x20 do b[#b + 1] = 0 end
+    for _, v in ipairs({ 1, 2, 3, 4, 5, 6, 7, 0xA0, 0x55, 0xA0, 0x56, 0x00 }) do b[#b + 1] = v end
+    while #b < 0x40 do b[#b + 1] = 0 end
+    for _, v in ipairs({ 1, 2, 3, 0xA0, 0xC2, 0xA0, 0xC3, 0x00 }) do b[#b + 1] = v end
+    local ow, h = world()
+    local rom = image(b)
+    if withRom then h.fullRom = function() return rom end end
+    local vm = VM.new(rom, h)
+    vm:start(0x12, 0x4000)
+    local guard = 0
+    while vm.co and guard < 16 do vm.wait = nil; vm:resume(); guard = guard + 1 end
+    return ow
+  end
+  local col, mt = cell(script(true), 0xD012)
+  ok(col == 0xC2 and mt == 0x55, "$68 overlay streams reach the live planes through $7F")
+  col, mt = cell(script(false), 0xD012)
+  ok(col == 0x20 and mt == 0x10, "$68 without a full ROM keeps the live-plane snapshot")
+end
+
 print(("mn_ops_records: %d checks, %d failed"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

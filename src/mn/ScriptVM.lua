@@ -529,7 +529,6 @@ function VM:run(bank, ptr)
     elseif op == 0x91 then o = o + n -- bank-1 SRAM fill (new-game init); our SRAM table starts zeroed
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
-    elseif op == 0x68 then o = o + n -- unpack into WRAM4/6 (map-record overlay); cells come from loadMap
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
     elseif op == 0x44 then -- SkipTwoUnlessLcdOff: LCD off (map setup) follows the word
       if self.init then o = off(r:u16(o + 1), cur.bank) else o = o + n end

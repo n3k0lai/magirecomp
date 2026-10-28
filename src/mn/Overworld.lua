@@ -297,6 +297,13 @@ function M:host()
     boxBusy = function() local b = s.textBox; return b ~= nil and not (b.done and not b.wait) end,
     picture = function(pic) s.picture = pic end, -- $63/$6A travel cards (mn.Picture); nil on $65
   }
+  h.fullRom = function() -- banks past the script image ($68 overlay streams)
+    if s._fullRom == nil then
+      local bytes = love.filesystem.read(Importer.CACHE .. "/rom.bin")
+      s._fullRom = bytes and require("mn.MnRom").new(bytes) or false
+    end
+    return s._fullRom or nil
+  end
   require("mn.OpExt").extendHost(s, h) -- host callbacks added by src/mn/ops/*.lua
   Sfx.host(s, h) -- h.sfx / h.sfxSlot / h.sfxRequest / h.sfxSelect on s.sfxOut.sfx
   return h
