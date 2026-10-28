@@ -917,3 +917,17 @@ must start from k241 or earlier.
   enough frames for the scene (r7's shorter leg replanned to 24,5 before the scene finished).
 - Door checkpoints (`MN_SNAP_TO=249`, no `c`) replay the 247 -> 249 door script, so they rebuild the
   NPC records; use those instead of the control checkpoint k249 for legs through 249.
+
+### 249 -> 250 for real; the boots chest runs (runs r11/r12, from door checkpoint k249d)
+
+- New door checkpoint `k249d` (247 -> 249 door, replays 19:6F64 so 249's NPC records exist) and
+  control checkpoint `k250` (250 at 9,19, story `$0E`, `$A3A3 = 2`), both in
+  `~/.local/state/interns/snaps/magirecomp/s15/`.
+- Harness fix (Boot.lua): a ">" chain only counts a text box or cell script as "the goal's talk" once
+  Tony is standing on that goal. Before, the 18,5 pirate scene's box on the way to 27,3 marked the
+  goal done, so the chain skipped the A press and looped `no path from 27,3` (r11).
+- r12, route `249:27.3u>27.2,250:10.6u`: 19:71C1 scene, `A224 <- 01 at 19:797B`, replan around the
+  pirate on 26,3, A on 27,2 runs 19:71D1, `A224 <- 02 at 19:71E1`, C1 at 27,2 (19:71B7) -> 250 at
+  9,19 (init 19:7B30 / 19:7B74), 19 steps to 10,6, A runs 19:7B30, metatile 10,5 := `$FF` (chest
+  open), `A224 <- 03 at 19:7B62`. `$A3A3 = 3` (19:7B66) is not confirmed yet (the run watched
+  `$A224`); next leg loads k250 with `MN_WATCH=A3A3`, then 250 -> back to 134 and `$0F` at 24,18u.
