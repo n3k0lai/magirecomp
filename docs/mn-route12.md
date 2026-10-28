@@ -539,16 +539,23 @@ collapse, the Agadon's boots plan), then a script warp 146 -> 134 -> 135 at
 4,19 -> 280 24,20 -> 145 12,11 -> 146, checkpoint s9/to146s14.lua; the scene
 needs no input.
 
-Blocker: in 135 the port stops after slot 0's "Unbelievable." record (slot 0
-anim 12:73FE waits on mailbox C6FD $09, plants 12:59A0, whose tail 12:59BD
-waits for the window, posts C6FC $0A and parks; slot 0 then waits for $0A).
-Tony stays hidden and nothing else runs. A traced run (MN_THR, MN_WATCH=C6FC,
-MN_OPLOG=12 from s9/to146s14.lua) shows the $09/$0A handoff works: 12:59BE
-posts $0A, slot 0 finishes 12:74F9 (C6F8 <- $0A) and parks, so C6F9 reads
-$0A and nothing consumes it. Slot 2 sits in its last timed anim at 12:75EA
-(after its $62 $07) for good, and slot 3 ends at 12:7606. Next: find the
-record that waits on C6F9 $0A in 135 (likely the main cutscene thread from
-1A:78D6 that did the warp) and why it is not running.
+Fixed (483ba51d): the waiter is the planting script itself. Valkan's slot 2
+jumps 28:711A -> 12:7367 (`$45`), which warps and then `$05`-plants slot 2 with
+12:74FC (the conversation, 12:52C1) while it is still running in slot 2. The
+port's `spawnThread` replaced the slot's thread, so the planter's tail (12:73F6
+`$94`, 12:73F7 `$60 $0A`, `$45` 1E:6A49) was dropped. Now `$05` into the running
+slot carries the planter on as its own thread (`carry2`), and the planted
+script runs in the slot (`tests/engine/mn_record_carry_test.lua`). From
+s9/to146s14.lua with no route, the scene runs through 135, carry2 warps to
+Ashgar's house 141 (15,0 -> 11,14), "That key must be around here...", the
+autopilot takes A on cell $40 (1E:620D, `got 0:29`, sets $A1A5 bit 3) and
+control comes back at 13,10 (about 11,000 frames).
+
+Next: the exit trigger 1E:61DC at 11,15 goes to 1E:6204 -> 12:7608 once $A1A5
+bit 3 is set (store $A2B2, `$65` to map 135). `MN_ROUTE=141:far` is wrong here:
+the planner walks onto 11,15 before the key is taken and 1E:61DC loops without
+it. The leg needs the key first (e.g. a `141:x.y>...` goal past the $40 cell,
+or holding the route until `got 0:29`), then 11,15.
 
 $0E itself is stored at 1E:55E2, entered from 12:7608 when C6F9 reads $01;
 12:7608 comes from 1E:6204 once $A1A5 bit 3 is set (1E:620D sets it). 1E:5572
