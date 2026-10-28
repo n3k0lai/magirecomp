@@ -905,3 +905,15 @@ must start from k241 or earlier.
 - Next: dump obj/NPC positions during frames after 71C1 to see whether the pirate parks on 26,3, then
   either wait it out (add a hold goal before 27,3), path around via 27,4u, or fix the anim/beh
   interpreter if the walk is stuck. Note: `MN_WATCH` takes one hex address only.
+
+### 249 switch reached (run r9): the pirate parks on 26,3
+
+- `MN_STUCKDBG=1` now also prints the live object records and the cell under 26,3. From k241 (9000
+  frames) the stuck line reads `objs 2@26,3 cell26,3=00`: the pirate's 7977 walk ends standing on
+  26,3 and stays there, which is correct behaviour (the original parks him beside the switch), not an
+  interpreter bug.
+- The router's stuck replan then paths 25,3 -> 25,4 -> 26,4 -> 27,4 -> 27,3 (4 steps), faces up, and
+  the A press runs 19:71D1 -> 19:71E1, `A224 <- 02 at 19:71E1`. So the route needs no engine fix, only
+  enough frames for the scene (r7's shorter leg replanned to 24,5 before the scene finished).
+- Door checkpoints (`MN_SNAP_TO=249`, no `c`) replay the 247 -> 249 door script, so they rebuild the
+  NPC records; use those instead of the control checkpoint k249 for legs through 249.

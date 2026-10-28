@@ -516,7 +516,7 @@ function love.load()
           end
           -- stuck (an object stepped into the path): re-plan around objects
           if ow.lastPos == ow.x * 1000 + ow.y then ow.stuck = (ow.stuck or 0) + 1 else ow.stuck = 0; ow.lastPos = ow.x * 1000 + ow.y end
-          if ow.stuck > 60 and os.getenv("MN_STUCKDBG") then local n = ow.farPath and ow.farPath[1]; local tw = {}; for k2, t in pairs(ow.vm and ow.vm.threads or ow.threads or {}) do tw[#tw + 1] = tostring(k2) end; print(("stuck at %d,%d next %s talk=%s box=%s threads=%s"):format(ow.x, ow.y, n and (n[1] .. "," .. n[2]) or "-", tostring(ow.talkThread ~= nil), tostring(ow.textBox ~= nil), table.concat(tw, " "))) end
+          if ow.stuck > 60 and os.getenv("MN_STUCKDBG") then local n = ow.farPath and ow.farPath[1]; local tw = {}; for k2, t in pairs(ow.vm and ow.vm.threads or ow.threads or {}) do tw[#tw + 1] = tostring(k2) end; print(("stuck at %d,%d next %s talk=%s box=%s threads=%s"):format(ow.x, ow.y, n and (n[1] .. "," .. n[2]) or "-", tostring(ow.talkThread ~= nil), tostring(ow.textBox ~= nil), table.concat(tw, " "))); local ol = {}; for oi, ob in pairs(ow.objects) do ol[#ol + 1] = ("%s@%s,%s%s"):format(tostring(oi), tostring(ob.x), tostring(ob.y), ob.dormant and "z" or "") end; print("  objs " .. table.concat(ol, " ") .. (" cell26,3=%02X"):format(require("mn.World").cell(ow.def, 26, 3))) end
           if ow.stuck > 60 then ow.stuck = 0; ow.farMap = nil; ow.replan = true; return nil end
           local nxt = ow.farPath and ow.farPath[1]
           if nxt and nxt[1] == ow.x and nxt[2] == ow.y then table.remove(ow.farPath, 1); nxt = ow.farPath[1] end
