@@ -15,22 +15,72 @@ Test: `python3 tests/tools/mn_story_graph_test.py` (made-up bytes).
 
 ## 186 -> 187 (story $0F)
 
-- Map 186's only ways into 187 are its triggers `$C1`-`$C6` (1F:628F, 6298, 62A1, 62AA, 62B3, 62BC; kind 2,
-  down). Each one rebases the door pair (`02`) and enters 187's entry 1F:7257 (`65` at 1F:730C).
-- No script reachable from 186 writes x=44 rows 40-43, or the row-42 wall at x 49-55. The only cell writes
-  in the box x 40-56, y 38-47 are the `$44` rect at 1F:6492 / 1F:64FE (cols 32-43, rows 45-51) and the chest
-  plants `$58` 1F:680F (51,44) and `$59` 1F:6817 (51,46). The `03` writes at 1F:7356-7376 (slots 37-41) run
-  in **187** (gated by `$A126` bit `$80` at 1F:734E). They don't run in 186.
-- The base collision (block record) has rows 40-41 solid `$08` across x 38-58, and x=44 rows 44-48 is a `$82`
-  run. The `$68` overlay that 186's entry unpacks (65:63E0 / 69:7AD0, 1F:6896) has x 42-47, rows 40-43
-  open, and x 43-58, rows 43-48 all `$00`. Only `7F` copies move overlay cells into the live map, and 186's
-  only `7F` is `$50`'s 59-61,31.
-- Conclusion: no 186 script opens that wall. If 187 is reached from 186 at all, it has to be through cell
-  behaviour, not script writes. The candidates are the `$02` layer walk (CountCellRun run of 3+ with `$C9A6 >= 5`,
-  which switches the record to the `$02` layer heads and is **not modelled** in `World.hop`) or a push block.
-  187 also has a second entry, 29:4DF3 (a lookup-entered script in bank $29; caller not resolved statically).
-- `$10` is stored at 1F:7B0B. It's reached from 187 triggers `$C7`/`$C8` (1F:694F / 1F:6958, kind 2 down,
-  through 189's entry 1F:79E5) and from 188 `$C2` (1F:74F5). So `$0F -> $10` happens past 187, not in 186.
+Trigger cells (186 is 64x64; base collision from the map record's block stream):
+
+- `$C0` (3-4, 32) goes back to 185. `$C1` is row 63, x 46-49. `$C2` is row 63, x 54-55. `$C7`-`$C9` are
+  interior (27,56 / 37,43 / 60,30).
+- `$C3`-`$C6` (1F:62A1-62BC) are **in neither the base grid nor the `$68` overlay** (69:7AD0). Their door
+  rebases (x 7, 20, 46, 59 at row 63) mirror 187's up-exits, but no cell carries those values. They look dead.
+- `$C1`-`$C6` are all kind 2 (down) and enter 187's entry 1F:7257 (`65` at 1F:730C).
+- 187's `$C0`-`$C5` (row 0; 1F:6910-693D, kind 1 up) load 186 rebased to row 63 at x 7 / 20 / 34->45 / 46 /
+  53 / 59. So 186 `$C1` pairs with 187 `$C2`, and 186 `$C2` pairs with 187 `$C4`.
+
+Pockets:
+
+- On the base grid, `$C1` sits in a sealed corridor: the x=44 `$82` column (rows 44-56) plus x 44-49, rows
+  57-63. `$C2` sits in a sealed pocket at x 49-55, rows 43-63, which holds the chests `$58` (51,44, 1F:680F)
+  and `$59` (51,46, 1F:6817).
+- Neither pocket connects to the 185 arrival area. **They are the landing corridors of 187's up-exits**, so
+  you reach them by walking up out of 187, not from 186.
+
+Every 186 cell write, checked (`7F` overlay->live rects, plus A0/A2/A4/80 cells):
+
+- x 25-31 and x 23-38, rows 15-34 (entry/early rects)
+- `$42`: x 16-20, rows 34-48 and x 12-15, rows 42-45
+- `$43`: x 25-31, rows 34-42
+- `$44` (1F:6434, gated on `$A125` bits `$10`/`$20`): x 25-31, rows 42-49; x 32-43, rows 45-51; x 39-43,
+  rows 52-63
+- `$45` (1F:6516): x 16-26, rows 48-58
+- x 51-52, rows 5-11; `$50`: x 59-61, row 31
+
+None of them writes x>=44 at rows 40-43 or the row-42 wall at x 49-55. The `03` writes at 1F:7356-7376 run
+in **187**, not 186.
+
+Reachability (BFS in /tmp-only helper; arrival at (4,31)):
+
+| rects applied | `$02` cells walkable? | `$C1` reachable | `$C2` reachable |
+|---|---|---|---|
+| none | no / yes | no | no |
+| all of the above | no | no | no |
+| early + `$42` + `$44` + `$45` (minimum) | **yes** | **yes** | no |
+
+The `$44` rect x 39-43, rows 52-63 brings in a 3-wide `$02` band (x 40-42) running down to row 63 that
+joins the `$C1` corridor at row 58. Walking that band is the `$02` layer walk: CountCellRun gives a run of 3,
+which needs `$C9A6 >= 5`.
+
+**Answer.** Static code gives exactly one gameplay path from 186 into 187. Open the `$42`, `$44` and `$45`
+rects through their flag-gated scripts, then walk the `$02` band south with `$C9A6 >= 5` into the `$C1`
+corridor. The catch is that `$C9A6` is copied from SRAM `$A3A3`, and at `$0F` the warp at 2A:5118 stores
+**3**. Only 19:63C3 (map 290, through 1A:4B10) and 2A:50CE (the warp room) store 5. So either:
+
+- the route has to pick up the `$A3A3 = 5` upgrade (map 290 or the warp room) before 186, or
+- the port's lack of a layer walk is the blocker.
+
+Both are listed in docs/mn-outliers.md. The port doesn't model the layer walk (`World.hop` only handles runs
+of 1 and 2), so the port can't make this move today, whatever the flags are.
+
+Other 187 entries:
+
+- 29:4DF3 (`65` 187 at 29:4DF3; script starts at 29:4DF2) is reached only from stub 29:431C (a `45` at
+  29:433F).
+- Bank `$29` is a chain of 38-byte stubs (29:4021 + 0x26*k). Each one draws map records, calls a bank-`$26`
+  routine and waits, then jumps (`45`) to a per-map entry. Each entry then jumps to the *next* stub (29:4DEF
+  -> 29:4342, ...).
+- That fits a non-interactive tour (attract/demo or a recap), not a gameplay door. It's unconfirmed, because
+  the asm that starts the chain isn't traced.
+- `$10` is stored at 1F:7B0B. It's reached from 187 `$C7`/`$C8` (1F:694F / 1F:6958, through 189's entry
+  1F:79E5) and from 188 `$C2` (1F:74F5). The {187, 188, 189} cluster has no other outside entry, so `$0F -> $10`
+  is gated entirely on getting into 187.
 
 ## Story stores ($01-$1A)
 
