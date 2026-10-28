@@ -169,4 +169,26 @@ M.handlers[0x9E] = function(vm, o, n, cur)
   return o + n
 end
 
+-- $87 categories 5 and 6 (bank 7 AddC9FEClampMapWord1/2): Tony's energy
+-- words in the next SRAM bank, big-endian. 5 adds to sMapWord1 ($A005) and
+-- clamps it to sMapWord2 ($A007), the max (a max of 0 does not clamp);
+-- 6 raises sMapWord2, capped at 999. The loss tail 1A:6FEA runs
+-- $87 05 05 C8 five times, refilling Tony after the town duel.
+function M.addMapWord(vm, cat, cnt)
+  local banks = banksOf(vm)
+  local nb = vm.sramBank + 1
+  local b = banks[nb]
+  local function word(a) return SaveFile.peek(b, a) * 256 + SaveFile.peek(b, a + 1) end
+  local a, v
+  if cat == 5 then
+    local max = word(0xA007)
+    a, v = 0xA005, (word(0xA005) + cnt) % 0x10000
+    if max ~= 0 and v >= max then v = max end
+  elseif cat == 6 then
+    a, v = 0xA007, math.min(999, word(0xA007) + cnt)
+  else return false end
+  banks[nb] = SaveFile.poke(SaveFile.poke(b, a, math.floor(v / 256)), a + 1, v % 256)
+  return true
+end
+
 return M

@@ -10,6 +10,7 @@ local band, bor, lshift = bit.band, bit.bor, bit.lshift
 local Op = require("mn.Opcodes")
 local Ext = require("mn.OpExt").handlers
 local Travel = require("mn.ops.Travel")
+local Save = require("mn.ops.Save")
 
 local VM = {}
 
@@ -561,7 +562,7 @@ function VM:run(bank, ptr)
       elseif cat == 4 then -- Animite: little-endian word, capped at 999
         local v = math.min(999, self:rd8(0xA3A5) + self:rd8(0xA3A6) * 256 + cnt)
         self:wr8(0xA3A5, v % 256); self:wr8(0xA3A6, math.floor(v / 256))
-      else self:note(op) end
+      elseif not Save.addMapWord(self, cat, cnt) then self:note(op) end
       if cat == 0 or cat == 3 then self.nameBuf = self:recordName(cat, id) end
       if h.got then h.got(cat, id, cnt) end
       o = o + n

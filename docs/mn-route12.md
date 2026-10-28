@@ -442,9 +442,13 @@ From the pocket the way back to the town side is presumably 33,23 into 121
 and back through 120..115 (the story-9 legs in reverse). That has not been
 checked.
 
-Open: the port also runs the stone's record script 13:6C68 (story $0A at
-13:6C74) on the A press, before the duel. Whether hardware stores $0A only
-in the win tail has not been checked against PyBoy. Talking to Ogar
+Resolved (decomp, 2026-10-27): $0A is stored on the Core Stone press.
+Slot 2's talk handler in 13:6B33 runs 13:6C68, which stores $0A at 13:6C74,
+sets the respawn triple 15:4812 and shows the Core Stone text. Only
+after that does it stage the Ogar fight (13:6C7E). The win tail 13:6CD9
+stores $0A again, which changes nothing. The port logs both stores, which
+matches. There was no PyBoy cross-check: there is no harness or save at
+that point. Talking to Ogar
 (13:6ADF) directly loops and does nothing, which matches the mailbox design
 (he waits for $01).
 
@@ -460,3 +464,40 @@ runs $5B (only C6EE == 1 still holds it). The leg now enters map 40, writes
 after40.lua at the west door into 0 and follows Eidon through 0, 1, 277 and
 2 into 43 within 12000 frames. Regression check in
 tests/engine/mn_ops_flow_test.lua.
+
+## Story 10 to 11 (town duel, 2026-10-27)
+
+`MN_LEGS=story10 bash scripts/mn-route12.sh` needs s9/to279w.lua (the pocket
+after the geyser dungeon). All legs run with MN_NOENC=1.
+
+- s10back: the pocket back to the town side. 279 33,23 (2F:44D7 -> 15:47BE)
+  -> 121 -> 120 -> 117 -> 116 -> 115, using `map:far` in each cave (the far
+  trigger cell is the next door). Writes s9/to115r.lua.
+- s10town: 115 west into 279, then 20,22 into town map 75 (not 74), door
+  2F:4496. Writes s9/to75s10.lua.
+- s10duel: the town duel 22:5881 (magi $5F). Battle script 4C:4023 keeps
+  re-summoning Borgor ($2E 09 0A 63 C8), so the duel is a scripted loss and
+  never ends under MN_GOD=1. The leg sets MN_GOD=0. 22:6977 sets both duel
+  tails to 22:6B1A, which stores story $0B (22:6BB9) and enters 1A:6FEA. The
+  leg checkpoints the script warp into map 33 (s9/to33s11.lua) and fails if
+  $0B is missing or $87 was skipped.
+- s11map: from to33s11.lua, the cutscene hands back control on map 33
+  (5,16, then 4,17 after the 32/33 walk).
+
+Engine fix: 1A:6FEA opens with `$87 05 05 C8` x5, which refills Tony's
+energy. The port only had $87 categories 0, 3 and 4. Categories 5 and 6
+(bank 7 AddC9FEClampMapWord1/2) are now in mn.ops.Save.addMapWord: sMapWord1
+$A005 (current) += count, clamped to sMapWord2 $A007 (max), and $A007 +=
+count, capped at 999. Both are big-endian, in SRAM bank sramBank+1. The
+regression test is tests/engine/mn_energy_refill_test.lua.
+
+### Story 12 (next)
+
+1A:76AF stores $0C. The way there: town 75's door script 2F:4565 (arrive
+1,9) enters building init 1A:717B. Its list 21:4C07 runs 1A:7174 (5,11)
+-> 1A:773B, which switches on the story word, and $0B goes to 1A:77E3. That
+NPC asks for a captured Lava Arboll. The turn-in text (1A:769E) falls
+into 76AF and is gated on $C6F7 compares, so
+a Lava Arboll capture is needed first. Story 13 (1E:75EA) needs story >= $0C
+plus a $C726 check. Story 14 (1E:5572/55E2) is entered from 2F:455E in the
+same town door list.

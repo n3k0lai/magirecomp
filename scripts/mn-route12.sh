@@ -10,6 +10,7 @@
 #   MN_FROM=town bash scripts/mn-route12.sh   # reuse earlier legs' snapshots and logs
 #   MN_LEGS=bracelet bash scripts/mn-route12.sh  # only the bracelet legs, from into15.lua
 #   MN_LEGS=story9 MN_TO80S8=to80s8.lua bash scripts/mn-route12.sh  # story 8 -> Ogar -> 279
+#   MN_LEGS=story10 bash scripts/mn-route12.sh  # story 10 -> town duel (needs s9/to279w.lua)
 #
 # Prints one "beat N: ..." line when that beat's log marker appears.
 # Exits nonzero if a beat marker is missing or a snapshot was not written.
@@ -358,6 +359,47 @@ run_story9() {
     { echo "after Ogar: no control on 279" >&2; exit 1; }
   echo "story 10: control on 279"
 }
+run_story10() {
+  local S9="${MN_S9_DIR:-$BSNAP/s9}"
+  # Back through the caves from the 279 pocket (to279w.lua, story $0A):
+  # 279 33,23 (2F:44D7 -> 15:47BE, 121 at 5,1) -> 121 south 7,19 -> 120
+  # 26,0 -> 120 east 59,7 -> 117 0,35 -> 117 12,0 -> 116 43,39 -> 116 2,39
+  # -> 115 26,0 -> 115 west 0,18 -> 279 31,26. Each map's "far" trigger is
+  # the reverse door. The leg snapshots the door into 115.
+  run_leg s10back 6000 \
+    "279:33.23,121:far,120:far,117:far,116:far" \
+    115 "$S9/to115r.lua" \
+    "$S9/to279w.lua" MN_NOENC=1
+  # 115 west door onto 279 (31,26), then onto the town icon 20,22 (map 75).
+  # The leg snapshots that door (to75s10.lua).
+  run_leg s10town 2500 \
+    "115:far,279:20.22" \
+    75 "$S9/to75s10.lua" \
+    "$S9/to115r.lua" MN_NOENC=1
+  # Town at story $0A: 22:67BD stages the townsfolk, then slot 0 (22:6977)
+  # walks up and starts the duel 22:5881 (magi $5F). Its battle script
+  # (4C:4023) re-summons Borgor ($2E 09 0A 63 C8: 99 spends, 200 energy), so
+  # the fight is a scripted loss; 22:6977 sets both tails to 22:6B1A, which
+  # stores story $0B and enters the 1A:6FEA cutscene. MN_GOD=0 lets Tony lose
+  # (with MN_GOD=1 the battle never ends).
+  # 1A:6FEA opens with $87 05 05 C8 x5 (refill Tony's energy, sMapWord1 up to
+  # sMapWord2), then loads map 33; the leg checkpoints that script warp.
+  run_leg s10duel 9000 \
+    "" \
+    s33 "$S9/to33s11.lua" \
+    "$S9/to75s10.lua" MN_NOENC=1 MN_WATCH=A123 MN_GOD=0
+  grep -qF "A123 <- 0B" "$SNAP/s10duel.log" || { echo "story 11: NOT SET" >&2; exit 1; }
+  ! grep -qF "unimplemented \$87" "$SNAP/s10duel.log" || { echo "story 11: \$87 skipped" >&2; exit 1; }
+  echo "story 11 reached"
+  # Story 11 from the map-33 checkpoint: the cutscene hands control back.
+  run_leg s11map 8000 "" "" "" "$S9/to33s11.lua" MN_NOENC=1 MN_WATCH=A123
+  grep -qF "player control at" "$SNAP/s11map.log" || { echo "story 11: no control" >&2; exit 1; }
+  echo "story 11: control after the town duel"
+}
+if [ "${MN_LEGS:-}" = story10 ]; then
+  run_story10
+  exit 0
+fi
 if [ "${MN_LEGS:-}" = story9 ]; then
   [ -n "${MN_TO80S8:-}" ] || { echo "MN_LEGS=story9 needs MN_TO80S8" >&2; exit 1; }
   run_story9
