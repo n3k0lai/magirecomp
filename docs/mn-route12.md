@@ -975,3 +975,30 @@ must start from k241 or earlier.
   the 277 island's D3/D6 and 182). In 182 MN_TALK talked to slot 2 (10,11, talk 2A:60EE) and
   slot 3 (6,11, talk 2A:671D); neither moved the ship in 9000 frames. Next: OPLOG 2A from k182r
   with a route onto 10,12u / 6,12u to read what those talks gate on (likely `$A2AB`/`$A2AD`).
+
+### Why the ship does not sail from 182 (static read, k182r)
+
+- The 182 pirate talks gate on nothing that moves the ship. Slot 2 (10,11): behaviour 2A:60BC is a
+  dance loop, talk 2A:60E6 -> 60EE is flavour text. Slot 3 (6,11): talk 2A:671D checks
+  `$A1B0 & $40` (set -> 2A:67A7 "Thanks again"); otherwise it sets the bit and gives item `$15`.
+- The 277 -> 182 D6 (2F:409C -> 2A:6041) sets `$A2B2 = 1`, then:
+  - `$A2AD >= 3`: `$A2AB = 1`, FollowScriptWord 2A:6204 -> 2A:6205 (183, ferry waiting at the dock,
+    ferryman talk 2A:58ED).
+  - `$A2AD < 3` -> 2A:6056: story `== $0F` -> 2A:6171/6172 (182 `$0F` variant, "Hey! The ferry's
+    gone! How will I get back!?", `$A1AC |= $10`); otherwise 2A:605E -> 605F (the pirate variant).
+- `$A2AD` writers: 28:6DDD (1), 2A:6276 (2, 183 arrival entry 2A:627A), 2A:6446 (3, pay 300 from
+  the 183 talks 2A:63C0 / 2A:6516; `$A3A5 < 300` -> 2A:6489 "not enough Animite"), and the 181
+  mainland ferryman 2A:5422..5863 (3, pay 600). k182r has `$A2AD = 2` and 159 Animite: the 300 was
+  never paid, so the ferry left. `$A2AB` writers: 2A:5C88 (2), 2A:5C9F (0), 2A:604F (1).
+- Way home is the horn, not the ferry: 250's C0 19:7AFC runs 19:77ED (`$A2B2 = 1`, entry 19:77F2)
+  when `$A224 == 4 && story == $0E`. 77F2 is the 249 scene whose pirate talk 19:7281 -> 72D8 gives
+  item `$1E` (the horn, "If yer ever in trouble... I'll be comin' to help") and stores
+  `A123 <- $0F` at 19:7838.
+- `$A224 = 4` is 19:7C99, the end of talk 19:7B9A ("Is that a...", "You're welcome"), the pirate
+  in 250 slot 2 (entry 19:7CF8, spawn 9,21, walk-in 19:7D34 installs talk 7B9A). He is woken by
+  250's second entry script 19:7B14 -> 19:7B24 (`$A224 == 3 && story == $0E`, Opcode0B 02), which
+  only runs on a fresh entry into 250 after the chest. Run u2 (k249d, chest only) ended with
+  `$A224 = 3` and slot 2 still parked (talk 19:7CA7).
+- So the order is: chest (`$A224 = 3`) -> leave 250 -> re-enter 250 -> talk to the pirate
+  (`$A224 = 4`) -> leave 250 (77ED/77F2 in 249) -> horn + `$0F` -> 182 `$0F` variant 2A:6172.
+  No script read of `$A3C5` (the horn's item byte) was found by a `C5 A3` byte search yet.
