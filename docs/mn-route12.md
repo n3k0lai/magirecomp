@@ -810,3 +810,24 @@ c183.lua -> 182 -> 277 (D3 at 58,45) -> ... -> 250 (`250:10.6u`, the `$40`
 cell at 10,5, A-list 21:5340 #0 -> 19:7B30, `$A3A3 <- 3` at 19:7B66). Back at
 134 the door is now live (c134p plus the plane fix), so the store needs only
 the boots.
+
+### Pirate ship -> 182 -> 257 for real; stuck in 255
+
+Probe p1 (c183.lua, default planner with MN_TALK=1, seed 4): talking to 183
+slot 2 (2A:60EE) and slot 3 (2A:671D) sails the ship onto 277 at 29,11, and
+the walk then takes D6 (2F:409C) into 182. That wrote the control checkpoint
+k182 (story `$0E`, `$A3A3 = 2`), so the ship is the real way onto the boots
+island and no menu pick is needed.
+
+Leg q1 (k182, `182:far,277:58.45,257:10.10,255:0.0,...,250:10.6u`) walked
+182 -> 277 -> D3 at 58,45 -> 257 -> 255 and wrote k257 (257 at 8,18). Map 255
+(24x20) is entered at 15,18. Its forward exit is C1 at 0,0/1,0
+(1B:4007 -> 241), and C2 at 11,6 is a script cell (1B:4020, no warp). The
+planner reports `route far: no path from 15,18` for both targets, so 255 has a
+gate the walk model does not open: a hop, an A-list switch, or a step script.
+Leg q2 saw step trigger 1B:488C and the init scripts 1B:406F, 1B:4109 and
+1B:4195. Next: read those and 255's A-list, find the passable cells, and route
+on to 241 -> 242 -> 247 -> 249 -> 250.
+
+Scratch checkpoints on kiss (/tmp/mn-s15, not in the repo): k182, k257 (real,
+story `$0E`).
