@@ -422,6 +422,14 @@ function M:writeSnapshot(file, b, p, to, kind)
   local f = assert(io.open(file, "w"))
   local script = b and ("bank=%d,ptr=%d,"):format(b, p) or ""
   local lists = kind == "c" and ("trig=%s,alist=%s,"):format(tostring(self.triggerPtr), tostring(self.aList)) or ""
+  -- a control checkpoint has no script to replay, so the map entry script's
+  -- plane edits ($7F overlay blits, $7E copies, setCell) are saved as a diff
+  -- against the stored map and put back by Overworld.load (map 134's 28:68C1
+  -- blits the story 15 door, C2 at 24,18)
+  if kind == "c" and self.def then
+    local d = M.planeDiff(self.def, M.baseMap(self.map))
+    if #d > 0 then lists = lists .. ("planes={%s},"):format(table.concat(d, ",")) end
+  end
   f:write(("return {map=%d,x=%d,y=%d,facing=%q,%s%stony=%s,mem={%s}}\n"):format(self.map, self.x, self.y,
     self.facing, script, lists, tostring(self.tonyEnergy or "nil"), table.concat(parts, ",")))
   f:close()
@@ -430,9 +438,38 @@ function M:writeSnapshot(file, b, p, to, kind)
     or ("snapshot -> %s (%s in %d at %d,%d)"):format(file, what, to, self.x, self.y)
 end
 
+-- stored map record for a plane diff (tests swap this out)
+function M.baseMap(i) return Importer.loadMap(i) end
+
+-- flat {i, col, mt, ...} for every cell whose collision or metatile byte
+-- differs from base (i is the 0-based WRAM 5 offset, $D000 + i)
+function M.planeDiff(def, base)
+  local out = {}
+  for i = 1, def.w * def.h do
+    local c, m = def.block[i] or 0, def.cells[i] or 0
+    if c ~= (base.block[i] or 0) or m ~= (base.cells[i] or 0) then
+      out[#out + 1] = ("%d,%d,%d"):format(i - 1, c, m)
+    end
+  end
+  return out
+end
+
+function M:applyPlanes(list)
+  local d = self.def
+  for k = 1, #list - 2, 3 do
+    local i, c, m = list[k], list[k + 1], list[k + 2]
+    if i >= 0 and i < d.w * d.h then
+      d.block[i + 1] = c; d.cells[i + 1] = m
+      self.patches = self.patches or {}
+      self.patches[#self.patches + 1] = { x = i % d.w, y = math.floor(i / d.w), mt = m }
+    end
+  end
+end
+
 function M.load(file, input)
   local snap = assert(loadfile(file))()
   local s = M.new(snap.map, snap.x, snap.y, input)
+  if snap.planes then s:applyPlanes(snap.planes) end
   for a, v in pairs(snap.mem) do s.vm.mem[a] = v end
   s.tonyEnergy = snap.tony; s.facing = snap.facing
   if snap.trig then s.triggerPtr = snap.trig end

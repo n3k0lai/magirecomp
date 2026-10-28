@@ -52,5 +52,39 @@ s:controlSnapshot()
 ok(io.open(file) ~= nil, "c141:2 writes on the second")
 os.remove(file)
 
+-- plane edits survive the checkpoint: map 134's entry 28:68C1 blits the story
+-- 15 door (C2 at 24,18) at control time; MN_LOAD runs no entry script, so the
+-- snapshot carries the diff against the stored map and load puts it back
+do
+  local W, H = 40, 30
+  local function plain()
+    local d = { w = W, h = H, block = {}, cells = {} }
+    for i = 1, W * H do d.block[i] = 0; d.cells[i] = 0x11 end
+    return d
+  end
+  local live = plain()
+  live.block[18 * W + 24 + 1] = 0xC2; live.cells[18 * W + 24 + 1] = 0x5A
+  local diff = M.planeDiff(live, plain())
+  ok(#diff == 1 and diff[1] == ("%d,%d,%d"):format(18 * W + 24, 0xC2, 0x5A), "diff holds only the door cell")
+  local saveBase = M.baseMap
+  M.baseMap = function() return plain() end
+  env.MN_SNAP_TO = "c134"; os.remove(file)
+  local s134 = fake(134); s134.def = live; s134:controlSnapshot()
+  M.baseMap = saveBase
+  local sn = loadfile(file) and loadfile(file)()
+  ok(sn and sn.planes and #sn.planes == 3, "checkpoint saves the plane diff")
+  local back = setmetatable({ def = plain(), patches = {} }, { __index = M })
+  if sn and sn.planes then back:applyPlanes(sn.planes) end
+  ok(back.def.block[18 * W + 24 + 1] == 0xC2 and back.def.cells[18 * W + 24 + 1] == 0x5A, "load puts the door back")
+  ok(#back.patches == 1 and back.patches[1].x == 24 and back.patches[1].y == 18, "patch drawn at 24,18")
+  env.MN_SNAP_TO = "c141"; os.remove(file)
+  local s141 = fake(141); s141.def = plain()
+  M.baseMap = function() return plain() end
+  s141:controlSnapshot(); M.baseMap = saveBase
+  sn = loadfile(file) and loadfile(file)()
+  ok(sn and sn.planes == nil, "no planes key when nothing changed")
+  os.remove(file)
+end
+
 print(("mn_control_snapshot: %d checks, %d failures"):format(checks, failures))
 if failures > 0 then os.exit(1) end
