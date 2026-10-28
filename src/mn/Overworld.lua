@@ -233,6 +233,7 @@ function M:host()
       if slot == 0 and ob then
         s.x, s.y = ob.x, ob.y; s.objects[0] = nil; s.hidePlayer = false; s.moving = nil; s.camFix = nil; s:snap()
         s.log[#s.log + 1] = ("player control at %d,%d"):format(s.x, s.y)
+        s:controlSnapshot()
       end
     end,
     slotFields = function(slot, a, b) local ob = s.objects[slot]; if ob then ob.f1, ob.f2 = a, b end end,
@@ -377,6 +378,16 @@ function M:scriptSnapshot(to)
   if b then self:snapMatch(to, "s", tonumber(b, 16), tonumber(p, 16)) end
 end
 
+-- Control checkpoints (MN_SNAP_TO=c141[:n]): when a cutscene hands control back
+-- (the n-th time) in that map, e.g. Ashgar's house 141 after the 135 scene's
+-- script warp, save the map, cell, trigger lists and SRAM with no script to
+-- replay; Overworld.load places Tony there with the saved lists.
+function M:controlSnapshot()
+  local want = os.getenv("MN_SNAP_TO")
+  if not (want and want:find("c") and os.getenv("MN_SNAP_FILE")) then return end
+  self:snapMatch(self.map, "c")
+end
+
 function M:snapMatch(to, kind, b, p)
   local want, files = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
   -- comma lists pair up: MN_SNAP_TO=279,113 MN_SNAP_FILE=a.lua,b.lua (one checkpoint per map)
@@ -385,7 +396,7 @@ function M:snapMatch(to, kind, b, p)
   local i = 0
   for spec in want:gmatch("[^,]+") do
     i = i + 1
-    local k, m, n = spec:match("^(s?)(%d+):?(%d*)$")
+    local k, m, n = spec:match("^([sc]?)(%d+):?(%d*)$")
     local file = fl[i]
     if file and m and k == kind and to == tonumber(m) then
       self.snapCount = self.snapCount or {}
@@ -403,9 +414,14 @@ function M:writeSnapshot(file, b, p, to, kind)
   end
   table.sort(parts)
   local f = assert(io.open(file, "w"))
-  f:write(("return {map=%d,x=%d,y=%d,facing=%q,bank=%d,ptr=%d,tony=%s,mem={%s}}\n"):format(self.map, self.x, self.y,
-    self.facing, b, p, tostring(self.tonyEnergy or "nil"), table.concat(parts, ",")))
-  f:close(); self.log[#self.log + 1] = ("snapshot -> %s (%s %02X:%04X into %d)"):format(file, kind == "s" and "script" or "door", b, p, to)
+  local script = b and ("bank=%d,ptr=%d,"):format(b, p) or ""
+  local lists = kind == "c" and ("trig=%s,alist=%s,"):format(tostring(self.triggerPtr), tostring(self.aList)) or ""
+  f:write(("return {map=%d,x=%d,y=%d,facing=%q,%s%stony=%s,mem={%s}}\n"):format(self.map, self.x, self.y,
+    self.facing, script, lists, tostring(self.tonyEnergy or "nil"), table.concat(parts, ",")))
+  f:close()
+  local what = kind == "c" and "control" or (kind == "s" and "script" or "door")
+  self.log[#self.log + 1] = b and ("snapshot -> %s (%s %02X:%04X into %d)"):format(file, what, b, p, to)
+    or ("snapshot -> %s (%s in %d at %d,%d)"):format(file, what, to, self.x, self.y)
 end
 
 function M.load(file, input)
@@ -413,7 +429,9 @@ function M.load(file, input)
   local s = M.new(snap.map, snap.x, snap.y, input)
   for a, v in pairs(snap.mem) do s.vm.mem[a] = v end
   s.tonyEnergy = snap.tony; s.facing = snap.facing
-  s:runScript(snap.bank, snap.ptr, "step trigger (snapshot)")
+  if snap.trig then s.triggerPtr = snap.trig end
+  if snap.alist then s.aList = snap.alist end
+  if snap.bank then s:runScript(snap.bank, snap.ptr, "step trigger (snapshot)") end
   return s
 end
 

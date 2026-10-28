@@ -1,0 +1,56 @@
+-- MN_SNAP_TO=c141: a cutscene handing control back in map 141 writes a checkpoint
+-- with the map, cell, trigger lists and SRAM and no script to replay (the 135
+-- scene's carry2 warp into Ashgar's house has no door to replay). Plain numbers
+-- and s-specs do not fire on control. No ROM needed.
+--   luajit tests/engine/mn_control_snapshot_test.lua
+package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
+love = love or { math = { random = function(a) return a or 0 end }, graphics = {}, filesystem = {} } -- luacheck: ignore 111
+
+local failures, checks = 0, 0
+local function ok(cond, what)
+  checks = checks + 1
+  if not cond then failures = failures + 1; print("FAIL " .. what) end
+end
+
+local M = require("mn.Overworld")
+local env = {}
+local getenv = os.getenv
+os.getenv = function(k) if env[k] ~= nil then return env[k] end return getenv(k) end -- luacheck: ignore 122
+
+local file = os.tmpname()
+local function fake(map)
+  return setmetatable({ map = map, x = 13, y = 10, facing = "down", triggerPtr = 0x5A10, aList = 0x5A40,
+    tonyEnergy = 40, log = {}, vm = { mem = { [0xA123] = 0x0D, [0xA1A5] = 8, [0xC000] = 5 } } }, { __index = M })
+end
+
+env.MN_SNAP_TO, env.MN_SNAP_FILE = "c141", file
+os.remove(file)
+local s = fake(135); s:controlSnapshot()
+ok(io.open(file) == nil, "control in 135 does not fire c141")
+s = fake(141); s:controlSnapshot()
+local snap = loadfile(file) and loadfile(file)()
+ok(snap ~= nil, "control in 141 writes the checkpoint")
+if snap then
+  ok(snap.map == 141 and snap.x == 13 and snap.y == 10, "map and cell")
+  ok(snap.bank == nil and snap.ptr == nil, "no script to replay")
+  ok(snap.trig == 0x5A10 and snap.alist == 0x5A40, "trigger lists kept")
+  ok(snap.mem[0xA1A5] == 8 and snap.mem[0xA123] == 0x0D, "SRAM kept")
+  ok(snap.mem[0xC000] == nil, "WRAM dropped")
+end
+ok(s.log[#s.log]:find("control in 141") ~= nil, "log names the control checkpoint")
+
+for _, spec in ipairs({ "141", "s141" }) do
+  env.MN_SNAP_TO = spec; os.remove(file)
+  fake(141):controlSnapshot()
+  ok(io.open(file) == nil, spec .. " does not fire on control")
+end
+
+env.MN_SNAP_TO = "c141:2"; os.remove(file)
+s = fake(141); s:controlSnapshot()
+ok(io.open(file) == nil, "c141:2 skips the first hand-back")
+s:controlSnapshot()
+ok(io.open(file) ~= nil, "c141:2 writes on the second")
+os.remove(file)
+
+print(("mn_control_snapshot: %d checks, %d failures"):format(checks, failures))
+if failures > 0 then os.exit(1) end
