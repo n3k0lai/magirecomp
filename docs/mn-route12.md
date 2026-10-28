@@ -674,3 +674,33 @@ door never appeared. Fix: `$68` now unpacks both streams from the full ROM
 (`h.fullRom`, mn_cache/rom.bin) into the overlay planes;
 `tests/engine/mn_ops_records_test.lua` covers it. Next leg (h2): c135.lua
 -> 135:15.0u -> 134:24.18u with `MN_WATCH=A123`.
+
+### The 24,18 door region is cut off at story $0E (blocker)
+
+Leg h2 (`135:15.0u,134:24.18u`) stops with "route far: no path from 40,59",
+and that is the map, not the $68 fix. With the ROM's 28:68C1 blits applied
+(story $0E: the 6924 `$7E` 4x9 copy from 4,0 -> 23,21 runs, the 6956 blit is
+skipped), the 40,59 entry region is 693 cells with only C0@39,59, and the
+24,19 region (139 cells, x 18-32, y 3-24) holds C2@24,18. The only seam is
+x 24-25: rows 23 and 27 are $00, row 24 is $02/$00 and rows 25-26 are
+$02 $02. The 6924 copy is that broken pattern itself (it copies map cells
+4..7,0..8), so this is the collapsed bridge from Valkan's scene, not a cell
+the port forgot to write.
+
+Where the bridge scene comes from: 28:6DD8 (134 entry: A2B2 <- 01,
+FinishStartup, A2AD <- 01, NPCs, then 28:6F6C staging 4x1 rows into x 23-26,
+rows 21-28) is entered only by four walk scripts 1A:791D/7931/7959/7971
+(each ends `$45 28:6DD8`). They are picked by facing in 1A:79A1, which is the
+talk script of slot 2 (3,8) in map 146's entries 1A:788F and 1A:78D6. 146's
+init 1A:773B switches on the story word: $0B -> 77E3, $0C -> 788F,
+$0D -> 78D6, $0E -> 7775 (no slot 2), others -> 7775 if $A1A5 bit 3 else
+7A25. So the bridge scene is the story 14 scene already routed (s14walk);
+at $0E 146 has no trigger for it.
+
+Open question for the next leg: `World.walkable` blocks $02 outright, and
+its own comment says $01-$03 are driven by $C12A/$C12B
+(clear_c12a_set_c12b.asm, the record heads in bank 1) which the port does
+not run. If the ROM lets Tony cross $02 cells (the Agadon's boots plan from
+the story 14 scene), that is the engine gap: route `134:24.18u` needs $02
+handled like the ROM, with a regression test. Check against a reference
+run, or decode bank 1 $57F9/$5888/$5A5B, before changing walkability.
