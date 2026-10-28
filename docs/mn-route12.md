@@ -611,4 +611,33 @@ Opcode16 argument run at 2A:5102 (data, not a store). 19:7838 is real:
 19:7834 ends a script (`MarkScriptDone21B2`), 19:7835
 `StageNextScriptIfByteAtMostC6F7 03 02`, then 19:7838 stores $0F, followed
 by 19:783B $07 / 19:783F $09 / 19:7844 `InstallParkedScript`. So the
-entry is 19:7835, gated on C6F7 <= 3. 28:63BE is unchecked.
+entry is 19:7835, gated on C6F7 <= 3, but no trigger list or pointer in
+the ROM names 19:7835 (it may be planted by a slot record; unresolved).
+
+The real story 15 store is 28:63BE. Map 134's trigger list 21:49E9 (all
+five 134 entries 28:68C1/6962/6A13/6DE1/7224 load it) is:
+trig0 kind 2 28:63A9 -> 135 (cells 39,59 40,59), trig1 kind 1 28:63B2
+(enters 28:69DA), trig2 kind 1 (moving up) 28:63B6: `A2B2 <- 00`, save
+triple 28:63B6, `A123 <- 0F` at 28:63BE, Opcode01 0E 1C, then 1F:6241,
+which warps 134 -> 185. 185's exits are 1F:5FA7 -> 134 and 1F:5FB6 -> 186,
+and the $10 store 1F:7B0B is in the same bank, so story 15 is crossing
+from 134 into 185 and story 16 follows in 185/186.
+
+Map 42 (20x20, ten 2-3 cell pads, links to 219/277/83/280/282/134/113) is
+a warp room: 2A:5107 (trig8) sets story $0B, $A3A3 = 2 and warps to 134;
+2A:5115 (trig9) sets story $0F, $A3A3 = 3 and warps to 113. That is a
+debug/test jump, not the story path; don't route through it.
+
+Open problem: no cell in map 134's static block is $C2 (only the two $C0
+cells at the bottom). The 28:68C1 entry gates a 4x9 rect copy
+(`StageEightScriptBytes 04 D0 04 09 31 D4`, x 4-7 rows 0-8 -> 23,21) on a
+$0E expression (`SRAMLookupInstallScript 13 04 05 0E`), and 28:6F9F..6FE5
+/ 703A..70BA copy 4x1 rows (bridge building) into 23-26,21-28; none of
+those templates hold $C2 either. So the $C2 cell comes from a script
+we haven't found (or from a copy whose source rows we read wrong).
+Next step: run a leg from the 135 checkpoint (s15 scratch c135.lua, story
+$0E) up through 135's T0 (14,0 / 15,0, 12:4000 -> 28:68AA) into 134 with
+`MN_TDBG=1` and watch for metatile/copy logs and any $C2 cell.
+
+The g7 ferry loop (181 -> 184 -> 183 -> 277 -> 181) goes back to 181 and
+does not move the story; the ferry side trip is not the story 15 path.
