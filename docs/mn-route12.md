@@ -1087,5 +1087,9 @@ must start from k241 or earlier.
   all 44 `tests/engine/mn_*` pass. x8: `use slot 2 -> 1B:509A`, then 182 (scene) -> 256 at 22,11
   -> 256 at 12,4. k257g (snapshot at 257 entry) does not respawn the boatman on load; replay from
   k182f instead.
-- Next: from 256 (checkpoint k256a if saved), map the 256 exits toward 134 -> 185 -> 186 -> 187
-  -> 189 with MN_WATCH=A123.
+- x10 (k182f, 4200 frames) goes on: 256 at 22,11 -> 256 at 12,4 -> door into 180 at 22,9.
+  MN_SNAP_TO=c256 and MN_SNAP_TO=180 both saved nothing on this path (256 and 180 are not in the
+  door graph; the 256 hops look like script warps). No post-crossing checkpoint yet: replay
+  from k182f (about 2 min headless).
+- Next: get a checkpoint at 180 (try `MN_SNAP_TO=s256`/`s180` for script warps, or find why
+  `180` misses the door), then map 180 -> 134 -> 185 -> 186 -> 187 -> 189 with MN_WATCH=A123.
