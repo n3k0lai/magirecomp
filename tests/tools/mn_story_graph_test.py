@@ -41,6 +41,13 @@ put(d, 0x31, 0x6100, [0xA9, 0x10, 0x00, 0xAF, 0x26, 0xA1, 0x80, 0x94])
 put(d, 0x31, 0x6200, [0x94])
 put(d, 0x31, 0x6210, [0x94])
 
+# bleed: map 4's entry far-jumps (45) to map 5's entry, which sets its own trigger list.
+# Map 5's triggers must not be attributed to map 4.
+m4, m5 = 0x4000 + 15 * 4, 0x4000 + 15 * 5
+put(d, 0x31, 0x6800, [0x65, m4 & 0xFF, m4 >> 8, 0x4F, 0x45, 0x31, 0x00, 0x70])
+put(d, 0x31, 0x7000, [0x65, m5 & 0xFF, m5 >> 8, 0x4F, 0x64, 0x00, 0x43, 0x94])
+put(d, 0x21, 0x4300, [1, 1, 0x31, 0x10, 0x62])
+
 rom = M.Rom(bytes(d))
 ents = M.find_entries(rom)
 ok(any(e["map"] == 3 and e["at"] == "31:6000" for e in ents), "entry for map 3 found")
@@ -58,6 +65,10 @@ ok(stores[0x10] == [(3, "31:6100", "31:6100")], "story chain store")
 w, cells = M.collision(rom, 3)
 ok(w == 4 and len(cells) == 16 and all(c == 8 for c in cells), "collision unpack")
 ok(M.cell_xy(0xD000 + 2 * 4 + 1, 4) == (1, 2), "cell address -> x,y")
+
+g45 = M.build(rom, maps={4, 5})
+ok("C0" not in g45["maps"][4]["triggers"], "no trigger bleed through a 45 jump into another map's entry")
+ok(g45["maps"][5]["triggers"]["C0"][0]["kind"] == 1, "map 5 keeps its own trigger")
 
 print("mn_story_graph: %d failed" % fails)
 sys.exit(1 if fails else 0)

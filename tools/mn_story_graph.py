@@ -290,8 +290,11 @@ def decode(rom, o):
     return e, n, op
 
 
-def walk(rom, bank, ptr, limit=4000):
-    """BFS over one script and its far targets. Returns ([effects], [unsized ops])."""
+def walk(rom, bank, ptr, limit=4000, own_entry=None):
+    """BFS over one script and its far targets. Returns ([effects], [unsized ops]).
+
+    With own_entry set (the ROM offset of this map's `65`), the walk stops at any other `65`: that is
+    another map's entry, and its triggers / A list belong to that map (no cross-map bleed)."""
     seen_ops = {}
     q = deque([(bank, ptr)])
     seen = set()
@@ -308,6 +311,8 @@ def walk(rom, bank, ptr, limit=4000):
             e, n, op = decode(rom, o)
             if n is None:
                 bad.append(loc(o))
+                break
+            if own_entry is not None and op == 0x65 and o != own_entry:
                 break
             seen_ops[o] = e
             for t in e["targets"]:
@@ -369,7 +374,7 @@ def build(rom, maps=None):
         m = g["maps"][en["map"]]
         # entry script: walk from the 65 back to the start is unknown; walk from the 65 op
         b, p = en["bank"], en["ptr"]
-        effs, bad = walk(rom, b, p, limit=200)
+        effs, bad = walk(rom, b, p, limit=200, own_entry=off(p, b))
         g["unsized"] += bad
         ent = {"at": en["at"], "effects": [x for x in effs if interesting(x)]}
         m["entries"].append(ent)
@@ -472,9 +477,6 @@ def main(argv):
     return 0
 
 
-if __name__ == "__main__":
-    sys.exit(main(sys.argv))
-
 
 def unpack(rom, o):
     """UnpackBytes (scripts/rle): $01-3F copy n | $81-BF fill n | $40-7F long copy | $C0-FF long fill."""
@@ -514,3 +516,7 @@ def collision(rom, mid):
 def overlay_collision(rom, bank, ptr):
     """$68's second stream: skips 3 header bytes, unpacks to WRAM 6."""
     return unpack(rom, off(ptr, bank) + 3)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
