@@ -445,6 +445,7 @@ function VM:run(bank, ptr)
     elseif op == 0x1B then self:wr8(0xC921, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(1, r:u8(o + 1)) end; o = o + n -- wSoundSlotA
     elseif op == 0x1C then self:wr8(0xC922, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(2, r:u8(o + 1)) end; o = o + n -- wSoundSlotB
     elseif op == 0x21 then self:wr8(0xC91F, 1); if h.sfx then h.sfx(1) end; o = o + n -- wSoundRequest = 1 (opcode_21.asm)
+    elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
     elseif op == 0x48 then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
     elseif op == 0x80 then -- WriteScriptBytesAcrossWramBanks: word, addr, bank-5 byte (collision), bank-3 byte (metatile)
       local a, col, mt = r:u16(o + 3), r:u8(o + 5), r:u8(o + 6)
