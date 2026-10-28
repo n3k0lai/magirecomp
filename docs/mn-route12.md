@@ -860,3 +860,34 @@ The gate is a scripted switch on SRAM `$A125` bit `$02`:
 
 Route: `255:17.5u>11.6` (face the switch, press A, then step onto the copied
 C1 at 11,6 -> 241).
+
+### 255 -> 241 -> 242 -> 247 -> 249 for real; 249's exit to 250 is behind a pirate scene
+
+Leg r2 (k257, `257:10.10,255:17.5u>11.6,241:22.31,242:47.7,247:27.49,...`):
+the A press on 17,4 ran 1B:406F (metatile 17,4 -> `$A0`), the copied C1 at
+11,6 took 1B:4007 into 241, and the walk went 241 (19:6B2C) -> 242 (19:6C89)
+-> 247 (19:6F64) -> 249 at 0,7. New control checkpoints (story `$0E`,
+`$A3A3 = 2`, in `~/.local/state/interns/snaps/magirecomp/s15/`): k255 (255 at
+15,18), k241 (241 at 7,6), k249 (249 at 0,7).
+
+Map 249 (36x30): the 250 exit C1 sits at 33-34,28, sealed. The way out is a
+`$7E` copy of the 3x2 block at 32-34,27-28 (`$D3EC`) onto 26-28,1-2 (`$D03E`),
+which puts C1 at 27-28,2 above the row-3 ledge. Three of 249's entry scripts
+(19:7751, 19:7784, 19:77F2) do that copy at load; the one that runs at story
+`$0E` from 247 (19:78CE, A-list 21:5332, pirate in slot 2 at 24,4 with talk
+19:7256 and anim 19:7977) does not. At story `$0E` the copy comes from:
+
+- C2 at 18-19,5 (trigger 3, 19:71C1): `$A224 == 0 && story == $0E` ->
+  19:790A, a scene (player thread 19:7918, music `$17`, `$0B 02` wakes slot 2).
+  The pirate's anim 19:7977 stores `$A224 = 1`.
+- The `$40` cell at 27,2 (A-list entry 19:71D1): `$A224 == 1 && story == $0E`
+  -> 19:71E1: `$A224 = 2`, then the `$7E` copy that opens C1 at 27-28,2.
+- Talk 19:7256 is the pirate ("Har har har... No luck, eh Toney?"; later
+  "Ye've helped me ... take this. A horn?" via `$87 00 1E 01`).
+
+19:7838 (`$A123 <- $0F`) is also here, in entry 19:77F2, gated on the `$C6F7`
+phase; the route's real `$0F` store is still 134's 28:63BE.
+
+Harness note: a control checkpoint does not keep NPC records, so from k249
+the 18,5 scene wakes nothing and `$A224` stays 0 (probe r5). Legs through 249
+must start from k241 or earlier.
