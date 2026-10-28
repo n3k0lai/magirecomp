@@ -1140,3 +1140,24 @@ must start from k241 or earlier.
   only animates. Test `tests/engine/mn_standin_hop_test.lua`; all 45 `tests/engine/mn_*` pass.
 - z1 (k182f, `182:29.11,277:58.45,257:7.13u`, 7000 frames, `MN_SNAP_TO=c180`): "player control
   at 22,11". **k180** re-saved from it (old wall one kept as `k180-wall`).
+
+### From k180 to 186 (legs z2-z3)
+
+- z2 (`180:0.11,277:18.36,223:23.21,225:7.11,134:24.18u,...`) ping-pongs
+  223 <-> 225. At story `$0F`, 225 is entered via 1D:751F and installs list
+  21:50E8, whose only trigger (7,11) goes back to 223. The 225 exit to 134
+  (list 21:50ED, scene 1D:725D) is installed by the entry 1D:68CE. That entry
+  is reached only from the 223 stand-in walk at 1D:4ACA (Opcode05 slot 0 at
+  22,38, then `$45` 1D:68CE at 1D:4AF2). 223's entry 1D:4892 selects 1D:4A88
+  only when word 04 == `$0B` (`SelectScriptByExactWord 04: 0B -> 4A88,
+  17 -> 4BA9`, else SRAM lookup 1D:4B80). So 223 -> 225 -> 134 is the story-11
+  path, not a story-15 route. This is not an engine bug.
+- z3 (k180, `MN_NOENC=1`, route `180:0.11,277:37.54,159:4.0u,147:6.24,
+  280:19.19,138:10.0u,135:15.0u,134:24.18u,185:14.2,186:46.63,...`) walks
+  277 trig16 -> 159 -> 147 -> 280 -> 138 -> 135 -> 134 -> 185 -> 186 cleanly,
+  and saves control checkpoints k134 (134 at 40,59) and k185 (185 at 14,28).
+  It stops in 186 at 3,32 with "route far: no path" to the 187 doors (trig1
+  46-49,63, trig2 54-55,63). 186 also has script cells trig7 27,56,
+  trig8 37,43 and trig9 60,30 (1F:62C5/62CA/62CF). Those are the next things
+  to read: they are probably hop or switch cells that gate the path. A123 stays
+  at `$0F`.
