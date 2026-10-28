@@ -553,8 +553,7 @@ function M:update()
         -- objects use the strict "cell == 0" walk gate (Tavel Gorge kids halt below the
         -- $C0 cave mouth); the slot-0 stand-in walks like the player and may end on a
         -- trigger cell (PyBoy: training-grounds Tony stops on the $C2 cell 10,9)
-        local v = World.cell(self.def, x, y)
-        return v == 0 or (_ == 0 and v >= 0xC0)
+        return Sprites.walkGate(function(cx, cy) return World.cell(self.def, cx, cy) end, _ == 0, o.x, o.y, x, y)
       end)
       if not o.driven and math.abs(o.x - o.hx) + math.abs(o.y - o.hy) > 6 then o.x, o.y, o.ox, o.oy = o.hx, o.hy, 0, 0 end
       if os.getenv("MN_TRACE") and o.sched then

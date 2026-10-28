@@ -117,9 +117,10 @@ function M.build(ow, o)
   if not o.anim then return end
   local rom, vr, base = ow.vm.rom, ow.obj, o.base
   local abank, aptr = o.anim[1], o.anim[2]
-  local seq = M.frames(rom, abank, aptr)
+  local seq, loops = M.frames(rom, abank, aptr)
   if #seq == 0 then local lp = firstList(rom, abank, aptr); if not lp then return o end; seq = { { n = 1, dx = 0, dy = 0, list = lp } } end
-  o.seq, o.imgs, o.fi, o.ft, o.ox, o.oy = seq, o.imgs or {}, 1, 0, o.ox or 0, o.oy or 0
+  seq.once = not loops
+  o.seq, o.imgs, o.fi, o.ft, o.ox, o.oy, o.spent = seq, o.imgs or {}, 1, 0, o.ox or 0, o.oy or 0, nil
   for _, f in ipairs(seq) do
     local key = abank * 65536 + f.list
     if not o.imgs[key] then o.imgs[key] = M.drawList(ow, rom, abank, f.list, base) end
@@ -129,8 +130,9 @@ function M.build(ow, o)
   if o.sched then
     o.seqs, o.si, o.st = {}, 1, 0
     for k, e in ipairs(o.sched) do
-      local sq = M.frames(rom, e[1], e[2])
-      if #sq == 0 then local lp = firstList(rom, e[1], e[2]); sq = lp and { { n = 1, dx = 0, dy = 0, list = lp } } or seq end
+      local sq, lo = M.frames(rom, e[1], e[2])
+      if #sq == 0 then local lp = firstList(rom, e[1], e[2]); sq = lp and { { n = 1, dx = 0, dy = 0, list = lp } } or seq
+      else sq.once = not lo end
       for _, f in ipairs(sq) do
         local key = e[1] * 65536 + f.list
         if not f.img then
@@ -145,12 +147,28 @@ function M.build(ow, o)
   return o
 end
 
+-- Walk gate for script motion: objects enter only open cells ("cell == 0"); the slot-0
+-- stand-in walks like the player and may end on a trigger cell ($C0+). A stand-in the
+-- scene placed inside a wall is not gated: 180's 2A:5D42 puts Tony at 22,9 and 2A:5DBD
+-- hops him over row 10 down to the floor row 11.
+function M.walkGate(cell, standIn, fx, fy, x, y)
+  local v = cell(x, y)
+  if standIn then
+    local here = cell(fx, fy)
+    if here ~= 0 and here < 0xC0 then return true end
+    return v == 0 or v >= 0xC0
+  end
+  return v == 0
+end
+
 -- Animate: advance frame counters at 60 Hz; dx/dy motion accumulates as a
 -- pixel offset that snaps to whole 16-px cells (movement scripts).
 function M.tick(o, canEnter)
   if o.seq and #o.seq >= 1 then
     local f = o.seq[o.fi]
-    if not o.still then -- $16 walkers animate in place; the scroll carries them
+    -- a list that does not loop back ($46) moves once: 20:5738 (Tony's hop off the 180
+    -- ledge, -2..+4 px/frame) ends in a jump to an idle, so the arc must not repeat
+    if not o.still and not o.spent then -- $16 walkers animate in place; the scroll carries them
       local nx, ny = o.ox + (f.dx or 0), o.oy + (f.dy or 0)
       -- objects stop at blocked cells (Tavel Gorge kids halt at the cave wall)
       local tx = o.x + (nx >= 16 and 1 or nx <= -16 and -1 or 0)
@@ -163,7 +181,10 @@ function M.tick(o, canEnter)
     while o.oy >= 16 do o.oy = o.oy - 16; o.y = o.y + 1 end
     while o.oy <= -16 do o.oy = o.oy + 16; o.y = o.y - 1 end
     o.ft = o.ft + 1
-    if o.ft >= math.max(1, f.n) then o.ft = 0; o.fi = o.fi % #o.seq + 1; o.image = o.seq[o.fi].img or o.image end
+    if o.ft >= math.max(1, f.n) then
+      if o.fi == #o.seq and o.seq.once and #o.seq > 1 then o.spent = true end
+      o.ft = 0; o.fi = o.fi % #o.seq + 1; o.image = o.seq[o.fi].img or o.image
+    end
   end
   -- a $15 record lasts its full frame count, motion included (16 frames of 20:4FB3 at
   -- 1 px = one cell up), so the schedule steps after this frame's motion
@@ -174,7 +195,7 @@ function M.tick(o, canEnter)
     -- statically decoded behaviour loop wraps around like its script's jump back
     local hold = o.driven and o.si == #o.sched
     if #o.sched > 1 and not hold and o.st >= math.max(1, o.sched[o.si][3]) then
-      o.st = 0; o.si = o.si % #o.sched + 1; o.seq = o.seqs[o.si]; o.fi, o.ft = 1, 0
+      o.st = 0; o.si = o.si % #o.sched + 1; o.seq = o.seqs[o.si]; o.fi, o.ft, o.spent = 1, 0, nil
       o.image = o.seq[1].img or o.image
     end
   end
