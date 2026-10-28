@@ -1161,3 +1161,41 @@ must start from k241 or earlier.
   trig8 37,43 and trig9 60,30 (1F:62C5/62CA/62CF). Those are the next things
   to read: they are probably hop or switch cells that gate the path. A123 stays
   at `$0F`.
+
+### Map 186: a lever chain, then moving platforms (legs a1-a3)
+
+- The three script cells are not gates. trig7 27,56 (1F:62C5) ORs `$A127 |= $08`, trig8
+  37,43 (62CA) `$A127 |= $10`, trig9 60,30 (62CF) `$A128 |= $04`; each then parks.
+- The gates are A-press levers, run from the A list 21:4E3D (index = cell - `$40`; every
+  entry is kind 1, so the same scripts also run at map init and rebuild the opened state):
+  `$40` 24,15 (62D4, sets `$A125` bit `$02`), `$41` 24,24 (631A, needs `$02`, sets `$04`),
+  `$42` 15,34 (639F, needs `$04`, sets `$08`), `$43` 24,34 (63EE, needs `$04`, sets `$10`),
+  `$44` 24,42 (6434, needs `$10`, toggles bit `$20`), `$45` 15,48 (6516, needs `$08`,
+  toggles bit `$40`). A missing prerequisite runs 666D (a "won't" text). Each lever unpacks
+  the collision overlay (65:63E0 / 69:7AD0, or 51:4BEA / 64:7B0E for the toggles) and plants
+  rects with `$7F` into the live plane. `$46`-`$4A` are no-ops; `$4B`-`$5D` are chests
+  ("Tony got ...", `$A335`-`$A342` flags), and `$50` 59,31 needs trig9 first.
+- a1/a2 (k185, `MN_NOENC=1`, route
+  `185:14.2,186:23.15r>23.24r>15.33d>23.34r>23.42r>46.63`): all five levers fire in order
+  (`A on cell $40` ... `$44`; the planner hops 23,27 -> 23,29 -> 23,31 on the way), then
+  "no path from 23,42" to the 187 doors. No engine or harness bug so far.
+- a3 (`MN_DUMPMAP=1`, which now prints `$01`-`$0F` as their own digit): the planted cells are
+  `$02` bands, 3 or 5 wide (26-30 x 15-49, 17-38 x 28-30, 17-19 x 28-63, 26-42 x 45-48,
+  35-42 x 49-63), with 1-wide `$00` stepping stones where a band crosses a floor gap (row 19
+  x 26-31 `2.2.2.`). A flood of the live grid (s15 snaps `dumpflood.lua LOG X Y`) reaches
+  most of the west half, but the 187 doors (column 44 x 44-62 plus 44-49 x 57-62, all `$82`)
+  and the 54-55 x 43-62 door pocket stay cut off.
+- What is left is the platforms. Slots `$22`/`$23` (objects 34/35 at 36-37,48, where the band
+  has a `$00` gap) and `$25`-`$27` (18,54-56, `$9x` cells) are handler `$5ED2` records with no
+  image. The toggles move them (`Opcode04 22/23/25-27 ... 09 E5` vs `... 00 E5`, and the
+  LCD-off branches 64AA/6592 respawn them at 37,46 / 37,49 and 18-23,56 with `Opcode05`).
+  They look like lifts that ride the `$02` bands; trig7/trig8 sit at the band ends (27,56 and
+  37,43) and are cleared again by the toggles (`$A127 &= $EF` / `$F7`). The port does not
+  draw or ride them yet.
+- Next: disassemble handler `$5ED2` and the Opcode04 `09 E5` motion, check whether Tony
+  standing on a platform cell is carried (the real game probably rides along a `$02` band),
+  and model that with a test. Then press `$45` (14,48 face right) and toggle `$44` as needed
+  to reach column 44. No 186 checkpoint yet (MN_SNAP_TO saves on door crossings; replay from
+  k185, about 1.5 min headless). Note: run the `tests/engine/mn_*` suite with no `MN_*`
+  variables set; a leftover `MN_NOENC` and friends from a leg shell fail 5 cases of
+  `mn_grass_test.lua`.
