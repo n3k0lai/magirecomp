@@ -891,3 +891,17 @@ phase; the route's real `$0F` store is still 134's 28:63BE.
 Harness note: a control checkpoint does not keep NPC records, so from k249
 the 18,5 scene wakes nothing and `$A224` stays 0 (probe r5). Legs through 249
 must start from k241 or earlier.
+
+### 249 pirate scene from k241 (runs r6/r7)
+
+- Starting from `k241` (so NPC records exist), the 249 leg loads the pirate in slot 2 at 24,4
+  (talk 19:7256, anim 19:7977, beh 19:7A49). Walking over C2 at 18,5 fires 19:71C1 and music `$17`,
+  and the pirate anim stores `$A224 <- 01` at 19:797B (seen with `MN_WATCH=A224`). So the scene half
+  works in the port.
+- The next goal, 27,3 facing up (the A press on the `$40` cell at 27,2, 19:71D1), is never reached. The
+  router logs `stuck at 25,3 next 26,3`, gives up and moves on to 24,5. 26,3 is blocked, most likely
+  by the pirate standing on it while the 7977 walk runs, or because the walk never finishes. 19:71E1
+  never runs, so `$A224` stays 1 and C1 to 250 stays sealed.
+- Next: dump obj/NPC positions during frames after 71C1 to see whether the pirate parks on 26,3, then
+  either wait it out (add a hold goal before 27,3), path around via 27,4u, or fix the anim/beh
+  interpreter if the walk is stuck. Note: `MN_WATCH` takes one hex address only.
