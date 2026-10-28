@@ -831,3 +831,32 @@ on to 241 -> 242 -> 247 -> 249 -> 250.
 
 Scratch checkpoints on kiss (/tmp/mn-s15, not in the repo): k182, k257 (real,
 story `$0E`).
+
+### Map 255's gate is the wall switch at 17,4 (not a walk-model gap)
+
+The "no path from 15,18" in q1/q2 was for the goal 0,0. The 255 cell grid
+(24x20) has two parts: the room (x 6-20, y 5-15, joined to the 257 door C0 at
+15,19 by the 15,16-18 corridor) and a sealed pocket at x 0-1, y 0-3 holding
+the 241 exit C1 (0,0 / 1,0, trigger 2 1B:4007) over floor at 0-1,2-3. No walk
+rule joins them, and the room itself is fully walkable (probe r1 reached C2 at
+11,6 in 16 steps). Nothing in the port was wrong here.
+
+The gate is a scripted switch on SRAM `$A125` bit `$02`:
+
+- 255's init scripts 1B:406F, 1B:4109 and 1B:4195 (`$A1`
+  PlantParkedHandlerWhenLCDOff) pick the A-press handler and the metatile for
+  the cells at WRAM `$D071` / `$D070` / `$D06F` = 17,4 / 16,4 / 15,4 (the
+  `$40 $41 $42` row), from `$A125` bits `$02` / `$04` / `$08`.
+- 17,4 is the wall switch: "Click!", a camera pan (`$83` deltas), then a
+  `$7E` 2x2 cell copy onto 10,6 (`$D09A`). Setting the bit (1B:40BF,
+  "What the?....") copies the pocket's top-left block (`$D000`, the C1 C1 exit
+  row) onto 10-11,6; clearing it (1B:407A, "Hmmmm...") copies the pocket floor
+  (`$D030`) back. So with the bit set, 10-11,6 is the door to 241.
+- 16,4 and 15,4 are bookshelves (joke books, "Pranks to Play on Blonde Haired
+  Strangers" / "Hey...! Wait a minute!") that toggle bits `$04` and `$08`.
+- C2 at 11,6 (1B:4020) checks `$A125 == $02` exactly; otherwise it prints the
+  hint "That's odd, I just felt a gust of wind...". So leave the shelves alone.
+- Coming in from 241 (19:6B06) ORs `$02` in, so the way back is always open.
+
+Route: `255:17.5u>11.6` (face the switch, press A, then step onto the copied
+C1 at 11,6 -> 241).

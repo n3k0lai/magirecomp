@@ -639,6 +639,11 @@ function love.update()
         for yy = 0, s.def.h - 1 do local t = {} for xx = 0, s.def.w - 1 do local v = W.cell(s.def, xx, yy) or 0
           t[#t + 1] = v == 0 and "." or v == 8 and "#" or ("%X"):format(math.floor(v / 16)) end
           print(("[mn-test] map %2d %s"):format(yy, table.concat(t))) end
+        for k, ob in pairs(s.objects or {}) do
+          print(("[mn-test] obj %s at %s,%s handler %s dormant=%s blank=%s img=%s blocks=%s"):format(tostring(k), tostring(ob.x), tostring(ob.y),
+            ob.handler and ("$%04X"):format(ob.handler) or "-", tostring(ob.dormant), tostring(ob.blank), tostring(ob.image ~= nil or ob.anim ~= nil),
+            tostring(k ~= 0 and ob.x and W.blocks(s.def, ob, ob.x, ob.y))))
+        end
       end
     end
     for _, l in ipairs(s.log) do print("[mn-test] " .. l) end
