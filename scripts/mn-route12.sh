@@ -412,10 +412,19 @@ run_story10() {
     "11:12.3d,13:11.4,12:15.5,277:37.54" \
     159 "$S9/to159s11.lua" \
     "$S9/to11s11.lua" MN_NOENC=1
-  run_leg s11road 14000 \
-    "159:19.24,158:39.12,156:43.0,153:5.0,149:0.5,148:0.8,147:6.24,280:24.20" \
+  run_leg s11road 22000 \
+    "159:19.24,158:39.12,156:43.0,153:36.44,152:41.0,151:0.4,150:0.4,149:0.4,148:0.8,147:6.24,280:24.20" \
     145 "$S9/to145s11.lua" \
     "$S9/to159s11.lua" MN_NOENC=1
+  # Story 12: 145's C1 door (1A:7174) enters 146 at 5,11 via 1A:773B, which
+  # on story $0B runs 1A:77E3. Slot 2 there (4,7) talks 1A:7844 -> 7887; the
+  # ask's yes branch (769E -> 76AF) stores $0C. No capture is needed first.
+  run_leg s12talk 9000 \
+    "145:12.11,146:4.8u" \
+    146 "$S9/to146s12.lua" \
+    "$S9/to145s11.lua" MN_NOENC=1 MN_WATCH=A123
+  grep -qF "A123 <- 0C" "$SNAP/s12talk.log" || { echo "story 12: NOT SET" >&2; exit 1; }
+  echo "story 12 reached"
 }
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10

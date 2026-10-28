@@ -491,13 +491,36 @@ $A005 (current) += count, clamped to sMapWord2 $A007 (max), and $A007 +=
 count, capped at 999. Both are big-endian, in SRAM bank sramBank+1. The
 regression test is tests/engine/mn_energy_refill_test.lua.
 
-### Story 12 (next)
+### Story 11 to 12 (walk to hub 280, 2026-10-27)
 
-1A:76AF stores $0C. The way there: town 75's door script 2F:4565 (arrive
-1,9) enters building init 1A:717B. Its list 21:4C07 runs 1A:7174 (5,11)
--> 1A:773B, which switches on the story word, and $0B goes to 1A:77E3. That
-NPC asks for a captured Lava Arboll. The turn-in text (1A:769E) falls
-into 76AF and is gated on $C6F7 compares, so
-a Lava Arboll capture is needed first. Story 13 (1E:75EA) needs story >= $0C
-plus a $C726 check. Story 14 (1E:5572/55E2) is entered from 2F:455E in the
-same town door list.
+The static door graph ignores splits inside a map, so the route was found
+with a region-aware BFS (flood-fill each map's walkable cells, follow each
+trigger cell to its arrival cell via the trigger's rebase or the door
+script's SC_SetC9A1Pair spawn).
+
+- s11walk: 33 -> 32 -> 30 -> 27 -> map 11 (door 17:7310). Writes
+  s9/to11s11.lua.
+- s11cave: map 11's west and east halves are not connected; the way on is
+  the hidden slot at 12,4 (1D:4205), reached by facing down and pressing A
+  at 12,3 (`11:12.3d`). Then 13 -> 12 -> 277 37,54 into 159 south. Writes
+  s9/to159s11.lua.
+- s11road: 159 is split by walls at rows 9-10 and we arrive in the south
+  half, so the road goes east: 159 19,22 -> 158 -> 156 -> 153, out 153's
+  south edge (36,44) into 152, then 151 -> 150 -> 149 (west part) -> 148
+  -> 147 -> 280 24,20 -> 145. 153's north door drops into a sealed pocket of
+  149 (rows 33-49, x 27-38) whose only exit is back to 153. Writes
+  s9/to145s11.lua.
+
+### Story 12
+
+1A:76AF stores $0C. 145 is a small hub; its C1 door (1A:7174) enters 146 at
+5,11 through 1A:773B, which switches on the story word: $0B -> 1A:77E3,
+$0C -> 788F, $0D -> 78D6. In 77E3, slot 2 stands at 4,7 and talks 1A:7844
+-> 7887; the ask's yes branch (769E) falls into 76AF. $C6F7 there is only a
+dialogue-phase counter, so no capture is needed first (an earlier note here
+was wrong). Leg s12talk: `145:12.11,146:4.8u`, checkpoint s9/to146s12.lua
+(door into 146), and it fails without `A123 <- 0C`.
+
+Story 13 (1E:75EA) needs story >= $0C plus a $C726 check; it is reached by
+fallthrough from 1E:7554 and has no static caller found yet. Story 14
+(1E:5572/55E2) is entered from hub 280's C0 door (2F:455E -> 138).
