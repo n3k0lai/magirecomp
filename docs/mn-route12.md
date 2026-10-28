@@ -1002,3 +1002,9 @@ must start from k241 or earlier.
 - So the order is: chest (`$A224 = 3`) -> leave 250 -> re-enter 250 -> talk to the pirate
   (`$A224 = 4`) -> leave 250 (77ED/77F2 in 249) -> horn + `$0F` -> 182 `$0F` variant 2A:6172.
   No script read of `$A3C5` (the horn's item byte) was found by a `C5 A3` byte search yet.
+- Run u4 (k250b, `250:9.19,249:27.3u>27.2`, `MN_WATCH=A224`): 250 -> 7AFC -> 249 at 27,2 -> 71B7 ->
+  250 at 9,19 again. The re-entry ran only init 19:7B30 / 19:7B74; 19:7B14 (pointer at 21:533E,
+  next to 7AFC's at 21:533A) never ran, so 19:7B24 / Opcode0B 02 did not wake the pirate and
+  `$A224` stayed 3. Blocker: find how the original runs the 21:533E script on entry to 250 (which
+  map-record slot it is and who walks it) and port that with a failing-then-passing test. Run u3
+  (k249d, route with two separate 249 legs) stuck at 1,7 with no path; not followed up.
