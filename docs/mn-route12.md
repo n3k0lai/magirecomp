@@ -1066,5 +1066,6 @@ must start from k241 or earlier.
   before, passes after; all 43 `tests/engine/mn_*` pass. k182h is stale (wall cell); use k257h
   and replay the D6 leg.
 - Route to the `$10` store (graph from the trigger lists): 134 -> 185 (28:63B6) -> 186 ->
-  187 (1F:628F..62BC) -> 189 (1F:694F/6958), or 187 -> 188 -> 189. 189's 1F:7B0B handler is
-  planted by 1F:7A99 (`$A3A4 = 4`) and the entry skips its slot 2 once `$A1AC & $80`.
+  187 (1F:628F..62BC) -> 189 (1F:694F/6958), or 187 -> 188 (1F:6946/6961/6993) -> 189
+  (1F:74F5). In 189, 1F:7A99 stores `$A3A4 = 4` and 1F:7A9D installs 1F:7AEE (record 1F:6271,
+  walk 50B5/505D, then 1F:7B0B `$A123 = $10`, door pair 24,18, enter 28:721F).
