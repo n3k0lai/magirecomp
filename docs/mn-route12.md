@@ -641,3 +641,18 @@ $0E) up through 135's T0 (14,0 / 15,0, 12:4000 -> 28:68AA) into 134 with
 
 The g7 ferry loop (181 -> 184 -> 183 -> 277 -> 181) goes back to 181 and
 does not move the story; the ferry side trip is not the story 15 path.
+
+g7 result (finished, 22,000 frames): 180 -> 277 -> 159 (two encounters,
+1A:4019) -> 158 -> 159 -> 277 -> 181, ferry 181 -> 277 -> 184 -> 277 ->
+183 (talk slot 3 2A:60EE, then 2A:5FA9) -> 277 -> 181, ending on a ferry
+`use slot 2` with $A123 still $0E. `A2AD` went 02 (2A:6276) then 03
+(2A:5422). No engine stop. The ferry side trip does not lead to 134.
+
+134's entry selector 28:68AE (`SelectScriptByExactWord` on $A123): $0B
+and $0C -> 28:6961, $0E -> 28:68C0 (the entry with the $0E-gated rect
+copy), else falls through. Leg h1 (`run8.sh`: c135.lua,
+`MN_ROUTE=135:15.0u,134:far`, `MN_TDBG=1`, `MN_WATCH=A123`) reaches 134
+and wrote checkpoint s15 scratch `c134.lua` (map 134 at 40,59, story
+$0E). Next step: from c134.lua, read h1's log for the copy/metatile
+lines, find the cell that becomes $C2 (or the script that writes it), and
+route up onto it to fire 28:63B6 (`A123 <- 0F`) and warp to 185.
