@@ -542,8 +542,13 @@ needs no input.
 Blocker: in 135 the port stops after slot 0's "Unbelievable." record (slot 0
 anim 12:73FE waits on mailbox C6FD $09, plants 12:59A0, whose tail 12:59BD
 waits for the window, posts C6FC $0A and parks; slot 0 then waits for $0A).
-Tony stays hidden and nothing else runs, so one of those mailbox handoffs is
-lost. Not fixed yet.
+Tony stays hidden and nothing else runs. A traced run (MN_THR, MN_WATCH=C6FC,
+MN_OPLOG=12 from s9/to146s14.lua) shows the $09/$0A handoff works: 12:59BE
+posts $0A, slot 0 finishes 12:74F9 (C6F8 <- $0A) and parks, so C6F9 reads
+$0A and nothing consumes it. Slot 2 sits in its last timed anim at 12:75EA
+(after its $62 $07) for good, and slot 3 ends at 12:7606. Next: find the
+record that waits on C6F9 $0A in 135 (likely the main cutscene thread from
+1A:78D6 that did the warp) and why it is not running.
 
 $0E itself is stored at 1E:55E2, entered from 12:7608 when C6F9 reads $01;
 12:7608 comes from 1E:6204 once $A1A5 bit 3 is set (1E:620D sets it). 1E:5572
