@@ -531,7 +531,7 @@ Forge/Equip/Power/Done menu (1E:74EE) takes Forge once (`MN_PICK=1E:7537!`,
 then the autopilot's Done), the $8E window picks ring $2A (`MN_FORGE=2A`),
 and 1E:75FD stores `A123 <- 0D`. Checkpoint s9/to136s13.lua.
 
-### Story 14 (in progress)
+### Story 14
 
 With story $0D, 146's entry (1A:773B) runs 1A:78D6: Valkan's scene (bridge
 collapse, the Agadon's boots plan), then a script warp 146 -> 134 -> 135 at
@@ -551,11 +551,26 @@ Ashgar's house 141 (15,0 -> 11,14), "That key must be around here...", the
 autopilot takes A on cell $40 (1E:620D, `got 0:29`, sets $A1A5 bit 3) and
 control comes back at 13,10 (about 11,000 frames).
 
-Next: the exit trigger 1E:61DC at 11,15 goes to 1E:6204 -> 12:7608 once $A1A5
-bit 3 is set (store $A2B2, `$65` to map 135). `MN_ROUTE=141:far` is wrong here:
-the planner walks onto 11,15 before the key is taken and 1E:61DC loops without
-it. The leg needs the key first (e.g. a `141:x.y>...` goal past the $40 cell,
-or holding the route until `got 0:29`), then 11,15.
+Checkpoint into 141: the warp is not a door, and an `s` spec would replay the
+whole scene, so `MN_SNAP_TO=c<map>[:n]` checkpoints the n-th control
+hand-back in a map (the first free frame after a script, text box, talk
+thread or stand-in). It saves map, cell, the live trigger and A lists and
+SRAM, and `Overworld.load` runs no script for it
+(`tests/engine/mn_control_snapshot_test.lua`). Leg s14scene uses `c141:2`:
+Tony on the exit cell 11,15 after 1E:61DC ("That key must be around
+here...") and 141's init 1E:623C, before the key. Checkpoint
+s9/to141s14.lua.
+
+Leg s14exit (`141:13.10u>11.14>11.15`, about 4,000 frames): the key is the $40
+cell at 13,9 (A from 13,10 facing up runs 1E:620D, `got 0:29`, $A1A5 bit 3),
+then off and back onto 11,15: 1E:61DC with the key goes 1E:6204 -> 12:7608
+(back to 135), and `A123 <- 0E at 1E:55E6`. `MN_ROUTE=141:far` alone loops on
+11,15 without the key. After the store the scene goes on into 138 (1E:52C1)
+and back to 135; story 15 is not routed. Story 15: the only `A9 0F 00`
+(StoreScriptWordAtA123 $0F) sites in the ROM are 19:7838, 28:63BE and
+2A:5115 (bank 19 is the likely script; the others may be data), and the
+only $10 store is 1F:7B0B. Next step: find which map or trigger runs
+19:7838.
 
 $0E itself is stored at 1E:55E2, entered from 12:7608 when C6F9 reads $01;
 12:7608 comes from 1E:6204 once $A1A5 bit 3 is set (1E:620D sets it). 1E:5572

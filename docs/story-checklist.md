@@ -34,3 +34,10 @@ The sprite 2F:453E puts on the cell does not block it (a record only marks
 a $00 cell solid). The geyser dungeon route (122 mouth, 125, 132, 130, the core 133, the four
 core switches, the stone at 18,20) reaches story word 0x0A (13:6C74) and
 starts the Ogar duel; see docs/mn-route12.md.
+
+Story words $0B-$0E (scripts/mn-route12.sh, run_story10; details in
+docs/mn-route12.md): $0B is the town duel loss (22:6B1A), $0C the Lava Arboll
+ask in 146 (1A:76AF), $0D the ring forge in 144 (1E:75FD), and $0E comes after
+Valkan's scene, the 135 fire distraction and the key in Ashgar's house 141
+(1E:620D, then the 11,15 exit 1E:6204 -> 12:7608 -> 1E:55E2). Each leg checks
+its `A123 <-` line; the route reaches story $0E.

@@ -447,10 +447,22 @@ run_story10() {
     146 "$S9/to146s14.lua" "$S9/to136s13.lua" MN_NOENC=1 MN_WATCH=A123
   # Entering 146 runs the Valkan scene on its own (bridge collapse, the Agadon's
   # boots plan, then a script warp 146 -> 134 -> 135 15,0 for the fire
-  # distraction). Not routed yet: the port stalls in 135 after slot 0's
-  # "Unbelievable." record (12:73FE -> 12:59A0/59BD, mailbox C6FC $09/$0A) with
-  # Tony hidden. Story $0E (1E:55E2) comes later, from 12:7608 via 1E:6204
-  # once $A1A5 bit 3 is set (1E:620D); see docs/mn-route12.md.
+  # distraction). In 135 the carried planter (carry2, 483ba51d) warps Tony to
+  # Ashgar's house 141 at 11,14; 1E:61DC on the exit cell 11,15 says "That key
+  # must be around here..." and 141's init 1E:623C installs the A list. The
+  # second hand-back in 141 (Tony on 11,15, key not taken yet) is the
+  # checkpoint: MN_SNAP_TO=c141:2 writes to141s14.lua (map, cell, trigger
+  # lists, SRAM), so later legs skip the ~11,000-frame scene.
+  run_leg s14scene 12000 "" c141:2 "$S9/to141s14.lua" "$S9/to146s14.lua" \
+    MN_NOENC=1 MN_WATCH=A123
+  # The key is the $40 cell at 13,9 (A from 13,10 facing up: 1E:620D,
+  # "got 0:29", $A1A5 bit 3). Then off and back onto 11,15: 1E:61DC with the
+  # key goes 1E:6204 -> 12:7608 (back to 135), which stores story $0E at 1E:55E2.
+  run_leg s14exit 4000 "141:13.10u>11.14>11.15" "" "" "$S9/to141s14.lua" \
+    MN_NOENC=1 MN_WATCH=A123
+  grep -qF "got 0:29" "$SNAP/s14exit.log" || { echo "s14exit: no key (0:29)" >&2; exit 1; }
+  grep -qF "A123 <- 0E" "$SNAP/s14exit.log" || { echo "story 14: NOT SET" >&2; exit 1; }
+  echo "story 14 reached"
 }
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10
