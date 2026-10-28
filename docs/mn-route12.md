@@ -1093,3 +1093,28 @@ must start from k241 or earlier.
   from k182f (about 2 min headless).
 - Next: get a checkpoint at 180 (try `MN_SNAP_TO=s256`/`s180` for script warps, or find why
   `180` misses the door), then map 180 -> 134 -> 185 -> 186 -> 187 -> 189 with MN_WATCH=A123.
+
+### After the crossing: k180 is a control checkpoint in a wall (legs y1-y2)
+
+- y1 (k182f, `182:29.11,277:58.45,257:7.13u`, 7000 frames, `MN_SNAP_TO=s180,c180,s256`): all
+  three saved. x10's `180`/`c256` saved nothing because 180 is a script load (no door) and 4200
+  frames ended before the 180 scene handed control back. `s256`/`s180` both record main script
+  2F:4087 (`vm.started` is still 257's door, not the crossing scene), so they would not replay
+  the crossing; use the control one. **k180** (= c180): map 180 at 22,9, story `$0F`,
+  `A1AC = $17`, `A2AD = 2`, `A2B2 = 1`, `A3A3 = 3`, trig list 21:4DFC (one entry: trig0
+  2A:516B -> 277 at cell 0,11).
+- Map 180 (30x16) is walls except floor row 11 (x 1-23) with the exit C0 at 0,11, the same
+  shape as 182. The scene places Tony at 22,9 with stand-ins slot 0 at 22,9 (anim 2A:5D94: walk
+  20:5077 x5, 20:50BF, talk 2A:5B8E, wait C6FD = 3, more walks, talk 2A:5C47, waits on C6F7,
+  `InstallParkedScript`), slot 2 at 21,9 (anim 2A:5DF5) and slot 3 at 21,7. Control came back
+  at 22,9, inside the wall, so y2 (k180 -> `180:0.11,...`) only logged "route far: no path from
+  22,9" for 9000 frames. Same symptom class as the 182 stand-in bug: either 5D94's walk (which
+  should bring Tony down onto row 11) is not run before the hand-back, or the stand-in moves
+  and the player is not synced to it. k180 is stale until that is fixed.
+- Route on from 180 (trigger lists, deterministic): 180 0,11 -> 277 (lands by trig13 21,40 or
+  trig17 40,55, both -> 180) -> 277 trig9 18,36 -> 223 -> 223 trig1 23,21 -> 225 -> 225 trig0
+  7,11 -> 134 -> 134 trig2 24,18u (28:63B6) -> 185 -> 185 trig1 14,2 / 15,2 -> 186 -> 186 trig1
+  46-49,63 -> 187 -> 187 trig6 63,35-39 or trig15 63,42-43 -> 188 -> 188 trig2 0,18-20 -> 189
+  (187 trig7/8 -> 189 have no stored cells; script-blitted). Fallback via 277 trig16 37,54 ->
+  159 -> 147 -> 280 -> 138 -> 135 -> 134 (b1 in reverse; 159's hop band is fine at `A3A3 = 3`).
+  Helper: s15 snaps `tlist.lua LIST MAP` prints a list's entries, targets and cells.
