@@ -86,5 +86,25 @@ do
   os.remove(file)
 end
 
+-- MN_SNAP_AT: a frame / end checkpoint, written once, without MN_SNAP_TO
+do
+  env.MN_SNAP_TO = nil; env.MN_SNAP_AT = "end"; env.MN_SNAP_FILE = file; os.remove(file)
+  local s186 = fake(186)
+  s186:frameSnapshot(100, false)
+  ok(io.open(file) == nil, "end checkpoint waits for the last frame")
+  s186:frameSnapshot(101, true)
+  local sn = loadfile(file) and loadfile(file)()
+  ok(sn and sn.map == 186 and sn.trig == 0x5A10 and sn.bank == nil, "end checkpoint is a control checkpoint")
+  ok(s186.log[#s186.log]:find("control in 186") ~= nil, "log names the end checkpoint")
+  os.remove(file); s186:frameSnapshot(102, true)
+  ok(io.open(file) == nil, "end checkpoint fires once")
+  env.MN_SNAP_AT = "50"; s186 = fake(186)
+  s186:frameSnapshot(49, false)
+  ok(io.open(file) == nil, "frame checkpoint waits for frame 50")
+  s186:frameSnapshot(50, false)
+  ok(io.open(file) ~= nil, "frame checkpoint writes on frame 50")
+  os.remove(file); env.MN_SNAP_AT = nil; env.MN_SNAP_FILE = nil
+end
+
 print(("mn_control_snapshot: %d checks, %d failures"):format(checks, failures))
 if failures > 0 then os.exit(1) end

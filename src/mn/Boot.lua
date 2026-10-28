@@ -554,8 +554,11 @@ function love.load()
       if s.textBox and not planner.inBox then planner.inBox = true; planner.boxes = (planner.boxes or 0) + 1 end
       if not s.textBox and planner.inBox then planner.inBox = false end
       if (planner.boxes or 0) >= 2 and not s.textBox then planner.after = (planner.after or 0) + 1 end
-      if os.getenv("MN_FRAMES") then return frame > tonumber(os.getenv("MN_FRAMES")) end
-      return (planner.after or 0) > 20 or frame > 8000
+      local done
+      if os.getenv("MN_FRAMES") then done = frame > tonumber(os.getenv("MN_FRAMES"))
+      else done = (planner.after or 0) > 20 or frame > 8000 end
+      if s.frameSnapshot then s:frameSnapshot(frame, done) end
+      return done
     end
   elseif opts.viewer then
     stack:push(require("mn.Viewer").new(0))

@@ -396,6 +396,19 @@ function M:controlSnapshot()
   self:snapMatch(self.map, "c")
 end
 
+-- Frame / end checkpoints (MN_SNAP_AT=end or MN_SNAP_AT=<frame>, MN_SNAP_FILE=path): a harness
+-- run saves a control-style checkpoint (map, cell, lists, SRAM, plane diff) on that frame or
+-- on its last frame, so a leg that ends mid-map (186 push blocks) need not replay from the
+-- last door. Fires once; MN_SNAP_TO is not needed.
+function M:frameSnapshot(frame, last)
+  local at, file = os.getenv("MN_SNAP_AT"), os.getenv("MN_SNAP_FILE")
+  if not (at and file) or self.frameSnapDone then return end
+  if (at == "end" and last) or (tonumber(at) and frame >= tonumber(at)) then
+    self.frameSnapDone = true
+    self:writeSnapshot(file:match("^[^,]+"), nil, nil, self.map, "c")
+  end
+end
+
 function M:snapMatch(to, kind, b, p)
   local want, files = os.getenv("MN_SNAP_TO"), os.getenv("MN_SNAP_FILE")
   -- comma lists pair up: MN_SNAP_TO=279,113 MN_SNAP_FILE=a.lua,b.lua (one checkpoint per map)
