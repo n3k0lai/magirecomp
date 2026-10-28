@@ -931,3 +931,12 @@ must start from k241 or earlier.
   9,19 (init 19:7B30 / 19:7B74), 19 steps to 10,6, A runs 19:7B30, metatile 10,5 := `$FF` (chest
   open), `A224 <- 03 at 19:7B62`. `$A3A3 = 3` (19:7B66) is not confirmed yet (the run watched
   `$A224`); next leg loads k250 with `MN_WATCH=A3A3`, then 250 -> back to 134 and `$0F` at 24,18u.
+
+### Agadon's Boots for real (r13/r14)
+
+- From k250, `250:10.6u`: A runs 19:7B30, `A3A3 <- 03 at 19:7B66`. The boots are stored for real
+  (story still `$0E`).
+- Control checkpoint `k250b` (`MN_SNAP_TO=c250:2`, the hand-back after the chest): 250 at 10,6,
+  story `$0E`, `$A3A3 = 3`.
+- Next: k250b -> back to 134 (159's two-tile hop band should now pass with `$A3A3 = 3`), then `$0F` at
+  24,18 moving up with `MN_WATCH=A123`.
