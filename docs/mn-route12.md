@@ -1206,3 +1206,30 @@ must start from k241 or earlier.
   54-55,53-63) and the 32-42 x 42-62 rooms sit behind `$02` bands 3 or more wide, which only
   the platforms (slots `$22`/`$23`/`$25`-`$27`, the `2*2` cells at 18,54-56 in a4) can cross.
   So the next step is the platform handler `$5ED2`, not more lever routing.
+
+### Map 186: the `$5ED2` records track push blocks, they are not lifts (legs b1, p1-p2)
+
+- Handler `$5ED2` is bank-1 code right after the step-delta routine that ends at 01:5ED1
+  (bank_001.asm). It calls 01:4A6B (the shared record tick), returns unless bit 3 of `$FFAB`
+  is set, and returns unless the record's cell pointer (`$FF93`/`$FF94`) equals `$C9A7`/`$C9A8`.
+  Then it copies `$C9A9`-`$C9AC` into record bytes +5..+8. StampTwoStepCells (01:4D3C) is what
+  sets bit 3 of `$FFAA` and stores the near-cell address at `$C9A7` and the far column, row and
+  address at `$C9A9`-`$C9AC`. So a `$5ED2` record follows a Crystal Gloves block when Tony
+  pushes it: it is the block's position record, which is why it has no image.
+- Opcode04 (opcode_04.asm) writes its two bytes into the overlay planes (WRAM 6 collision,
+  WRAM 4 metatile) at the record's cell plus the word; Opcode03 (opcode_03.asm) writes the
+  live planes (5 and 3). So `Opcode04 22 0000 09 E5` puts a `$09` push block (metatile `$E5`)
+  under slot `$22`, which the following `$7F` rect copies into the live plane, and
+  `... 00 E5` removes it. WalkTwoCells* still accepts only a `$81` far cell (bank 5,
+  walk_two_cells_right.asm), so the blocks move over `$81` floor only.
+- Port trace (temporary print, not committed; k185, `MN_NOENC=1`, the a4 route): at map init
+  1F:6434 plants `$09` at 36,48 and 37,48 (6463/6469, then the 6492 rect 32-43 x 45-51). The
+  `$44` press then takes the 64DC path (`Opcode04 22/23 ... 00 E5`) and the rect copies `$00`
+  back over both cells; the `$45` press takes 65D5 and clears slots `$25`-`$27` at 18,54-56.
+  After all six levers the port has no `$09` block left in 186, which matches the a4 dump.
+- Next: check which branch the real game takes at those presses. The deciding ops are
+  `$A0` at 6449 / 6540 (operands `25 A1 20` / `25 A1 40`, i.e. the toggle bits of `$A125`)
+  and the `$43` lookups at 64B1 / 6599 on `$A127` bits `$10` / `$08`, which trig8 (37,43) and
+  trig7 (27,56) set. Confirm the port's `$A0` reading against branch_when_lcd_off.asm and the
+  `$A125`/`$A127` values at press time, then route with pushes (A facing a `$09`, `$A3A3` = 3
+  is enough) instead of looking for a lift.
