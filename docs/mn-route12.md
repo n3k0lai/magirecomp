@@ -1118,3 +1118,8 @@ must start from k241 or earlier.
   (187 trig7/8 -> 189 have no stored cells; script-blitted). Fallback via 277 trig16 37,54 ->
   159 -> 147 -> 280 -> 138 -> 135 -> 134 (b1 in reverse; 159's hop band is fine at `A3A3 = 3`).
   Helper: s15 snaps `tlist.lua LIST MAP` prints a list's entries, targets and cells.
+- y3 (k182f, same route, 4600 frames, `MN_OPLOG=2A MN_TDBG=1`): 180 installs trig list 21:4DFC,
+  then nothing from bank 2A is logged after the slots spawn (no 5D94/5B8E ops), and control is
+  not back by frame 4600 (y1 got it later, still at 22,9). Next: check whether stand-in anims run
+  through the OPLOG path at all (compare 182's 2A:61B1, which did log), then trace 5D94's
+  `Opcode15` walk (20:5077 x5) against Tony's cell; fix with a test, re-save k180 on row 11.
