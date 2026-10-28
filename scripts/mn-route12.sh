@@ -445,7 +445,12 @@ run_story10() {
   # Path back: 136 19,32 -> 135 28,44 -> 138 4,19 -> 280 24,20 -> 145 12,11.
   run_leg s14walk 16000 "136:19.32,135:28.44,138:4.19,280:24.20,145:12.11" \
     146 "$S9/to146s14.lua" "$S9/to136s13.lua" MN_NOENC=1 MN_WATCH=A123
-  run_leg s14valkan 12000 "146:3.9u" "" "" "$S9/to146s14.lua" MN_NOENC=1 MN_WATCH=A123
+  # Entering 146 runs the Valkan scene on its own (bridge collapse, the Agadon's
+  # boots plan, then a script warp 146 -> 134 -> 135 15,0 for the fire
+  # distraction). Not routed yet: the port stalls in 135 after slot 0's
+  # "Unbelievable." record (12:73FE -> 12:59A0/59BD, mailbox C6FC $09/$0A) with
+  # Tony hidden. Story $0E (1E:55E2) comes later, from 12:7608 via 1E:6204
+  # once $A1A5 bit 3 is set (1E:620D); see docs/mn-route12.md.
 }
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10
