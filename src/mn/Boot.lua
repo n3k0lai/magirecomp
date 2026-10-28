@@ -437,6 +437,15 @@ function love.load()
                   -- so a gate-color pad off the planned chain does not change $A224 mid-leg
                   if avoidPads and v >= 0xC0 and not (g[1] == nx and g[2] == ny) then occ = true end
                 end
+                -- a goal on a direction-gated step trigger (kind 1-4, World.gate) is only entered
+                -- the way it fires (241 6-7,6 to 255 is kind 1: from below, moving up)
+                if g and g[1] == nx and g[2] == ny and ow.triggerPtr and ow.listEntry then
+                  local v = W.cell(def, nx, ny)
+                  if v >= 0xC0 then
+                    local k = ow:listEntry(ow.triggerPtr, bit.band(v, 0x3F))
+                    if k and not W.gate(k, dd[1], dd[2]) then occ = true end
+                  end
+                end
                 if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and (W.walkable(W.cell(def, nx, ny)) or (canDig and W.cell(def, nx, ny) == 0x0B)) then
                   prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
                 elseif nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not occ then

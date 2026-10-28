@@ -957,3 +957,11 @@ must start from k241 or earlier.
 - Harness: the aff7e0f7 ">" rule moved to `mn.boot.RouteGoal.talkEndsGoal` with
   `tests/engine/mn_route_goal_test.lua`. `MN_STUCKDBG` now also prints the live 15x11 cell window
   around Tony once per stuck spell.
+
+### 241 -> 255 door is up-only (harness fix)
+
+- From k241r the goal `241:7.6` was reached from 8,6 moving left and nothing fired: 241's
+  trigger 0 (6-7,6, script 19:6B06 -> 255) is kind 1, which World.gate only fires moving up.
+- The far planner now enters a goal that sits on a direction-gated step trigger (kind 1-4) only
+  from the side it fires on. Probe t3d: 7,7 -> 7,6 up ran 19:6B06, "door crossed -> map 255 at
+  11,5".
