@@ -209,7 +209,7 @@ function M:host()
         ob.handler = handler ~= 0 and handler or nil
         ob.beh = (sbank and sbank ~= 0x22) and { sbank, sptr } or nil
         -- a non-sprite-bank anim field is the object's script record: run it as a thread
-        if not Sprites.SPRITE_BANKS[abank] then ob.driven = true; s.vm:spawnThread(slot, abank, aptr) end
+        if not Sprites.SPRITE_BANKS[abank] then ob.driven = true; s.vm:spawnThread(slot, abank, aptr, true) end
         s.log[#s.log + 1] = ("npc slot %d at %d,%d sprite=%s talk=%s"):format(slot, x, y, tostring(ob.image ~= nil) .. (ob.seq and ("/" .. #ob.seq .. "f") or "") .. (ob.sched and ("/sched" .. #ob.sched) or ""),
           ob.talk and ("%02X:%04X"):format(ob.talk[1], ob.talk[2]) or "-") .. (" anim=%02X:%04X beh=%02X:%04X base=%02X%s"):format(abank, aptr, sbank or 0, sptr or 0, base, ob.anim and (" use=%02X:%04X"):format(ob.anim[1], ob.anim[2]) or "")
       end

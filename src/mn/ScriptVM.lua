@@ -37,8 +37,18 @@ function VM.new(rom, host)
 end
 
 -- Object script records run as threads (one per slot + the $C71B text record).
-function VM:spawnThread(slot, bank, ptr)
+function VM:spawnThread(slot, bank, ptr, carry)
   self.threads = self.threads or {}
+  local cur = self.threads[slot]
+  if carry and cur and cur.co == coroutine.running() then
+    -- $05 refilling the record whose script is running (Valkan 28:711A -> 12:7367 plants
+    -- slot 2 with 12:74FC, then waits at 12:73F7 for C6F9 $0A and goes on to 1E:6A49):
+    -- the new record script runs, and the planting script carries on as its own thread
+    -- instead of being dropped (map 135 stall after "Unbelievable.").
+    cur.slot = "carry" .. tostring(slot)
+    self.carried = self.carried or {}
+    self.carried[#self.carried + 1] = cur
+  end
   local co = coroutine.create(function() self:run(bank, ptr) end)
   self.threads[slot] = { co = co, wait = 0, slot = slot }
 end
@@ -94,6 +104,10 @@ function VM:tickThreads(textOpen)
         elseif why == "text" then t.text = true end
       end
     end
+  end
+  if self.carried then
+    for _, t in ipairs(self.carried) do self.threads[t.slot] = t end
+    self.carried = nil
   end
 end
 
