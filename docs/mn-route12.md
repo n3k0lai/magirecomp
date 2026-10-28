@@ -1123,3 +1123,20 @@ must start from k241 or earlier.
   not back by frame 4600 (y1 got it later, still at 22,9). Next: check whether stand-in anims run
   through the OPLOG path at all (compare 182's 2A:61B1, which did log), then trace 5D94's
   `Opcode15` walk (20:5077 x5) against Tony's cell; fix with a test, re-save k180 on row 11.
+
+### k180 on the floor: the 180 hop (legs z1-z2)
+
+- Correction to y3: bank 2A ops were logged after the 180 slots spawned (OPLOG prints to
+  stdout ahead of the `[mn-test]` lines). Slot 0 ran 2A:5D94 `$15` (20:5077 x5, 20:50BF $6E),
+  the 5B8E talk, waited C6FD = 3, ran 5DA4 and was parked on 5DB6 (C6FD = 5) at frame 4600.
+- The walk to the floor is 2A:5DBD: 20:505D for 2 frames (+2 px/frame) then 20:5738 for $1A
+  frames, a hop (dy -2,-2,-1,-1,0,0,0,0,2x6,3x4,4,4, then 3 x +1, then op $10 and `$46` to the idle
+  20:50B5, so it does not loop): about +33 px, 22,9 -> 22,11 over row 10.
+- Engine bugs: (1) the object walk gate (`cell == 0`, `$C0+` for slot 0) blocked the hop at
+  row 10, because the scene places the stand-in inside the cliff; (2) `Sprites.tick` wrapped
+  every list, so a hop that ends in a jump elsewhere repeated its arc. Fix: `Sprites.walkGate`
+  lets a slot-0 stand-in that stands in a wall move (others keep the strict gate), and a list
+  that does not loop back (`frames` second result false) moves once (`o.spent`) and then
+  only animates. Test `tests/engine/mn_standin_hop_test.lua`; all 45 `tests/engine/mn_*` pass.
+- z1 (k182f, `182:29.11,277:58.45,257:7.13u`, 7000 frames, `MN_SNAP_TO=c180`): "player control
+  at 22,11". **k180** re-saved from it (old wall one kept as `k180-wall`).
