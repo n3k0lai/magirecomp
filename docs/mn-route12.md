@@ -779,3 +779,34 @@ Scratch check only (not the route): `c134pb.lua` = c134p with `$A3A3` forced
 to 3, `134:24.18u`, `MN_WATCH=A123`: `hop 25,27 -> 25,24`, then trigger 2
 28:63B6 fires, `A123 <- 0F at 28:63BE`, warp to 185 at 24,18. So the door
 and the count-2 hop both work once the boots are real.
+
+### The boots leg: the 159 -> 277 warp path is not walkable at `$A3A3 = 2`
+
+Leg b1 (c134p -> `134:39.59,135:28.44,138:9.19,280:29.21,147:28.24,159:8.49,
+277:58.45,...,250:10.6u`, seed 4) wrote control checkpoints k135 (135),
+k280 (280) and k159 (159 at 4,0, story `$0E`, `$A3A3 = 2`), then sat in 159
+fighting encounters without reaching the exit. Map 159 rows 9-10 (x 2-10) are a
+full-width `$02 $02` band ending on `$00`: a count-2 hop, which needs
+`$A3A3 >= 3`. So the north side (147) cannot reach 159's south exit 1A:4686
+without the boots. g7 only crossed 159 from the south.
+
+Map 277 (overworld sea) is no shortcut either: its land patches are islands in
+`$01` water, and the boots-area door D3 (trig19 2F:4087 -> 257) sits on an
+island at 54-58, 44-47 together with D6 (trig22 2F:409C -> 182). Map 182's
+only door is back to that island (13:7A92), so the island is reached by a
+script warp into 182. Its map-load operand (`$65 AA 4A 4F`) appears at
+13:7A9A (182's own entry) and at three bank-2A sites: 2A:605F, 2A:6172 and
+2A:654C. Bank 2A around there is the pirate ship 183 ("Swab the sails! Wax
+the parrot! ..." talk 2A:60EE), and 2A:6040-605F tests `$A2B2`, `$A2AD` and
+`$A2AB` before the load. So the real path to the boots is most likely
+181 ferry -> 184 -> 183 (pirate ship) -> 182 -> 277 island -> 257 -> 255 ->
+241 -> 242 -> 247 -> 249 -> 250, gated on the ship's `$A2AD`/`$A2AB` state.
+g7 took the ship and came back to 181 with `$A2AD = 03`; what sets `$A2AB` (or
+which branch of 2A:6040 loads 182) is the open question.
+
+Next: decode 2A:6040-6060 and 2A:6150-6180 (the conditions in front of the
+two 182 loads), find the 183 talk/use that satisfies them, then route
+c183.lua -> 182 -> 277 (D3 at 58,45) -> ... -> 250 (`250:10.6u`, the `$40`
+cell at 10,5, A-list 21:5340 #0 -> 19:7B30, `$A3A3 <- 3` at 19:7B66). Back at
+134 the door is now live (c134p plus the plane fix), so the store needs only
+the boots.
