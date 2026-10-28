@@ -395,6 +395,27 @@ run_story10() {
   run_leg s11map 8000 "" "" "" "$S9/to33s11.lua" MN_NOENC=1 MN_WATCH=A123
   grep -qF "player control at" "$SNAP/s11map.log" || { echo "story 11: no control" >&2; exit 1; }
   echo "story 11: control after the town duel"
+  [ -n "${MN_STORY10_ONLY:-}" ] && return
+  # Story 11 -> 12: the Lava Arboll ask sits in building 145 off hub 280
+  # (door C1, 2F:4565 -> init 1A:717B; list 21:4C07 runs 1A:7174 -> 773B,
+  # story $0B -> 1A:77E3). Door path from the house: 33 9,19 -> 32 east ->
+  # 30 south -> 27 east -> 11. Map 11's west half is cut off from its east
+  # door; the way on is the hidden slot at 12,4 (1D:4205; face down + A at
+  # 12,3) into cave 13 (init 1D:4097) -> 12 -> 277 37,54 -> 159. 159 is
+  # split by a wall at rows 9-10; the south half leaves east (19,24) into 158
+  # -> 156 -> 153 -> 149 -> 148 -> 147 -> 280 24,20.
+  run_leg s11walk 8000 \
+    "33:9.19,32:49.9,30:39.49,27:39.10" \
+    11 "$S9/to11s11.lua" \
+    "$S9/to33s11.lua" MN_NOENC=1
+  run_leg s11cave 6000 \
+    "11:12.3d,13:11.4,12:15.5,277:37.54" \
+    159 "$S9/to159s11.lua" \
+    "$S9/to11s11.lua" MN_NOENC=1
+  run_leg s11road 14000 \
+    "159:19.24,158:39.12,156:43.0,153:5.0,149:0.5,148:0.8,147:6.24,280:24.20" \
+    145 "$S9/to145s11.lua" \
+    "$S9/to159s11.lua" MN_NOENC=1
 }
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10
