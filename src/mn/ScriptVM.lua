@@ -659,7 +659,32 @@ function VM:run(bank, ptr)
         -- $47 PickScriptRecordByDividerMod: hardware divider mod count (random)
         local c = r:u8(o + 1); local k = (c > 0 and self.curSlot and not self.init) and love.math.random(0, c - 1) or 0
         if c > 0 then jump(r:u8(o + 2 + 3 * k), r:u16(o + 3 + 3 * k)) else return end
-      elseif op == 0x8E then jump(r:u8(o + 1), r:u16(o + 2))
+      elseif op == 0x8E then
+        -- $8E CallBank4_5494ThenEnterScript (ring forge): (full record, cancel record,
+        -- u16 len, len-byte list: count then 8-byte entries led by the ring id).
+        -- $A122 >= $D0 (ring bank full) enters the first record. Otherwise the forge
+        -- window opens with $C726 = $FF; a pick stores the ring id in $C726, counts it
+        -- in $A122 and goes on past the list; no pick enters the cancel record.
+        -- The animite cost and the full ring-bank SRAM record (bank 4 $5A5B/$54D8)
+        -- are not modelled.
+        if self.init then return end
+        if self:rd8(0xA122) >= 0xD0 then jump(r:u8(o + 1), r:u16(o + 2))
+        else
+          local len, list = r:u16(o + 7), o + 9
+          self:wr8(0xC726, 0xFF)
+          -- MN_FORGE="2A": forge that ring id when the list offers it
+          local want = tonumber(os.getenv("MN_FORGE") or "", 16)
+          if not want and h.forge then want = h.forge(list, len) end
+          local id
+          for i = 0, r:u8(list) - 1 do
+            if r:u8(list + 1 + 8 * i) == want then id = want end
+          end
+          if id then
+            self:wr8(0xC726, id)
+            self:wr8(0xA122, self:rd8(0xA122) + 1)
+            o = list + len
+          else jump(r:u8(o + 4), r:u16(o + 5)) end
+        end
       else self:note(op); return end
     else
       self:note(op); o = o + n
