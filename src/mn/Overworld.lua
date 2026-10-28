@@ -233,7 +233,6 @@ function M:host()
       if slot == 0 and ob then
         s.x, s.y = ob.x, ob.y; s.objects[0] = nil; s.hidePlayer = false; s.moving = nil; s.camFix = nil; s:snap()
         s.log[#s.log + 1] = ("player control at %d,%d"):format(s.x, s.y)
-        s:controlSnapshot()
       end
     end,
     slotFields = function(slot, a, b) local ob = s.objects[slot]; if ob then ob.f1, ob.f2 = a, b end end,
@@ -378,8 +377,8 @@ function M:scriptSnapshot(to)
   if b then self:snapMatch(to, "s", tonumber(b, 16), tonumber(p, 16)) end
 end
 
--- Control checkpoints (MN_SNAP_TO=c141[:n]): when a cutscene hands control back
--- (the n-th time) in that map, e.g. Ashgar's house 141 after the 135 scene's
+-- Control checkpoints (MN_SNAP_TO=c141[:n]): on the n-th free frame in that map
+-- after a script, text box or stand-in (a control hand-back), e.g. Ashgar's house 141 after the 135 scene's
 -- script warp, save the map, cell, trigger lists and SRAM with no script to
 -- replay; Overworld.load places Tony there with the saved lists.
 function M:controlSnapshot()
@@ -483,6 +482,7 @@ function M:update()
     self:runScript(m[1], m[2], "duel tail")
   end
   self.vm:tickThreads(self.textBox ~= nil and not self.textBox.done)
+  if self.textBox or self.scriptWaiting or self.vm.wait or self.objects[0] then self.ctlBusy = true end
   -- encounter records: a $65A4 handler fires the record's tail script when Tony shares its cell.
   -- Only a taken slot (Opcode0B) runs its handler: 277's init (2F:41F4) takes the Shadow
   -- Geyser record (slot 2, 37,8) only while the story word is 3..5.
@@ -592,8 +592,10 @@ function M:update()
   if self.objects[0] then return end -- slot-0 cutscene stand-in owns the player
   do -- a live dialogue record owns A (real: C71B busy, the A list is not polled)
     local th = self.vm.threads
-    if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then return end
+    if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then self.ctlBusy = true; return end
   end
+  -- first free frame after a script, text box or stand-in: a control hand-back
+  if self.ctlBusy then self.ctlBusy = nil; self:controlSnapshot() end
   -- HandleStartPress (06): FinishFrame latches $FFAA into $FFAB, then the four gates
   self.vm:wr8(0xFFAB, self.vm:rd8(0xFFAA))
   if self.input("start") and StartMenu.canOpen(self.vm) then
