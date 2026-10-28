@@ -940,3 +940,20 @@ must start from k241 or earlier.
   story `$0E`, `$A3A3 = 3`.
 - Next: k250b -> back to 134 (159's two-tile hop band should now pass with `$A3A3 = 3`), then `$0F` at
   24,18 moving up with `MN_WATCH=A123`.
+
+### Back from the boots: 250 -> 249 landed on 5,5 inside a wall (fixed)
+
+- Leg t1 (k250b, `250:9.19,249:0.7,...`) crossed 250's C0 (19:7AFC) into 249 and stuck at 5,5 with
+  "route far: no path". 5,5 is a `$08` wall.
+- 19:7AFC: `$A224 == 4 && story == $0E` -> 19:77ED (no rebase); otherwise `$02 08 1A 13 02` (9,19 ->
+  27,2) then 19:7744 -> 19:78BF -> (`$A224 > 0`) 19:777F, whose `$93` falls into entry 19:7784: `$65`
+  load 249, slot-0 `$05` template at 5,5, `$00`, then the `$7E` copy of the C1 block onto 26-28,1-2
+  (the same copy that opens the 250 exit), `$94`.
+- The port dropped the pair when the slot-0 `$05` ran because 27,2 was still a wall then (the
+  ringsmith rule, 14:7DD2). In the original `$00` copies the pair to `$C18E` regardless, so Tony
+  stands on 27,2 once the copy has run. Fix (ScriptVM): a pair blocked at `$05` is kept as
+  `pairWall` and applied at the entry's `$94` / park if its cell is open by then; `$65` clears it.
+  Ringsmith is unchanged (its cell stays a wall). Test: `tests/engine/mn_door_rebase_test.lua`.
+- Harness: the aff7e0f7 ">" rule moved to `mn.boot.RouteGoal.talkEndsGoal` with
+  `tests/engine/mn_route_goal_test.lua`. `MN_STUCKDBG` now also prints the live 15x11 cell window
+  around Tony once per stuck spell.

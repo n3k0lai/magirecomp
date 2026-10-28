@@ -153,6 +153,14 @@ function VM:expr(o)
   return 0, o
 end
 
+-- A door pair that was a wall when the slot-0 $05 template took over. In the
+-- original $00 copies wScriptPair to $C18E whatever the cell holds, so once the
+-- entry's own $7E copy opens that cell the player stands on the pair.
+function VM:openedPairWall(h)
+  local p = self.pairWall
+  if p and h.cellOpen and h.cellOpen(p[1], p[2]) then h.placePlayer(p[1], p[2]); self.pairWall = nil end
+end
+
 function VM:note(op)
   if not self.logged[op] then
     self.logged[op] = true
@@ -206,6 +214,8 @@ function VM:run(bank, ptr)
     if not n then self:note(op); return end
     local cur = { bank = math.floor(o / 0x4000), ptr = o % 0x4000 + 0x4000 }
     local function jump(b, p) o = off(p, b) end
+    -- the entry's script loop ends here: a blocked door pair its $7E opened is the player's cell
+    if self.pairWall and (op == 0x94 or op == 0x42 or op == 0x12) then self:openedPairWall(h) end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
       if h.freshScene and not self.init then h.freshScene() end
       self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
@@ -214,6 +224,7 @@ function VM:run(bank, ptr)
       if h.picture then h.picture(nil) end -- back to the field map
       if r:u8(o + 3) == 0x4F then h.loadMap((r:u16(o + 1) - 0x4000) / 15) end
       self.pairNeedsMap = nil -- opcode_02.asm's pair now refers to this map
+      self.pairWall = nil
       o = o + n
     elseif op == 0x64 then h.setTriggers(r:u16(o + 1)); o = o + n -- ReadBank21ByteThenResume
     elseif op == 0x69 then h.setAList(r:u16(o + 1)); o = o + n -- RunBank21ScriptList ($2C97)
@@ -230,7 +241,9 @@ function VM:run(bank, ptr)
         local tx, ty = r:u8(o + 4), r:u8(o + 5)
         if not self.pair then h.placePlayer(tx, ty)
         elseif not self.pairNeedsMap and h.cellOpen and not h.cellOpen(self.pair[1], self.pair[2]) then
-          self.pair = nil; h.placePlayer(tx, ty)
+          -- keep the blocked pair: a later $7E copy in the same entry can open it
+          -- (250 -> 249 via 19:7784 copies the C1 block onto 26-28,1-2 after $05)
+          self.pairWall = self.pair; self.pair = nil; h.placePlayer(tx, ty)
         end
       end
       h.spawn(r:u8(o + 1), r:u8(o + 4), r:u8(o + 5), r:u16(o + 2), r:u8(o + 8), r:u8(o + 9), r:u16(o + 10), r:u8(o + 12), r:u16(o + 13)); o = o + n

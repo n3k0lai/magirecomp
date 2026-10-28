@@ -124,6 +124,31 @@ do
   ok(x == 8 and y == 13, "wall on the loaded map keeps the slot-0 cell")
 end
 
+-- 250 -> 249 (19:7AFC -> 19:7784): the rebase 27,2 is a wall when slot 0's
+-- $05 runs, then the entry's $7E copy opens it. $00 in the original puts the
+-- player on the pair whatever the cell held, so once it is open (by $94) the
+-- player must stand there, not on the 5,5 template. Here a slot-2 $05 stands in
+-- for the $7E copy (the fake host opens 1,1 when it spawns).
+do
+  local host, at = world(0, 0)
+  local spawned = 0
+  host.spawn = function() spawned = spawned + 1 end
+  local open0 = host.cellOpen
+  host.cellOpen = function(cx, cy) if cx == 1 and cy == 1 and spawned >= 2 then return true end return open0(cx, cy) end
+  local slot2 = slot0(9, 9); slot2[2] = 0x02
+  local bytes = concat({
+    { 0x02, 0, 1, 0, 1, 0x93, 0x65, 0x00, 0x40, 0x4F },
+    slot0(5, 5),
+    slot2,
+    { 0x94, 0x12 },
+  })
+  local vm = VM.new(image(bytes), host)
+  vm:start(0x12, 0x4000)
+  local x, y = at()
+  ok(x == 1 and y == 1, "a pair the entry opens after $05 wins over the template (got " .. x .. "," .. y .. ")")
+  ok(vm.pairWall == nil, "pairWall cleared once placed")
+end
+
 -- 1D:79C8 order: map load, slot 0 whose cell matches the rebase, $82, no $00.
 do
   local bytes = concat({

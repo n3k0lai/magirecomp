@@ -397,7 +397,7 @@ function love.load()
         local W = require("mn.World")
         -- a bracelet kick (no text box) counts as a talk for ">" chains
         -- only on the goal cell: a scene's box on the way (249 18,5 pirate scene) must not end a ">" goal unpressed
-        if (ow.textBox or ow.kickSeen) and ow.farFace and ow.farPath and #ow.farPath == 0 then ow.talkSeen = 0; ow.kickSeen = nil end
+        if require("mn.boot.RouteGoal").talkEndsGoal(ow) then ow.talkSeen = 0; ow.kickSeen = nil end
         if not ow.objects[0] and not ow.textBox then
           local key = ow.map .. ":" .. (ow.farGoalFor or "")
           if ow.farMap ~= ow.map then
@@ -517,7 +517,9 @@ function love.load()
           end
           -- stuck (an object stepped into the path): re-plan around objects
           if ow.lastPos == ow.x * 1000 + ow.y then ow.stuck = (ow.stuck or 0) + 1 else ow.stuck = 0; ow.lastPos = ow.x * 1000 + ow.y end
-          if ow.stuck > 60 and os.getenv("MN_STUCKDBG") then local n = ow.farPath and ow.farPath[1]; local tw = {}; for k2, t in pairs(ow.vm and ow.vm.threads or ow.threads or {}) do tw[#tw + 1] = tostring(k2) end; print(("stuck at %d,%d next %s talk=%s box=%s threads=%s"):format(ow.x, ow.y, n and (n[1] .. "," .. n[2]) or "-", tostring(ow.talkThread ~= nil), tostring(ow.textBox ~= nil), table.concat(tw, " "))); local ol = {}; for oi, ob in pairs(ow.objects) do ol[#ol + 1] = ("%s@%s,%s%s"):format(tostring(oi), tostring(ob.x), tostring(ob.y), ob.dormant and "z" or "") end; print("  objs " .. table.concat(ol, " ") .. (" cell26,3=%02X"):format(require("mn.World").cell(ow.def, 26, 3))) end
+          if ow.stuck > 60 and os.getenv("MN_STUCKDBG") then local n = ow.farPath and ow.farPath[1]; local tw = {}; for k2, t in pairs(ow.vm and ow.vm.threads or ow.threads or {}) do tw[#tw + 1] = tostring(k2) end; print(("stuck at %d,%d next %s talk=%s box=%s threads=%s"):format(ow.x, ow.y, n and (n[1] .. "," .. n[2]) or "-", tostring(ow.talkThread ~= nil), tostring(ow.textBox ~= nil), table.concat(tw, " "))); local ol = {}; for oi, ob in pairs(ow.objects) do ol[#ol + 1] = ("%s@%s,%s%s"):format(tostring(oi), tostring(ob.x), tostring(ob.y), ob.dormant and "z" or "") end; print("  objs " .. table.concat(ol, " ") .. (" cell26,3=%02X"):format(require("mn.World").cell(ow.def, 26, 3)))
+            -- the live cell window around Tony (once per stuck spell), so a sealed seam shows up in the log
+            if ow.stuck == 61 then local Wd = require("mn.World"); for yy = ow.y - 5, ow.y + 5 do local row = {}; for xx = ow.x - 7, ow.x + 7 do row[#row + 1] = (xx < 0 or yy < 0) and ".." or ("%02X"):format(Wd.cell(ow.def, xx, yy) or 0) end; print(("  y%3d %s"):format(yy, table.concat(row, " "))) end end end
           if ow.stuck > 60 then ow.stuck = 0; ow.farMap = nil; ow.replan = true; return nil end
           local nxt = ow.farPath and ow.farPath[1]
           if nxt and nxt[1] == ow.x and nxt[2] == ow.y then table.remove(ow.farPath, 1); nxt = ow.farPath[1] end
