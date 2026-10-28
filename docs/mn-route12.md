@@ -1033,3 +1033,15 @@ must start from k241 or earlier.
 - Next: from k249h2 back across the island to 182 (k241r's leg t4 route: 241 -> 255 -> 257 ->
   277 D6 -> 182) to check the 2A:6172 `$0F` scene ("The ferry's gone!", `$A1AC |= $10`), then on
   toward `$10` (Shadow Geyser).
+
+### Story `$0F` back at 182 (leg w4, k249h2)
+
+- `249:0.7,247:0.7,242:12.0,241:7.6,255:15.19,257:8.19,277:55.46` from k249h2: 249 -> 247 -> 242
+  -> 241 (19:6C6E) at 22,31 -> 255 (19:6B06) at 11,5 -> 257 (1B:4000) at 10,11 -> 277 (1B:4876) ->
+  D6 2F:409C -> 182 at 29,11. With story `$0F` the D6 took the 2A:6172 variant: slot 0 at 11,3
+  (talk 2A:61CF, "Hey! The ferry's gone!...") and `A1AC <- 11` at 2A:61AC. Control at 11,3.
+- New control checkpoints (story `$0F`, horn): k241h, k255h, k257h, k182h.
+- Toward `$10`: the only `A9 10 00` store is 1F:7B0B, in handler 1F:7AEE (record planted from
+  1F:7A9E) of map 189 (trigger list 21:4F5A, entries 1F:79E5 / 1F:7AAC; 1F:7AAC's slot templates
+  at 15,16 and 12,16). Map-cache doors into 189 come from 187 and 188. Next: OPLOG 2A from k182h
+  (talk 2A:61CF and what it plants), then find the walk or horn use that leads to 187/188.
