@@ -191,6 +191,12 @@ function M:insn(o)
   elseif L == "expr3" then
     local m = self:exprSize(o + 1); if not m then return nil end
     t[1] = { self:u8(o + 1 + m), self:u16(o + 2 + m) }; n = 1 + m + 3
+  elseif L == "expr_w" or L == "expr_wb" then
+    -- $A6/$A7 (address word, expression), $A5 (address word, mask byte, expression):
+    -- the ferry fare 2A:5261 is `$A7 A3A5 (A3A5 - 300)`, which ended the record unsized
+    local k = L == "expr_w" and 3 or 4
+    local m = self:exprSize(o + k); if not m then return nil end
+    n = k + m
   elseif L == "strip" then
     local e = o + 1; while self:u8(e) ~= 0xFD do e = e + 1 end; n = e + 1 - o
   elseif L == "blk0" then n = 3 + self:u16(o + 1)

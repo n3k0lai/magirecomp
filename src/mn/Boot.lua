@@ -301,6 +301,10 @@ function love.load()
       return false
     end
   elseif opts.test and os.getenv("MN_TITLE") ~= "1" then
+    -- MN_SEED (harness only) also seeds love.math: wild-monster scatter and random record
+    -- picks then replay, so a route leg that needs a wild battle (the ferry fare) is repeatable
+    local seedEnv = tonumber(os.getenv("MN_SEED") or "")
+    if seedEnv then love.math.setRandomSeed(seedEnv) end
     local start = tonumber(os.getenv("MN_START") or "1")
     local def = Importer.loadMap(start); local e = def.entries[1]
     local planner
