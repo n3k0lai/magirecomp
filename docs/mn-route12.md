@@ -1233,3 +1233,11 @@ must start from k241 or earlier.
   trig7 (27,56) set. Confirm the port's `$A0` reading against branch_when_lcd_off.asm and the
   `$A125`/`$A127` values at press time, then route with pushes (A facing a `$09`, `$A3A3` = 3
   is enough) instead of looking for a lift.
+
+### Map 186: the levers `$44`/`$45` swap the block rooms for water bands (legs p3, q2)
+
+- The overlay pair `51:4BEA` / `64:7B0E` (unpacked on the `$44`/`$45` "bit clear" path, 645C / 6563) has `$81` floor across 26-42 x 44-50 and 17-25 x 50-57, and `$81` under every block slot (36,48 37,48 18,54 18,55 18,56) and under the respawn cells 37,46 / 37,49. The `65:63E0` / `69:7AD0` pair used on the "bit set" path has `$02` bands across the same rectangles. Checked by unpacking both from the ROM with the port's unpacker (no script involved).
+- Port trace p3: at the `$44` press A125 = `$3E`, A127 = `$00`; at the `$45` press A125 = `$7E`, A127 = `$00`. The 64B1 / 6599 lookups (`$43` kind `0A`) then jump straight to the clear at 64DC / 65D5. Kind `0A` entering on a clear bit is the port's reading and matches the 6440 prerequisite use; not yet checked against the `$43` asm.
+- So the earlier "blocks vanish" was the route, not the engine: the a4 route presses `$44` and `$45` once each, which turns the `$81` block rooms into `$02` bands. Route q2 (`23.15r>23.24r>15.33d>23.34r>23.36`, levers `$40`-`$43` only) leaves the `$09` blocks at 36,48 37,48 and 18,54-56 on `$81` floor.
+- Walk/hop flood from 23,36 on q2 (no pushes) reaches both block rooms but not: 27-38 x 52-60 (trig7 `$C7` at 27,56), 32-40 x 42-44 (trig8 `$C8` at 37,43, cell `$57` at 34,42), 48-55 x 43-62 (cell `$58` at 51,44, door `$C2` at 54,63), or the x=44 `$82` column to door `$C1` at 46-49,63.
+- Next: route the pushes (Tony has A3A3 = 3); the block in room B (18,54-56, x=17 edge) and room A (36-37,48, south edge row 49 open at 34-42) are the candidates for opening 27-38 x 52-60. Also decode what `$57`/`$58` and the `$4F` at 43,37 do.
