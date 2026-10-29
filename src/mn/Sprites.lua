@@ -175,6 +175,9 @@ end
 -- (Re)build an NPC image from the live OBJ tile memory (map VRAM records plus
 -- any $6B glyph copies the entry script made).
 function M.build(ow, o)
+  -- a $4C-$4F anim (animAt) or a ride head replaces the $15 schedule (sched = nil): drop
+  -- its per-record lists too, or tick keeps stepping a schedule that is gone (181 ferry)
+  if not o.sched then o.seqs, o.si, o.st = nil, nil, nil end
   if not o.anim then return end
   local rom, vr, base = ow.vm.rom, ow.obj, o.base
   local abank, aptr = o.anim[1], o.anim[2]
@@ -257,7 +260,7 @@ function M.tick(o, canEnter)
   end
   -- a $15 record lasts its full frame count, motion included (16 frames of 20:4FB3 at
   -- 1 px = one cell up), so the schedule steps after this frame's motion
-  if o.seqs then
+  if o.seqs and o.sched then
     o.st = o.st + 1
     -- a script-driven $15 schedule holds its last record (the script goes on, e.g. to a
     -- $5F wait; PyBoy: training-grounds Tony walks 2 cells then idles, 13:58A0); a
