@@ -640,7 +640,10 @@ function VM:run(bank, ptr)
       -- name goes to the <SWAP> buffer. PyBoy: Evu's spellbook $87 03 01 01 -> A5A6 = $08,
       -- the ring trade $87 04 04 32 -> Animite word A3A5 = $32.
       local cat, id, cnt = r:u8(o + 1), r:u8(o + 2), r:u8(o + 3)
-      if cat == 0 then -- item count A3A7+id, clamped to the cap 6 bytes before the record
+      -- CopyThreeBank7 copies the three bytes to $C9FC-$C9FE before DispatchBank7Arg
+      self:wr8(0xC9FC, cat); self:wr8(0xC9FD, id); self:wr8(0xC9FE, cnt)
+      if cat == 1 or cat == 2 then Travel.grant(self, cat, id) -- stones $A4A6 / relics $A019
+      elseif cat == 0 then -- item count A3A7+id, clamped to the cap 6 bytes before the record
         local a, cap = 0xA3A7 + id, r:u8(self:recordOff(0, id) - 6)
         self:wr8(a, math.min(cap, self:rd8(a) + cnt))
       elseif cat == 3 then Travel.grantSpell(self, id) -- StoreIndex3RecordByte
@@ -648,7 +651,7 @@ function VM:run(bank, ptr)
         local v = math.min(999, self:rd8(0xA3A5) + self:rd8(0xA3A6) * 256 + cnt)
         self:wr8(0xA3A5, v % 256); self:wr8(0xA3A6, math.floor(v / 256))
       elseif not Save.addMapWord(self, cat, cnt) then self:note(op) end
-      if cat == 0 or cat == 3 then self.nameBuf = self:recordName(cat, id) end
+      if cat == 0 or cat == 2 or cat == 3 then self.nameBuf = self:recordName(cat, id) end
       if h.got then h.got(cat, id, cnt) end
       o = o + n
     elseif op == 0x40 or op == 0x20 then -- ScriptByteCountdown / Opcode20ArmCountdown: wait n frames

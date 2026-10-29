@@ -44,6 +44,7 @@ local function rom()
   })
   s = plant(s, 0x12, 0x4030, { 0x87, 0x03, 0x01, 0x07, 0x94 })
   s = plant(s, 0x12, 0x4038, { 0x87, 0x02, 0x05, 0x02, 0x94 })
+  s = plant(s, 0x12, 0x4040, { 0x87, 0x02, 0x06, 0x01, 0x94 })
   return MnRom.new(s)
 end
 
@@ -100,6 +101,16 @@ do
   local vm = run(0x4030)
   ok(vm:rd8(0xA5A6) == COST, "$87 category 3 stores the same spell byte")
   ok(vm:rd8(0xC9FD) == 1, "$87 category 3 sets $C9FD")
+end
+
+-- $87 category 2 (an NPC's relic): CopyThreeBank7 puts the operands in $C9FC-$C9FE,
+-- then AddByteToScanC adds the count to $A019 + id.
+do
+  local vm = run(0x4040)
+  ok(vm:rd8(0xA01F) == 1, "$87 category 2 adds its count to $A019+id")
+  ok(vm:rd8(0xC9FC) == 2 and vm:rd8(0xC9FE) == 1, "$87 stages category and count")
+  vm = run(0x4040, function(m) m:wr8(0xA01F, 0xFF) end)
+  ok(vm:rd8(0xA01F) == 0xFF and vm:rd8(0xC9FD) == 0, "$87 category 2 saturates at $FF")
 end
 
 print(("mn_chest: %d checks, %d failed"):format(checks, failures))
