@@ -568,7 +568,7 @@ function VM:run(bank, ptr)
       for a = 0xA125, 0xA125 + 0x7E do self.mem[a] = nil end
       for a = 0xA224, 0xA224 + 0x7E do self.mem[a] = nil end
     elseif op == 0x99 then if h.boxClose then h.boxClose() end; o = o + n -- Opcode99: window slides closed
-    elseif op == 0x91 then o = o + n -- bank-1 SRAM fill (new-game init); our SRAM table starts zeroed
+    elseif op == 0x91 then VM.fillSRAM(self, r:u8(o + 1)); o = o + n -- BranchBank1OnScriptByte
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
@@ -768,6 +768,32 @@ function VM:run(bank, ptr)
       self:note(op); o = o + n
     end
   end
+end
+
+-- $91 BranchBank1OnScriptByte (branch_bank1_on_script_byte.asm). The live SRAM bank is
+-- vm.mem; bank wSRAMBank + 1 is the vm.sramBanks image when there is one.
+-- Zero (FillSRAMAfterZeroScriptByte, 01:466D): $00 over $068B bytes at $A019, $FF over
+-- the ten sEntryIds at $A118, $FF over $1E10 bytes at $A025 in the next bank, then
+-- Copy7646IntoNextSRAMBank (02:4799): the $1F bytes at 02:7646 go to sEntryBase
+-- ($A000) in the next bank and sEntryIds are $FF again.
+-- Nonzero (FillSRAMAfterNonzeroScriptByte, 01:46B2): $00 over $0581 bytes at $A123.
+function VM.fillSRAM(vm, b)
+  local function fill(a, len, v) for i = 0, len - 1 do vm.mem[a + i] = v ~= 0 and v or nil end end
+  if b ~= 0 then fill(0xA123, 0x0581, 0); return end
+  fill(0xA019, 0x068B, 0)
+  fill(0xA118, 0x000A, 0xFF)
+  local nb = (vm.sramBank or 0) + 1
+  local img = vm.sramBanks and vm.sramBanks[nb]
+  if img then
+    local t = {}
+    for i = 0, 0x1E do t[#t + 1] = string.char(vm.rom:u8(off(0x7646 + i, 2))) end
+    local head = table.concat(t)
+    local lo, hi = 0xA025 - 0xA000, 0xA025 - 0xA000 + 0x1E10
+    img = img .. string.rep("\0", math.max(0, hi - #img))
+    img = img:sub(1, lo) .. string.rep("\255", 0x1E10) .. img:sub(hi + 1)
+    vm.sramBanks[nb] = head .. img:sub(#head + 1)
+  end
+  fill(0xA118, 0x000A, 0xFF)
 end
 
 -- bank-7 records, $22 bytes each: items at $5E0B, spells at $7001

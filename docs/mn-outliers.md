@@ -77,25 +77,37 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
     tests/engine/mn_planner_layers_test.lua. The 186 headless run gives the same route and map changes as
     before, with no VM errors.
 
+11. **2A:50AE preset selector.** Nothing in INCBIN picks it: map 42's entry (2A:514C) installs script list
+    21:4248 as its step-trigger list (`$64`), whose ten key-1 records are 2A:50AA, 50AC, 50AE, 50CE, 50D9,
+    50E3, 50EA, 5100, 5107 and 5115. Cells `$C0`-`$C9` pick them, so 50AE is the `$C2` cell of what is a
+    debug/preset room. 2A:5123 also names 4248 and nothing reaches it. 50AE runs `$91 $00`, six `$2C` adds,
+    `$A3A5 := 999`, `$A123 := 1` and enters 1F:500C.
+12. **`$91` BranchBank1OnScriptByte was a no-op in the port.** A zero byte runs FillSRAMAfterZeroScriptByte
+    (01:466D): `$00` over `$A019`-`$A6A3`, `$FF` over sEntryIds `$A118`-`$A121`, and in the next SRAM bank
+    `$FF` over `$1E10` bytes from `$A025`, then Copy7646IntoNextSRAMBank (02:4799) puts the `$1F` bytes at
+    02:7646 at `$A000` there. A nonzero byte runs FillSRAMAfterNonzeroScriptByte (01:46B2): `$00` over
+    `$0581` bytes from `$A123`. The real new-game uses are 2A:6D3B (`$00`) and 2A:6E1B (`$01`), both before
+    1F:500C. VM.fillSRAM does this; the 02:7646 bytes are read from the ROM at run time. Test:
+    tests/engine/mn_op91_sram_fill_test.lua.
+
 ## Still open (the code can't answer yet)
 
-1. **2A:50AE preset selector.** The code that picks which preset (level 3 or 5) runs is still INCBIN.
-2. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
-3. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
+1. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
+2. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
    port only threads it outside banks 0E/0F/10/11/20/25, and it decodes those banks statically
    (Sprites.frames). That's exact for pure `$4C`/`$4D`/`$4E`/`$46` anims. It isn't exact for the bank-25
    choreography scripts 25:7211, 731F, 739D, 746C, 747F, 74DE, 751E (maps 236, 237, 240, 368) or 25:68D8,
    all of which hold flow and story ops. None of these are in stories `$01`-`$0F` or the 186 area. Fixing it
    means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
-4. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
+3. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
    last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
    that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
    then 40 at +4) that means the rock shows while it's lifted.
-5. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
+4. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
    story `$01`-`$0F` or 186 script reaches them in the static graph.
-6. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
+5. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
    produces those values. They look like dead data, but that isn't proven.
-7. **5C7A entry-anim timing** is still INCBIN.
+6. **5C7A entry-anim timing** is still INCBIN.
 
 ## Secrets and engines (fix/mn-secrets)
 
