@@ -500,8 +500,9 @@ run_story15() {
     "$S15/to159s15.lua" MN_SEED=4 MN_CHASE_MIN=300 MN_CHASE_THEN=159:8.49 MN_PICK=2A:5255
   grep -qF "enter map 184" "$SNAP/s15ferry.log" || { echo "s15ferry: no ferry" >&2; exit 1; }
   # 183 -> 182 -> 277 58,45 -> 257 -> 255 (talk) -> 241 -> 242 -> 247, then
-  # the step trigger 19:6F64 into 249.
-  run_leg s15ship 8000 \
+  # the step trigger 19:6F64 into 249. 242 has wild encounters; after the
+  # f40dee7c merge seed 4 meets two there (about 5000 extra frames).
+  run_leg s15ship 16000 \
     "@182,182:far,277:58.45,257:10.10,255:17.5u>11.6,241:22.31,242:47.7,247:27.49" \
     c182,249 "$S15/to182s15.lua,$S15/to249s15.lua" \
     "$S15/to183s15.lua" MN_SEED=4
