@@ -445,6 +445,20 @@ function VM:run(bank, ptr)
     elseif op == 0x1B then self:wr8(0xC921, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(1, r:u8(o + 1)) end; o = o + n -- wSoundSlotA
     elseif op == 0x1C then self:wr8(0xC922, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(2, r:u8(o + 1)) end; o = o + n -- wSoundSlotB
     elseif op == 0x21 then self:wr8(0xC91F, 1); if h.sfx then h.sfx(1) end; o = o + n -- wSoundRequest = 1 (opcode_21.asm)
+    elseif op == 0x4C then -- QueueRepeatedSpriteList ($1560): (count, b1, b2, list) records until a zero
+      -- count; each record is stepped once per frame for count frames, then the script goes on
+      local q, tot = o + 1, 0
+      while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
+      o = q + 1
+      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+    elseif op == 0x4D then -- StepScriptSpritePointerTable ($15E8): (size, count, b1, b2, size bytes of
+      -- list words); each entry is stepped count frames (count 0 wraps to 256), then the script goes on
+      local size, cnt = r:u8(o + 1), r:u8(o + 2)
+      if cnt == 0 then cnt = 256 end
+      o = o + 5 + size
+      local tot = math.max(1, math.floor(size / 2)) * cnt
+      if not self.init then coroutine.yield("wait", tot) end
+    elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
     elseif op == 0x48 then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
     elseif op == 0x80 then -- WriteScriptBytesAcrossWramBanks: word, addr, bank-5 byte (collision), bank-3 byte (metatile)
       local a, col, mt = r:u16(o + 3), r:u8(o + 5), r:u8(o + 6)
