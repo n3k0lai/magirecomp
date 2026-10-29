@@ -222,24 +222,17 @@ function M:host()
     end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
-    -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER (15 px in
-    -- PyBoy). Objects already placed keep their offset from the *unclamped*
-    -- camera, so they move by (unclamped - clamped). Tavel Gorge: row 3 ->
-    -- clamped 0, i.e. the kids' y=12 spawns land 3 rows up (emulator OAM).
+    -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER.
     cameraCell = function(c, r)
       s.mapCam = MapCamera.center(c, r) -- what $84 stores; the visible camera is still the port's below
       local W, H = s.def.w * 16, s.def.h * 16
       local ux, uy = c * 16, r * 16
       local cx = math.max(0, math.min(ux, (s.def.camCol or 99) * 16 + 15, W - 160))
       local cy = math.max(0, math.min(uy, (s.def.camRow or 99) * 16 + 15, H - 144))
-      if s.def.camRow == 0 then cy = 0 end
-      local dx, dy = math.floor((ux - cx) / 16 + 0.5), math.floor((uy - cy) / 16 + 0.5)
-      if dx ~= 0 or dy ~= 0 then
-        -- slot 0 (player / its stand-in) is a map cell (C18E/F) and does not move:
-        -- PyBoy map 220 has Tony at row 25 after a 3-row walk from his row-28 spawn
-        for k, ob in pairs(s.objects) do if k ~= 0 then ob.x, ob.y = ob.x - dx, ob.y - dy; ob.hx, ob.hy = nil, nil end end
-        s.log[#s.log + 1] = ("camera clamp shift %d,%d"):format(dx, dy)
-      end
+      -- No object moves: ClampMapCamera (07:491F) only pins the camera bytes.
+      -- PyBoy (map 219, Tavel Gorge): after $84 $0807 and the $93 redraw the
+      -- kids' records stay at 5,12 / 7,12 with $C934 = 15 (row limit 0, fine
+      -- 15); they walk 9 rows to row 3 while a $16 pans the view 15 -> 0.
       -- absolute like $82: an earlier $16/$83 scroll offset does not carry over
       s:ringRecord(); s.camFix = { cx, cy }; s.camOff = nil; s:ringApply()
     end,
@@ -831,6 +824,14 @@ function M:update()
       o.hx, o.hy = o.hx or o.x, o.hy or o.y
       Sprites.tick(o, function(x, y)
         if x < 0 or y < 0 or x >= self.def.w or y >= self.def.h then return y >= self.def.h end -- may enter from below
+        -- an object walking in from below the map crosses the map's edge cells until it
+        -- reaches an open one (PyBoy, map 219: the kids spawn at 5,12 / 7,12 below the
+        -- 10-row map and walk through the $08 row 9 up to row 3)
+        if o.y >= self.def.h then o.fromBelow = true; return true end
+        if o.fromBelow then
+          if World.cell(self.def, o.x, o.y) ~= 0 then return true end
+          o.fromBelow = nil
+        end
         -- objects use the strict "cell == 0" walk gate (Tavel Gorge kids halt below the
         -- $C0 cave mouth); the slot-0 stand-in walks like the player and may end on a
         -- trigger cell (PyBoy: training-grounds Tony stops on the $C2 cell 10,9)
@@ -1332,9 +1333,9 @@ end
 -- Every thread's handler adds its pair into $C843/$C844 (AddScriptDeltasUntilZero
 -- .resume, Opcode16AddScroll); FinishFrame runs the steps once on the sum and then
 -- clears both bytes. So two threads panning in the same frame move the camera by
--- their summed delta, clamped once. Port model: a $16 walker rides the camera step
--- actually taken (PyBoy: Eidon 13:58C2, the Tavel Gorge kids 1F:50CD); with several
--- pans every carried walker gets that one summed, clamped step.
+-- their summed delta, clamped once. A $16 walker moves by its own pan's delta every
+-- frame, whatever the clamp leaves of the camera step (PyBoy: Eidon 13:58C2 arrives
+-- 8 cells right; the Tavel Gorge kids go 48 px while the camera steps 15).
 function M:panFrame()
   local pans = self.pans; self.camOff = self.camOff or { 0, 0 }
   local sx, sy = 0, 0
@@ -1342,12 +1343,17 @@ function M:panFrame()
   local dx, dy = self:scrollDelta(sx, sy)
   local carried = {}
   for _, p in ipairs(pans) do
-    if p[5] then for slot in pairs(p[5]) do carried[slot] = true end end
+    -- a $16 walker moves by its own pan's delta every frame, clamped or not
+    -- (PyBoy: the Tavel Gorge kids move 48 px during 1F:50CD's 48 frames of
+    -- 00,FF while the camera only steps 15 px to the map top)
+    if p[5] then for slot in pairs(p[5]) do
+      local d = carried[slot] or { 0, 0 }; d[1], d[2] = d[1] + p[2], d[2] + p[3]; carried[slot] = d
+    end end
   end
-  for slot in pairs(carried) do
+  for slot, d in pairs(carried) do
     local ob = self.objects[slot]
     if ob then
-      ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
+      ob.ox, ob.oy = (ob.ox or 0) + d[1], (ob.oy or 0) + d[2]
       while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
       while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
       while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end

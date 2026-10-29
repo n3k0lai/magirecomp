@@ -531,9 +531,10 @@ function VM:run(bank, ptr)
     elseif op == 0x16 then
       -- Opcode16 (bank, ptr, frames, sx, sy)* until $00: each anim plays in place while
       -- Opcode16AddScroll adds (sx, sy) to the scroll deltas $C843/$C844 every frame;
-      -- the walker rides the scroll, so it only travels as far as the camera can.
+      -- the walker moves by (sx, sy) each frame whether or not the camera can.
       -- PyBoy: Eidon 13:58C2 (0E:53A0, $80 frames, 01,00) arrives 8 cells right; the
-      -- Tavel Gorge kids 1F:50CD (00,FF, camera already at the map top) stay on row 3.
+      -- Tavel Gorge kids 1F:50CD (48 frames of 00,FF) go 48 px up, row 6 -> 3, while
+      -- the camera steps only 15 px ($C934 15 -> 0) before the map top stops it.
       local q = o + 1
       while r:u8(q) ~= 0 do
         local b, p, nf = r:u8(q), r:u16(q + 1), r:u8(q + 3)

@@ -93,6 +93,20 @@ keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
 
 ## Camera split (`$82`/`$84`, ClampMapCamera) - in progress on fix/mn-cam-split
 
+### Handoff (2026-10-29)
+
+Ready to merge (fix/mn-cam-split, suite and both seeds run on the pushed
+tree): step 1 (`MapCamera`, `mapCam` recorded, not read) and step 4 (no
+"camera clamp shift", no `camRow == 0` override, `$84` sets the visible
+camera to the clamped pixel value, `$16` walkers move by their own pan
+delta, objects walking in from below the map cross its edge cells). Tavel
+Gorge now matches PyBoy frame for frame (measured values below).
+
+Remaining: steps 1-3 below (`camPix` set only by the `$93` redraw, the
+`scrollDelta` edge tests from `mapCam` and `$C842`, the sprite cull from
+`mapCam`); the map 220 Tony and Eidon `13:58C2` re-checks; a screen check of
+map 0 (the old shift fired there as -5,-5; PyBoy shows no object move).
+
 ### What the asm keeps
 
 Two cameras, not one:
@@ -126,13 +140,41 @@ cell * 16 + fine - `$C934` (+16), 8-bit; it culls with the logical camera
 `$93` redraw, and where the steps' edge tests stop (they test the fine bytes
 and the `$C842` flags, not the pixels).
 
+### Measured in PyBoy (2026-10-29)
+
+Headless PyBoy 2.8.1 (`window='null'`, `sound_emulated=False`,
+`sound_volume=0`, full mute env), new game to Tavel Gorge, hooks on `$82`,
+`$84`, DrawMetatileWindow, ClampMapCamera, `$16`'s add (`$0D97`), `$83`'s
+resume (`$1E5F`) and FinishFrame (`$08BB`); per-frame object records.
+
+- Map 0: three `$84 $0000` store column/row 251 fine 8; the clamp gives
+  0/0 fine 0 (`$C842` = `$44`). No record moves.
+- Map 216 (`$C845`/`$C846`/`$C847` = 1/0/12): `$82` with `$C18E`/`$C18F` =
+  6,4 stores column 1, row 255, fine 8,8; the `$93` clamp gives column 1
+  fine 15, row 0 fine 0 (`$C935`/`$C934` = 31/0, `$C842` = `$62`).
+- Map 219 (header 1/0/12; collision rows 0-9, rows 10+ read 0; row 9 all
+  `$08`): `$84 $0807` stores 2,3 fine 8,8; the `$93` clamp gives column 1
+  fine 15, row 0 fine 15 (`$C935`/`$C934` = 31/15, `$C842` = `$62`).
+  Records: 0 at 6,14; 2 at 5,12; 3 at 7,12; 4 at 6,8, all fine 8,8. None
+  moves at the `$84` or the clamp.
+- The kids walk 1 px a frame from frame 1630 (row 12) to 1773 (row 3),
+  144 px, through row 9, at one rate. From frame 1726 one `$16` add per
+  frame (`1F:50D2`, 00,FF, `$FFA6` 48 -> 1) runs to 1773: `$C934` steps
+  15 -> 0 by frame 1741, the kids move all 48 px. Slot 4 stays at 6,8.
+
+So the asm has no spawn shift: the view opens at `$C934` = 15 and the `$16`
+pans it to 0, and a `$16` walker moves by its own delta even when the
+camera is pinned.
+
 ### What the port does today
 
-`h.cameraCell` (`$84`) clamps at once, with fine 0 (cell * 16, capped at
-`camCol` * 16 + 15 and W - 160, `camRow` = 0 forced to pixel 0), sets the
-visible `camFix` at once, and moves every object but slot 0 by (unclamped -
-clamped) cells ("camera clamp shift", PyBoy-calibrated: Tavel Gorge kids
-row 3 -> 0, map 220 Tony keeps his cell). `h.centerCamera` (`$82`) unpins the
+`h.cameraCell` (`$84`) clamps at once (cell * 16, capped at `camCol` * 16 +
+15 and W - 160) and sets the visible `camFix` at once; no object moves
+(step 4 done; the old "camera clamp shift" moved Tavel Gorge's kids 3 rows).
+A `$16` walker moves by its own pan delta every frame, clamped or not, and
+an object walking in from below the map crosses the edge cells until it
+reaches an open one. The port run of the intro now gives the PyBoy numbers:
+kids 7,12 -> 7,3 over 144 frames, pan from row 6, camera 31,15 -> 31,0. `h.centerCamera` (`$82`) unpins the
 camera so it follows Tony. `mapView` (`$11`) and `nudge` (`$7C`/`$7D`) read
 the visible `camFix`; `scrollDelta` edge tests read `cameraXY`. With the LCD
 on, `$82`/`$84` apply the BG ring ("BG map ring" above), which models a
@@ -161,13 +203,15 @@ Nothing reads it yet, so no output changes. Test: `mn_map_camera_test`.
    of the visible pixels.
 3. Sprite cull from `mapCam`; `mapView` from the `$C861` analogue (clamp or
    steps only), `nudge` from `mapCam`.
-4. Drop the "camera clamp shift" and the `camRow == 0` override once the
-   check below agrees.
+4. Done: dropped the "camera clamp shift" and the `camRow == 0` override
+   (PyBoy values above).
 
 ### Calibration impact
 
-- **Tavel Gorge kids (`1F:500C`/`50CD`, map 219)**: today the port moves the
-  kids 3 rows up and keeps the view at row 0. By the asm reading, `$84
+- **Tavel Gorge kids (`1F:500C`/`50CD`, map 219)**: settled by the PyBoy
+  read above (no shift; view 15 -> 0; kids walk 12 -> 3). Earlier note: the
+  port moved the
+  kids 3 rows up and kept the view at row 0. By the asm reading, `$84
   $0807` stores row 3 fine 8; a later `$93` would clamp it to row 0 fine 15
   (row limit 0), i.e. `$C934` = 15, not 0, and the kids would keep their
   cells. That does not by itself give PyBoy's picture (kids 3 rows up, on

@@ -128,7 +128,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $13 | SetRecordHeadWord | opcode_13.asm | 2 | ok | ScriptVM:270 |  |
 | $14 | SetSlotSecondScript | opcode_14.asm | 3 | ok | ScriptVM:382 |  |
 | $15 | SlotScriptSequence | opcode_15.asm | rec4 | rec4: records+terminator, ok | ScriptVM:385 |  |
-| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:397 | pan rides the camera (PyBoy: 13:58C2, 1F:50CD) |
+| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:397 | walker moves by its own pan delta, clamped camera or not (PyBoy: 13:58C2, 1F:50CD) |
 | $17 | CopySixScriptBytesFromOffset3_17 | copy_six_script_bytes.asm | 6 | ok | ops/Records:179 |  |
 | $18 | SetSpriteTileBase | opcode_18.asm | 1 | ok | ops/Records:187 |  |
 | $19 | SetHeadBit7AndYield | opcode_19.asm | 0 | ok | ScriptVM:548 |  |

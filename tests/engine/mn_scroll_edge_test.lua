@@ -70,7 +70,7 @@ do -- stride 10: no sideways steps; row limit $FF: no vertical steps
   ok(x == 32 and y == 0, "row limit $FF: only the horizontal half moves")
 end
 
-do -- a $16 scroll carries its walkers by the clamped delta
+do -- a $16 walker moves by its own delta even where the camera is clamped
   local s = world(40, 30, 29, 20, 0, 0)
   s.camFix = { 8, 100 }
   s.objects[3] = { x = 5, y = 7 }
@@ -79,7 +79,7 @@ do -- a $16 scroll carries its walkers by the clamped delta
   local x = s:cameraXY()
   local ob = s.objects[3]
   ok(x == 0, "carry pan stops at column 0")
-  ok(ob.x * 16 + ob.ox == 5 * 16 - 8, "walker moved 8 pixels, not 16")
+  ok(ob.x * 16 + ob.ox == 5 * 16 - 16, "walker moved its full 16 pixels while the camera moved 8")
 end
 
 do -- without header limits the field's W-160 / H-144 apply
@@ -107,7 +107,8 @@ do -- two threads in one frame: the deltas sum into $C843/$C844, clamped once
   ok(s2:cameraXY() == 108, "3 + 3 is clamped to 4 once a frame")
 end
 
-do -- the Tavel Gorge kids (1F:50CD): three walkers each start $16 with dy -1
+do -- three walkers each start $16 with dy -1 (Tavel Gorge shape, 1F:50CD; PyBoy: the
+  -- kids go 48 px in 48 frames while $C934 only steps 15 -> 0 at the map top)
   local function kids(top)
     local s = world(40, 30, 29, 20, 0, 0)
     s.camFix = { 0, top }
@@ -122,12 +123,12 @@ do -- the Tavel Gorge kids (1F:50CD): three walkers each start $16 with dy -1
   local s = kids(0)
   local _, y = s:cameraXY()
   ok(y == 0, "camera at the map top stays there")
-  ok(s.objects[3].y == 3 and s.objects[4].y == 3 and s.objects[5].y == 3
-    and (s.objects[3].oy or 0) == 0, "the kids stay on row 3")
+  ok(s.objects[3].y * 16 + s.objects[3].oy == 3 * 16 - 8 and s.objects[5].y * 16 + s.objects[5].oy == 3 * 16 - 8,
+    "at the map top each kid still walks its 8 px")
   local s2 = kids(64)
   local _, y2 = s2:cameraXY()
   ok(y2 == 64 - 24, "below the top the three -1s sum to -3 a frame")
-  ok(s2.objects[4].y * 16 + s2.objects[4].oy == 3 * 16 - 24, "each carried kid rides the summed step once")
+  ok(s2.objects[4].y * 16 + s2.objects[4].oy == 3 * 16 - 8, "each walker moves by its own delta, not the summed step")
 end
 
 do -- h.pan keeps one pan per call: same-count same-delta walkers are not merged
