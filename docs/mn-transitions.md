@@ -82,6 +82,15 @@ down to PPU timing. The port keeps the old cells only when both maps' metatile
 atlases are identical; otherwise it draws the new map at once and logs
 `lcd-on $65: tile set differs`.
 
+`$65` does move the logical camera: its `$2F37` header unpack zeroes
+wMapColumn/wMapRow (`$C85F`/`$C860`), the fine bytes and the scroll deltas,
+while rSCX/rSCY (copied from wCameraPixelX/Y at VBlank) stay put. A static
+scan of all 706 `65 xx xx 4F` sites finds every one followed, before any
+frame wait, by `$82` or `$84` (or by `$45`/`$47` into a script that does),
+and those two store the column, row and fine bytes outright. So the port
+keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
+(test: mn_bg_ring_test).
+
 ## Edge reload stall (`$7E`/`$7F`)
 
 StagedByteEdgeCheck runs Opcode03Continue (`01:4617`) on each staged cell. With
@@ -100,8 +109,18 @@ store wrote. There is no view test: the redraw goes to that cell's ring slot,
 and shows on whichever on-screen cell shares it. The stored cell itself keeps
 its old tiles until the seam draws it. A store before any A cell was saved
 reads `$C99C`-`$C99F` as left by Reset (zero), so it redraws ring slot (0, 0)
-from the byte at address `$0000`; the port does not model a word outside the
-map plane.
+from the byte at address `$0000`. `ld c, [hl]` reads through the bus, and
+below `$4000` that is fixed ROM bank 0, so the port draws that ROM byte at ring
+slot (0, 0) (test: mn_store_redraw_test). Other words outside the map plane
+(stale words from an earlier, larger map; banked ROM; other RAM) are not
+modelled.
+
+`$67` (CallScriptUnpackHeaderAndBlock) calls the same `$2F37` header unpack
+as a map load, which zeroes the map column and row and the fine scroll, but
+no camera seed or BG redraw follows it. The asm leaves the camera at the map
+origin with the old tiles in VRAM; the port unpins the camera (`camOff`,
+`camFix` cleared, so it follows Tony) and patches every cell at once. No
+decoded script uses `$67`, so the difference is never reached.
 
 ## Not modelled
 

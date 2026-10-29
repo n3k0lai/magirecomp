@@ -151,14 +151,20 @@ function M:host()
       -- $9800 + (row & 15) * 64 + (col & 15) * 2: the 16 x 16 cell ring, with no
       -- view test (unlike Opcode03Continue). The cell that shows it is whichever
       -- on-screen cell shares that ring slot; an off-screen slot is redrawn by
-      -- the seam before it can show. A word outside the map plane is not modelled.
-      if ai >= 0 and ai < d.w * d.h and d.cells and d.cells[ai + 1] then
+      -- the seam before it can show. `ld c, [hl]` reads the word through the bus:
+      -- below $4000 that is fixed ROM bank 0, so a store before any A cell
+      -- (Reset leaves $C99C-$C99F zero) redraws slot (0, 0) with the byte at
+      -- $0000. Other words outside the map plane are not modelled.
+      local c
+      if ai >= 0 and ai < d.w * d.h and d.cells then c = d.cells[ai + 1]
+      elseif aw < 0x4000 and vm.rom then c = vm.rom:u8(aw) end
+      if c then
         local vx, vy = s:ringAlias(ax, ay)
         if vx then
-          s:patch(vx, vy, d.cells[ai + 1])
+          s:patch(vx, vy, c)
           local vi = vx + vy * d.w
           if vi == ai then s.bgStale[ai] = nil
-          elseif d.cells[vi + 1] ~= d.cells[ai + 1] then s.bgStale[vi] = true end
+          elseif d.cells[vi + 1] ~= c then s.bgStale[vi] = true end
         end
       end
     end,
@@ -201,7 +207,9 @@ function M:host()
     placePlayer = function(x, y) if s.riding then s.rec0 = { x, y } end; s.x, s.y = x, y; s:snap(); s.moving = nil; s.pw = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
     -- $93 turns the LCD off; DrawMetatileWindow redraws the view before it is on again
     lcdOff = function() s.fullDraw = true end,
-    centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s:ringApply() end,
+    -- $82 CenterFineScrollOnScriptBase ($1E30): wMapColumn/Row = $C18E/F - 5 and
+    -- both fine bytes = 8, absolute, so an earlier $16/$83 scroll (camOff) is gone
+    centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply() end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
     -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER (15 px in
@@ -221,7 +229,8 @@ function M:host()
         for k, ob in pairs(s.objects) do if k ~= 0 then ob.x, ob.y = ob.x - dx, ob.y - dy; ob.hx, ob.hy = nil, nil end end
         s.log[#s.log + 1] = ("camera clamp shift %d,%d"):format(dx, dy)
       end
-      s:ringRecord(); s.camFix = { cx, cy }; s:ringApply()
+      -- absolute like $82: an earlier $16/$83 scroll offset does not carry over
+      s:ringRecord(); s.camFix = { cx, cy }; s.camOff = nil; s:ringApply()
     end,
     -- $7C/$7D scroll nudge (bank 1 $4587): the camera's top-left cell (C85F/C860)
     -- steps toward (tc,tr) by spd px per axis per frame; edges stop an axis

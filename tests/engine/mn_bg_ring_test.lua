@@ -89,5 +89,22 @@ do -- a store's redraw and a patch keep shownAt in step
   ok(s:shownAt(4, 3) == 4, "shownAt falls back to the plane")
 end
 
+do -- $82/$84 store wMapColumn/Row and the fine bytes outright (center_fine_scroll_on_script_base.asm,
+  -- StoreMapCellFromDEMinus5): a $16/$83 scroll offset from before does not carry over
+  local s, h = world()
+  s.px, s.py = 20 * 16, 12 * 16
+  local bx, by = s:cameraXY()
+  s.camOff = { 32, -16 }
+  local ox = s:cameraXY()
+  ok(ox == bx + 32, "the scroll offset moves the camera")
+  h.centerCamera()
+  local cx, cy = s:cameraXY()
+  ok(s.camOff == nil and cx == bx and cy == by, "$82: camera back on the script base, offset gone")
+  s.camOff = { 48, 0 }
+  h.cameraCell(10, 4)
+  cx, cy = s:cameraXY()
+  ok(s.camOff == nil and cx == 160 and cy == 64, "$84: camera at the given cell, offset gone")
+end
+
 print(("mn_bg_ring: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

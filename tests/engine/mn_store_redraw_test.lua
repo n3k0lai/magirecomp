@@ -88,5 +88,18 @@ do -- LCD on, the A cell is off screen: BuildMetatilePointers (07:4C53) writes r
   ok(select("#", s:ringAlias(38, 4)) == 2 and s:ringAlias(38, 4) == 6, "slot 38 & 15 = 6 is on screen at column 6")
 end
 
+do -- LCD on, no A cell yet: $C99C-$C99F are zero, so `ld c, [hl]` reads ROM
+  -- bank 0 at $0000 and that byte is drawn at ring slot (0, 0). Made-up byte.
+  local bytes = "\x5B" .. string.rep("\0", 0x200000 - 1)
+  local s, h = world(false)
+  s.vm.rom = MnRom.new(bytes)
+  s.px, s.py = 21 * 16, 20 * 16 -- camera cols 16..25, rows 16..24
+  h.setMetatile(addr(18, 18), 0x33)
+  local p = last(s)
+  ok(p and p.x == 16 and p.y == 16 and p.mt == 0x5B, "slot (0,0) shows the ROM byte at $0000 on cell (16,16)")
+  ok(s.bgStale and s.bgStale[16 * W + 16] and s.bgStale[18 * W + 18], "the aliased and the stored cell are stale")
+  ok(s.def.cells[18 * W + 18 + 1] == 0x33, "the store still lands in WRAM 3")
+end
+
 print(("mn_store_redraw: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
