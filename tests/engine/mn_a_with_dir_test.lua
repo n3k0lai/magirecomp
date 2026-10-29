@@ -54,5 +54,12 @@ do -- A while the faced direction (up, toward the NPC) is held: a bump, still no
   ok(#s.talks == 0, "A while holding toward the record is still dropped")
 end
 
+do -- on the $02 layer the record head is 4F0D/4FB7/5061/510B: A (bit 0) is never read
+  local s = fake({ a = true })
+  s.layer, s.layerDir = 2, nil
+  s:update()
+  ok(#s.talks == 0, "A on the $02 layer does not dispatch on the faced cell")
+end
+
 print(("mn_a_with_dir: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

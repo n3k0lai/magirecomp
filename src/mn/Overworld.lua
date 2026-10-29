@@ -805,7 +805,11 @@ function M:update()
   -- ($C9A4 bit 0) reach DispatchPressedAOnFacingCell (01:619A). A with a direction is dropped.
   if self.padHead == PixelWalk.HEAD and not self.layer then return self:pixelWalk(dir) end
   if self.padHead == FROZEN_HEAD and not self.layer then return self:frozenPass() end
-  if not dir and (not self.aCool or self.aCool <= 0) and self.input("a") then
+  -- The $02 layer heads (ResumeHead03Record 01:4F0D, ResumeHead01Record 4FB7,
+  -- ResumeHead02Record 5061, ResumeHead00Record 510B) replace 6167 as the record
+  -- head and test only the direction bits of $C9A4 (4-7), never bit 0, so A
+  -- does nothing while Tony is on the $02 layer.
+  if not dir and self.layer ~= 2 and (not self.aCool or self.aCool <= 0) and self.input("a") then
     self:pressA(); return
   end
   if self.layer == 2 then
