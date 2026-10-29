@@ -799,6 +799,7 @@ function VM:run(bank, ptr)
               if want ~= nil and r:u8(list + 1 + 8 * i) == want then e = Forge.entry(r, list, i) end
             end
             if not e then break end
+            Forge.highlight(self, e) -- the cursor is on the pick: $CD50 = its +7
             if Forge.tryAfford(self, e) then
               Forge.commit(self, r, e)
               done = true

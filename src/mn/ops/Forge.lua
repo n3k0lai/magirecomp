@@ -3,7 +3,13 @@
 --
 -- TryAffordOtherChoice ($5A5B) reads the picked 8-byte list entry:
 --   +0 ring id, +1 stock index A, +2 count A, +3 stock index B, +4 count B
---   (0 = no second stock), +5/+6 animite cost (little-endian), +7 unused here.
+--   (0 = no second stock), +5/+6 animite cost (little-endian), +7 the level
+--   count. CopyPrefixedBlockToD000 puts the list in WRAM 6 at $D000;
+--   LoadWRAM6ChoiceRows (4:$5F1A) copies the visible rows to $CD22, and
+--   RefreshChangedSlotDigits (4:$6034), run by the window loop (4:$582C)
+--   whenever the cursor slot $CD81 differs from $CD3B, saves the highlighted
+--   row's byte 7 at $CD50. A pick is always on the highlighted row, so the
+--   forge's [$CD50] is that entry's +7 (M.highlight).
 -- The cost is subtracted from the word at $A3A5 into $CD4A. Count A is
 -- subtracted from $A4A6[index A] into $CD4D, with the index at $CD4C. When
 -- count B is not 0 the same is done for B into $CD4F / $CD4E; otherwise
@@ -22,7 +28,7 @@
 --   buf[18..29], +34..+36 0. $CD52/$CD53 hold its address, $CD56 its index.
 --   SpendNewEntryMeasures (2:$5B35, mn.ui.list.spend) runs on it with the
 --   pass count [$CD50] - 1. $2C sets $CD50 from its second operand; the forge
---   path does not write it, so the last value stands.
+--   window leaves the picked row's +7 there.
 --   The first $FF in $A118..$A121 is replaced by index + 1.
 -- The entry table is in SRAM bank wSRAMBank + 1: vm.sramBanks[bank + 1] when
 -- the VM carries that image ($91 fills it), else the flat vm memory. For the
@@ -66,7 +72,13 @@ function M.entry(rom, list, k)
   return {
     id = rom:u8(o), ia = rom:u8(o + 1), na = rom:u8(o + 2),
     ib = rom:u8(o + 3), nb = rom:u8(o + 4), cost = rom:u16(o + 5),
+    level = rom:u8(o + 7),
   }
+end
+
+-- RefreshChangedSlotDigits' row tail: the highlighted row's byte 7 to $CD50.
+function M.highlight(vm, e)
+  vm:wr8(0xCD50, e.level)
 end
 
 -- TryAffordOtherChoice. Returns true and stages $CD4A..$CD4F, or false.

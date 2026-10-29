@@ -39,7 +39,7 @@ end
 -- past the list: $AC C800 <- 01. 12:4040: C800 <- 02. 12:4050: C800 <- 03.
 local function script()
   local b = { 0x8E, 0x12, 0x40, 0x40, 0x12, 0x50, 0x40, 0x11, 0x00, 0x02,
-              0x2A, 0, 0, 0, 0, 0, 0, 0, 0x2B, 0, 0, 0, 0, 0, 0, 0,
+              0x2A, 0, 0, 0, 0, 0, 0, 1, 0x2B, 0, 0, 0, 0, 0, 0, 1,
               0xAC, 0x00, 0xC8, 0x01, 0x94 }
   local function at(p, t) for i, v in ipairs(t) do b[p - 0x4000 + i] = v end end
   for i = #b + 1, 0x60 do b[i] = 0 end
@@ -82,7 +82,7 @@ do -- a full ring bank ($A122 >= $D0) enters the first record and opens no windo
 end
 
 do -- the new SRAM ring entry and its $A118 slot (made-up record bytes id + i)
-  local vm = run(0x2B, 3, function(v) v:wr8(0xCD50, 1) end) -- [$CD50] - 1 = no measure passes
+  local vm = run(0x2B, 3, function(v) v:wr8(0xCD50, 9) end) -- row +7 = 1: no measure passes
   local e = 0xA025 + 2 * 0x25
   ok(vm:rd8(0xCD49) == 1 and vm:rd8(0xCD51) == 0x2B, "commit sets $CD49 and $CD51")
   ok(vm:rd8(0xCD56) == 2, "free entry index in $CD56")
@@ -104,7 +104,7 @@ end
 -- costs: entry $2A needs 300 animite, 2 of stock 5 and 1 of stock 9
 local function costly()
   local b = script()
-  b[12], b[13], b[14], b[15], b[16], b[17], b[18] = 5, 2, 9, 1, 0x2C, 0x01, 0
+  b[12], b[13], b[14], b[15], b[16], b[17], b[18] = 5, 2, 9, 1, 0x2C, 0x01, 1
   return b
 end
 
@@ -135,6 +135,19 @@ for _, short in ipairs({ "animite", "stock A", "stock B" }) do
   ok(tries == 2, short .. ": the window stays open after the notice")
   ok(vm:rd8(0xC800) == 3, short .. ": then cancel enters the cancel record")
   ok(vm:rd8(0xA3A6) == 0x01 and vm:rd8(0xA122) == 0, short .. ": nothing is paid or counted")
+end
+
+do -- RefreshChangedSlotDigits: the picked row's +7 is the level count in $CD50
+  local b = script(); b[26] = 0x07 -- ring $2B's +7
+  local vm = run(0x2B, 3, function(v) v:wr8(0xCD50, 0x02) end, b)
+  ok(vm:rd8(0xCD50) == 0x07, "forge pick leaves the row's +7 in $CD50, got " .. vm:rd8(0xCD50))
+  local denied = 0
+  local b2 = costly(); b2[18] = 0x05
+  local vm2 = VM.new(image(b2), { forge = function() denied = denied + 1; if denied == 1 then return 0x2A end end })
+  vm2:wr8(0xCD50, 0x02)
+  vm2:start(0x12, 0x4000)
+  ok(vm2:rd8(0xCD50) == 0x05, "a short pick still highlighted its row: $CD50 = +7")
+  ok(vm2:rd8(0xA122) == 0, "the short pick adds no entry")
 end
 
 do -- $2C (gift a ring): id and level count to $CD51/$CD50, then the same entry add
