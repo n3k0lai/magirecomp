@@ -99,6 +99,22 @@ do
   ok(asked == 0 and vm:rd8(0xC6F7) == 4, "runInit copies the rect without the edge check")
 end
 
+-- FinishStartup's loop (LCD off, passes back to back): no edge check, no frame per cell
+do
+  local def = { w = 8, h = 8, cells = {}, block = {} }
+  for i = 1, 64 do def.cells[i] = 0x10; def.block[i] = 0x20 end
+  local asked = 0
+  local h = {
+    mapWidth = function() return def.w end,
+    copyCell = function(si, di) def.cells[di + 1] = def.cells[si + 1] end,
+    edgeLatches = function() asked = asked + 1; return 5, 0, 2, 2 end,
+  }
+  local vm = VM.new(image(SCRIPT), h)
+  vm.startupPending = true
+  vm:start(0x12, 0x4000)
+  ok(asked == 0 and vm:rd8(0xC6F7) == 4, "the startup loop copies the rect in one go without the edge check")
+end
+
 -- host latches: 2 on the pass whose camera crossed an 8 px line, 1 on the next, then 0
 do
   local okLoad, OW = pcall(require, "mn.Overworld")

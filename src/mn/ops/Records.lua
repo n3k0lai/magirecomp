@@ -24,8 +24,9 @@ local function s8(b) if b >= 128 then return b - 256 end return b end
 -- LookupScriptIndexPointer doubles the index in eight bits (lookup_script_index_pointer.asm).
 local function slotOf(i) return math.floor(band(i * 2, 0xFF) / 2) end
 
+-- a pass end: none in map setup, and none in FinishStartup's loop (VM:inStartup)
 local function frame(vm)
-  if not vm.init and coroutine.running() then coroutine.yield("wait", 1) end
+  if not vm.init and not vm:inStartup() and coroutine.running() then coroutine.yield("wait", 1) end
 end
 
 local function rec(vm, index)
@@ -253,7 +254,8 @@ function M.cellInView(lcdOn, col, row, mapCol, mapRow, colLatch, rowLatch)
 end
 
 local function edgeStall(vm, col, row)
-  if vm.init then return false end
+  -- wLCDC == 0 skips the check: map setup and FinishStartup's loop
+  if vm.init or vm:inStartup() then return false end
   local h = vm.host
   if not (h and h.edgeLatches) then return false end
   local mapCol, mapRow, colLatch, rowLatch = h.edgeLatches()

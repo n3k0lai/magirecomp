@@ -33,8 +33,8 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
   over the 22x20 rectangle at [$C863] as 11x10 blocks of 2x2 tiles, one block a
   frame in the spiral order of the call list at 07:56FD (110 frames). The port
   skipped it; `mn.Spiral` now holds the field for those frames with the order
-  read from the ROM (`mn_spiral_test`). Its FinishStartup tail ($2158) is not
-  applied: the port's battle return keeps the field (open, see below).
+  read from the ROM (`mn_spiral_test`). Its FinishStartup tail ($2158) runs
+  after the spiral, so the rest of the stream runs in the startup loop below.
 
 ## Pass boundaries
 
@@ -51,7 +51,10 @@ the main record parks or $94 sets wScriptDone, the passes repeat back to back
 with the LCD off, and record threads wait for MainLoop's FinishFrame. The port
 marks that span with `startupPending` and `VM:inStartup()` (main record only).
 Per-pass step handlers that count $FFA6 down and `ret` take no frames there:
-$40, $4C, $4D, $4E, $4F, $6B (`mn_startup_passes_test`).
+$40, $4C, $4D, $4E, $4F, $6B; nor do the pass ends $48, $13, $A9, $91, $4A, $80,
+$81, $03, $0D, $78 and $7E/$7F's cell steps, whose LCD-off path also skips the
+edge check (`mn_startup_passes_test`, `mn_edge_stall_test`). Polls that wait on
+another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a frame.
 
 ## Known divergences (intentional)
 
