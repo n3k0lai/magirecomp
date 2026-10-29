@@ -222,6 +222,10 @@ function VM:run(bank, ptr)
     -- the entry's script loop ends here: a blocked door pair its $7E opened is the player's cell
     if self.pairWall and (op == 0x94 or op == 0x42 or op == 0x12) then self:openedPairWall(h) end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
+      -- DefaultState -> SetupWindow: window closed and parked below the picture
+      self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
+      self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
+      if self.threads then self.threads.loop38 = nil end
       if h.freshScene and not self.init then h.freshScene() end
       self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
       o = o + 1
@@ -342,18 +346,8 @@ function VM:run(bank, ptr)
     elseif op == 0x94 then -- MarkScriptDone21B2: stop this frame's loop, resume at the next opcode
       if self.init then return end
       o = o + n; coroutine.yield("wait", 1)
-    elseif op == 0x9B then -- Opcode9B: proceeds only when wUnknownC6EE == 2, else parks on $9D
-      if self.init then return end
-      if h.boxOpen then h.boxOpen(r:u16(o + 1)) end -- word: portrait record ($7078 = none)
-      o = o + n
     elseif op == 0x24 then o = o + n; coroutine.yield("wait", r:u8(o - 1)) -- Opcode20 alias: countdown
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
-    elseif op == 0x9A then -- Opcode9A: wait until the window is finished/dismissed, then close it
-      if not self.init and h.boxBusy and coroutine.running() then
-        local guard = 0
-        while h.boxBusy() and guard < 3600 do guard = guard + 1; coroutine.yield("wait", 1) end
-      end
-      if h.boxClose then h.boxClose() end; o = o + n
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
       if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       return
@@ -491,7 +485,6 @@ function VM:run(bank, ptr)
     elseif op == 0x89 or op == 0x8A then -- (bank-7 $4087 call for $8A: INCBIN) LoadSRAMScriptAndDispatch
       local p = self:rd8(0xA013) + 256 * self:rd8(0xA014)
       if p ~= 0 then jump(self:rd8(0xA012), p) else o = o + n end
-    elseif op == 0x38 or op == 0x39 then self:note(op); o = o + n -- targets still INCBIN (LCD-off record loop / $1126 / SRAM save)
     elseif op == 0x11 then -- Opcode11 / MapBank1AndJump / PickMapCellFromDiv / MatchWRAM5ScriptByte
       -- pass 1 picks a cell from rDIV (VM.pickCell), pass 2 compares it: the word at $C190
       -- or a WRAM-5 byte other than the operand sends the record back to Opcode11 (pass 3),
@@ -591,7 +584,6 @@ function VM:run(bank, ptr)
       -- (PyBoy: the cave's 1F:5EB4 A125 bit is gone after Orwin; 14:50BA tests it at A123=3)
       for a = 0xA125, 0xA125 + 0x7E do self.mem[a] = nil end
       for a = 0xA224, 0xA224 + 0x7E do self.mem[a] = nil end
-    elseif op == 0x99 then if h.boxClose then h.boxClose() end; o = o + n -- Opcode99: window slides closed
     elseif op == 0x91 then VM.fillSRAM(self, r:u8(o + 1)); o = o + n -- BranchBank1OnScriptByte
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n

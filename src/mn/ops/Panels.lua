@@ -28,6 +28,7 @@ local band, rshift, lshift = bit.band, bit.rshift, bit.lshift
 local M = { handlers = {} }
 
 local C72B, C7AB = 0xC72B, 0xC7AB
+local recordFromId -- defined with $35
 local PAL = 8
 
 local function u8(v) return band(v, 0xFF) end
@@ -367,7 +368,7 @@ local function plantRecord(vm, limit, recPtr, nextPtr)
   vm:wr8(0xC9EF, 0)
   savePtr(vm, nextPtr)
   plantDispatch(vm)
-  if vm.init then return end
+  if vm.init or vm.loop38 then return end -- inside $38 the loop's ApplyC9BCScrollThenFrame steps it
   vm.threads = vm.threads or {}
   local co = coroutine.create(function()
     while vm:rd8(0xC9EB) ~= vm:rd8(0xC9EC) do
@@ -516,6 +517,18 @@ M.handlers[0x34] = function(vm, o, n)
   return o + n
 end
 
+-- RecordPtrFromId ($04:7029) then CopyEntryRecordFieldEleven ($04:7069): the record
+-- for `id` is $415B + $2D * id; eleven bytes from its +$1E field go to $C9CD-$C9D7.
+local ELEVEN = {}
+for i = 0, 10 do ELEVEN[i + 1] = 0xC9CD + i end
+recordFromId = function(vm, id)
+  local base = band(0x415B + id * 0x2D, 0xFFFF)
+  local field = band(base + 0x1E, 0xFFFF)
+  wr16(vm, 0xC9DC, base)
+  wr16(vm, 0xC9DE, field)
+  copyEntryFields(vm, field, 11, ELEVEN)
+end
+
 -- StageC9D8ThenCall7055 ($1088). RecordPtrFromId ($7029) then eleven bytes
 -- from the record's +$1E field. Bank 0 $338D / $340B draw that.
 -- visual: entry-field VRAM, not drawn yet.
@@ -526,13 +539,7 @@ M.handlers[0x35] = function(vm, o, n, cur)
   plantDispatch(vm)
   vm:wr8(0xC9D9, 0)
   vm:wr8(0xC938, 4)
-  local base = band(0x415B + id * 0x2D, 0xFFFF)
-  local field = band(base + 0x1E, 0xFFFF)
-  wr16(vm, 0xC9DC, base)
-  wr16(vm, 0xC9DE, field)
-  local eleven = {}
-  for i = 0, 10 do eleven[i + 1] = 0xC9CD + i end
-  copyEntryFields(vm, field, 11, eleven)
+  recordFromId(vm, id)
   return o + n
 end
 
@@ -859,6 +866,190 @@ M.handlers[0x72] = function(vm, o, n, cur)
     blendSlot(vm)
   end)
   savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+---------------------------------------------------------------------------
+-- $38 InstallScriptRecordLoopBank4 ($10AF) and $39 StageHandler1126 ($110C)
+---------------------------------------------------------------------------
+
+-- SeedScriptScrollAndRecord ($04:72ED).
+local function seedScrollAndRecord(vm)
+  for _, a in ipairs({ 0xC9BC, 0xC9C2, 0xC9C4, 0xC9C0, 0xC9C1, 0xC9C7, 0xC9EC, 0xC9EB,
+    0xC9EF, 0xC9EE, 0xC9FB, 0xC9FA, 0xC9F9 }) do vm:wr8(a, 0) end
+  vm:wr8(0xC9BD, 0x58)
+  vm:wr8(0xC9C3, 0x20)
+  wr16(vm, 0xC9F0, 0x6C60)
+  wr16(vm, 0xC9F2, 0x6AF9)
+  wr16(vm, 0xC9F4, 0x6DF9)
+  wr16(vm, 0xC9F6, 0x9000)
+  vm:wr8(0xC9F8, 0x04)
+end
+
+-- ApplyC9E4TableEntry (bank 4 $704B, as $34): table word at $6F2B + 2 * [$C9E4] into
+-- $C9DE, seventeen bytes from it into the entry fields.
+local function applyC9E4Entry(vm)
+  local ptr = vm.rom:u16(off(0x6F2B, 4) + vm:rd8(0xC9E4) * 2)
+  wr16(vm, 0xC9DE, ptr)
+  copyEntryFields(vm, ptr, 17, ENTRY_DEST)
+end
+
+-- FillPanelWordsEightyPastRow ($07:4837) with $C9D8 / $C9DA already staged, then
+-- RefreshSavedPalettes ($07:4575): the palettes go out and wCallback becomes IdleCallback.
+local function fillEightyThenRefresh(vm)
+  vm:wr8(0xC831, 0)
+  local row, words = panelGeom(vm)
+  local w = rd16(vm, 0xC9DA)
+  for i = 0, words - 1 do wr16(vm, row + 0x80 + 2 * i, w) end
+  vm:wr8(0xC831, 1)
+  wr16(vm, 0xC6E4, 0x29A4)
+end
+
+-- ScaleEByDIntoC9C0 ($04:73AA): (E sra 2) * D, low byte, plus E. The negate path is dead
+-- (`cp $00` never sets carry).
+local function scaleE(e, d)
+  local c = e >= 0x80 and u8(rshift(e, 2) + 0xC0) or rshift(e, 2)
+  return u8(e + band(c * d, 0xFF))
+end
+
+-- ApplyC9BCScrollThenFrame ($04:734D), minus the VBlank / ArmPanelCallback plumbing and
+-- FinishFrame (the VM runs the record).
+local function applyScroll(vm)
+  local bc = band(vm:rd8(0xC9BC), 0x7F)
+  vm:wr8(0xC9BC, bc)
+  vm:wr8(0xC9C0, scaleE(bc, vm:rd8(0xC9BE)))
+  vm:wr8(0xC9C1, scaleE(bc, vm:rd8(0xC9BF)))
+  stepPlanted(vm)
+  -- $73AA leaves E alone, so this is $87 - $C9BC
+  vm:wr8(0xC9C2, u8(vm:rd8(0xC9C4) + u8(0x87 - bc)))
+  vm:wr8(0xC935, bc) -- wCameraPixelX
+  local h = vm.host
+  if h and h.panelScroll then h.panelScroll(bc, vm:rd8(0xC9C2)) end
+end
+
+-- ScriptLoopBPanelFrames ($04:72B4): fill row 0 (C9D8 = 7, 32 words) with white, then
+-- eight passes of ApplyPanelRowWords at four units a pass plus a frame.
+local function bPanelFrames(vm)
+  vm:wr8(0xC9DE, 8)
+  vm:wr8(0xC9D8, 7)
+  wr16(vm, 0xC9DA, 0x7FFF)
+  local row, words = panelGeom(vm) -- FillPanelWordsFromC9DA fills the row itself
+  for i = 0, words - 1 do wr16(vm, row + 2 * i, 0x7FFF) end
+  vm:wr8(0xC831, 1)
+  vm:wr8(0xC9DC, 4)
+  repeat
+    applyPanelRowWords(vm)
+    applyScroll(vm)
+    coroutine.yield("wait", 1)
+    vm:wr8(0xC9DE, u8(vm:rd8(0xC9DE) - 1))
+  until vm:rd8(0xC9DE) == 0
+end
+
+-- The `.bank4` loop after InstallScriptRecordLoopBank4. It never returns: the record it
+-- runs leaves through FinishStartup / ReenterReset, which reset the stack. Gate $C9C6
+-- (set only by the battle entry StagePointerUnlessD0B6Matches, cleared at boot and by B):
+-- B runs the eight white frames, points the record's handler at $1402 (parked after
+-- opcode $12) with pointer high byte 0, and clears the gate; Start toggles $C9C7, and
+-- while it is 1 the frame skips FinishFrame, so the record does not run.
+local function loopThread(vm)
+  return coroutine.create(function()
+    while vm.loop38 do
+      local h = vm.host
+      if vm:rd8(0xC9C6) ~= 0 and h and h.buttonPressed then
+        if h.buttonPressed("b") then
+          bPanelFrames(vm)
+          vm:wr8(0xC706 + 3, 0x02); vm:wr8(0xC706 + 4, 0x14); vm:wr8(0xC706 + 2, 0)
+          vm:wr8(0xC9C6, 0)
+          vm.co = nil -- the record is parked: nothing runs it again
+        elseif h.buttonPressed("start") then
+          vm:wr8(0xC9C7, vm:rd8(0xC9C7) == 0 and 1 or 0)
+        end
+      end
+      applyScroll(vm)
+      coroutine.yield("wait", 1)
+    end
+  end)
+end
+
+M.handlers[0x38] = function(vm, o, n, cur)
+  vm:wr8(0xC9E4, vm.rom:u8(o + 1))
+  vm:wr8(0xC9E0, vm.rom:u8(o + 2))
+  vm:wr8(0xC9E1, vm.rom:u8(o + 3))
+  vm:wr8(0xC9C5, 1)
+  savePtr(vm, cur.ptr + n)
+  wr16(vm, 0xFF9F, 0xC706)
+  plantDispatch(vm)
+  -- CopyScriptBytes: bank, pointer, handler, $FFA6, $FFA7 into wScriptRecord
+  local rec = { cur.bank, band(cur.ptr + n, 0xFF), rshift(cur.ptr + n, 8), 0x66, 0x0A,
+    vm:rd8(0xFFA6), vm:rd8(0xFFA7) }
+  for i = 1, 7 do vm:wr8(0xC706 + i - 1, rec[i]) end
+  vm:wr8(0xC938, 4)
+  -- PresentInstalledScriptEntries ($04:722E)
+  vm:wr8(0xC728, 0); vm:wr8(0xC729, 0)
+  local h = vm.host
+  if h and h.parkSprites then h.parkSprites() end
+  vm:wr8(0xC9C5, 0); vm:wr8(0xC9C8, 0); vm:wr8(0xC831, 0)
+  seedScrollAndRecord(vm)
+  vm:wr8(0xC834, 0); vm:wr8(0xC835, 0); vm:wr8(0xC832, 0); vm:wr8(0xC833, 0x24)
+  applyC9E4Entry(vm)
+  vm:wr8(0xC9D8, vm:rd8(0xC9E0)); vm:wr8(0xC9D9, 0); recordFromId(vm, vm:rd8(0xC9E0))
+  vm:wr8(0xC9D8, vm:rd8(0xC9E1)); vm:wr8(0xC9D9, 1); recordFromId(vm, vm:rd8(0xC9E1))
+  vm:wr8(0xC9D8, 7)
+  wr16(vm, 0xC9DA, 0x7FFF)
+  fillEightyThenRefresh(vm)
+  if h and h.scriptLoop38 then h.scriptLoop38(vm:rd8(0xC9E4), vm:rd8(0xC9E0), vm:rd8(0xC9E1)) end
+  -- RunScriptRecord runs the next op this frame; the loop owns every later frame.
+  if not vm.init then
+    vm.loop38 = true
+    vm.threads = vm.threads or {}
+    vm.threads.loop38 = { co = loopThread(vm), wait = 1, slot = "loop38" }
+  end
+  return o + n
+end
+
+-- a bank-4 pair table may sit in ROM bank 0, bank 4 or RAM
+local function rd4(vm, a)
+  if a < 0x4000 then return vm.rom:u8(a) end
+  if a < 0x8000 then return vm.rom:u8(off(a, 4)) end
+  return vm:rd8(a)
+end
+
+-- $39 StageHandler1126: $FFA7 = 1, $FFA6 = 0, handler $1126 from the next frame.
+-- ScriptHandler1126 re-reads the three bytes each frame ($C9EA direction, $C9E7/8 pair
+-- table) and runs StepScriptPairCountdown ($04:711C): pair 0 applies once, every later
+-- pair `first` times with $C9E9 = `second` through StepScrollByScriptPair; a zero
+-- `first` plants the dispatcher with the pointer past the three bytes.
+M.handlers[0x39] = function(vm, o, n, cur)
+  vm:wr8(0xFFA7, 1)
+  vm:wr8(0xFFA6, 0)
+  wr16(vm, 0xFFA4, 0x1126)
+  savePtr(vm, cur.ptr + 1)
+  local guard = 0
+  while guard < 0x10000 do
+    guard = guard + 1
+    frames(vm, 1)
+    vm:wr8(0xC9EA, vm.rom:u8(o + 1))
+    vm:wr8(0xC9E7, vm.rom:u8(o + 2))
+    vm:wr8(0xC9E8, vm.rom:u8(o + 3))
+    vm:wr8(0xC938, 4)
+    local p = band(rd16(vm, 0xC9E7) + 2 * vm:rd8(0xFFA6), 0xFFFF)
+    local count = vm:rd8(0xFFA7)
+    if count == 0 then
+      vm:wr8(0xFFA6, u8(vm:rd8(0xFFA6) + 1))
+      p = band(p + 2, 0xFFFF)
+      count = rd4(vm, p)
+      if count == 0 then
+        savePtr(vm, cur.ptr + n)
+        plantDispatch(vm)
+        break
+      end
+    end
+    vm:wr8(0xFFA7, u8(count - 1))
+    vm:wr8(0xC9E9, rd4(vm, band(p + 1, 0xFFFF)))
+    stepScroll(vm)
+    if vm.init then break end
+  end
+  frames(vm, 1)
   return o + n
 end
 

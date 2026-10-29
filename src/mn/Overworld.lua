@@ -273,6 +273,8 @@ function M:host()
       return res
     end,
     uiContext = function() return { rom = s.vm.rom, vm = s.vm, ow = s, input = s.input, log = s.log } end,
+    -- $38's loop polls B / Start behind the $C9C6 gate (Panels.lua)
+    buttonPressed = function(k) return s.input(k) and true or false end,
     battleOp = function(op, args)
       local t = {}; for i, v in ipairs(args) do t[i] = ("%02X"):format(v) end
       s.log[#s.log + 1] = ("battle op $%02X %s"):format(op, table.concat(t, " "))
@@ -661,6 +663,8 @@ function M:update()
     self.choiceDir = d
     if self.input("a") then ch.picked = ch.cur end
   end
+  -- $38 loop with $C9C7 = 1 (Start): the frame skips FinishFrame, so the record waits
+  if self.vm.loop38 and self.vm:rd8(0xC9C7) == 1 then return end
   if self.vm.wait then
     -- a main-script poll (e.g. $9A waiting on a box another thread writes) must not freeze the box
     if self.textBox and self.textBox.owner and not self.vm.textWait then

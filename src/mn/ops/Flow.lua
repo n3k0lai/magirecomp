@@ -196,6 +196,8 @@ end
 local function reenterReset(vm)
   vm.flow = vm.flow or {}
   vm.flow.reset = true
+  vm.loop38 = nil -- the reset leaves a $38 loop too
+  if vm.threads then vm.threads.loop38 = nil end
   local h = vm.host
   if h and h.reenterReset then h.reenterReset() end
   return nil
@@ -250,17 +252,145 @@ local function copyD392Focus(vm, o, n)
   return o + n
 end
 
--- opcode_9d.asm: plants bank-1 continuation $4972 (INCBIN), which the decomp documents as
--- resuming dispatch once wUnknownC6EE ($C6EE) is 2 (SC_WaitC6EETwo).
-local function waitC6EETwo(vm, o, n)
-  if not vm.init then
-    local guard = 0
-    while vm:rd8(0xC6EE) ~= 2 and guard < 3600 do guard = guard + 1; coroutine.yield("wait", 1) end
+---------------------------------------------------------------------------
+-- The window: $9D open slide, $9B portrait, $99 text clear, $9A close slide.
+-- wUnknownC6EE ($C6EE) is 0 closed, 1 sliding, 2 open; SetupWindow (default
+-- state) clears it. One yield is one frame: every handler below ends its frame
+-- with `ret`, and only FinishWindowYSlide ($2507 / +5) jumps straight back into
+-- DispatchScriptOpcode. The ten window-Y bytes are read from the ROM at run time
+-- (WindowYSlideTable, 1:$48D5); hosts see them through h.windowY.
+---------------------------------------------------------------------------
+local C6EE, WINDOW_X, WINDOW_Y = 0xC6EE, 0xC6F0, 0xC6F1
+local SLIDE_TABLE = 0x48D5 -- bank 1 (flat offset is the address)
+local function frame(vm) if not vm.init then coroutine.yield("wait", 1) end end
+local function setWY(vm, y)
+  vm:wr8(WINDOW_Y, y)
+  local h = vm.host
+  if h and h.windowY then h.windowY(y) end
+end
+
+-- FinishWindowYSlide + 5 ($250C): strip cursor state, then dispatch this frame.
+local function stripState(vm)
+  vm:wr8(0xC6ED, 1)
+  vm:wr8(0xC93D, 0x49); vm:wr8(0xC93E, 0xC9) -- $C949
+  vm:wr8(0xC6EB, 1)
+  vm:wr8(0xC6E9, 0x60); vm:wr8(0xC6EA, 0x88); vm:wr8(0xC941, 0x60); vm:wr8(0xC942, 0x88)
+  vm:wr8(0xC93F, 0x25); vm:wr8(0xC940, 0x9C)
+  vm:wr8(0xC944, 0x86); vm:wr8(0xC946, 0x86); vm:wr8(0xC945, 0x8F); vm:wr8(0xC947, 0xA4)
+end
+
+-- Opcode9D ($23D2), from the frame its op (or a rewound gate) ran in, through
+-- FinishWindowYSlide. Returns when DispatchScriptOpcode runs the op at hScriptPtr:
+-- the same frame after a slide, the next frame when the window was already open.
+local function openSlide(vm)
+  frame(vm) -- Opcode9D: bit 7 of hScriptBank, handler $4972
+  while true do -- Opcode9DBody (1:$4972)
+    local c = vm:rd8(C6EE)
+    if c == 2 then frame(vm); return end -- RestoreDispatchScriptOpcode (1:$4A2E)
+    if c ~= 1 then break end
+    frame(vm)
   end
+  vm:wr8(C6EE, 1)
+  vm:wr8(0xFFA6, 0)
+  vm:wr8(WINDOW_X, 7)
+  vm:wr8(0xFF45, 0x8F)
+  frame(vm) -- body; callback BlankWindowCornerBlock
+  frame(vm) -- $49B3: BlankTwoWindowSpans
+  frame(vm) -- $49CD: span rows 0 and 2
+  frame(vm) -- $49E2: row 4
+  for i = 0, 9 do -- AdvanceWindowYSlide (1:$49F7)
+    vm:wr8(0xFFA6, i + 1)
+    setWY(vm, vm.rom:u8(SLIDE_TABLE + i))
+    frame(vm)
+  end
+  frame(vm) -- index $0A: handler FinishWindowYSlide
+  vm:wr8(C6EE, 2)
+  stripState(vm)
+end
+
+-- ReturnUnlessC6EEIsTwo ($24EC): an op behind this gate rewinds onto itself and runs
+-- Opcode9D's slide first.
+local function gateOpen(vm)
+  if vm:rd8(C6EE) == 2 then return end
+  frame(vm) -- the gate's own frame
+  openSlide(vm)
+  while vm:rd8(C6EE) ~= 2 do openSlide(vm) end -- another record held it at 1
+end
+
+M.handlers[0x9D] = function(vm, o, n, cur)
+  if vm.init then return o + n end
+  frame(vm) -- Opcode9D's own frame
+  openSlide(vm)
   return o + n
 end
 
-M.handlers[0x9D] = waitC6EETwo
+-- Opcode9B ($22A7 / $22C4 / $230A): two bytes; high nibble of the first and the
+-- second byte are the glyph source ($C6E7/$C6E8), low nibble its bank. 25 frames of
+-- CopyGlyphBytes, then PaintToggledWindowCorner flips $C6EC.
+M.handlers[0x9B] = function(vm, o, n, cur)
+  if vm.init then return nil end
+  gateOpen(vm)
+  frame(vm) -- Opcode9B: callback BlankTwoWindowSpans, handler $22C4
+  local b1, b2 = vm.rom:u8(o + 1), vm.rom:u8(o + 2)
+  vm:wr8(0xC6E7, band(b1, 0xF0))
+  vm:wr8(0xC6E8, b2)
+  vm:wr8(0xC6E6, band(b1, 0x0F))
+  local k = 0x2252 + 2 * vm:rd8(0xC6EC)
+  vm:wr8(0xC6E9, vm.rom:u8(k)); vm:wr8(0xC6EA, vm.rom:u8(k + 1))
+  vm:wr8(0xFFA6, 0x1A)
+  vm:wr8(0xC6EB, 1)
+  local h = vm.host
+  if h and h.boxOpen then h.boxOpen(b1 + 256 * b2) end
+  frame(vm) -- $22C4
+  for c = 0x19, 1, -1 do vm:wr8(0xFFA6, c); frame(vm) end -- 25 glyph copies
+  vm:wr8(0xFFA6, 0)
+  vm:wr8(0xC6EC, band(vm:rd8(0xC6EC) + 1, 1)) -- PaintToggledWindowCorner
+  frame(vm) -- expired: handler $250C
+  stripState(vm)
+  return o + n
+end
+
+-- Opcode99 ($2275): open window only. Blank text rows 1 and 3, then $250C next frame.
+M.handlers[0x99] = function(vm, o, n, cur)
+  if vm:rd8(C6EE) ~= 2 then return o + n end
+  local h = vm.host
+  if h and h.boxClose and not vm.init then h.boxClose() end -- the port's box holds one page
+  frame(vm)
+  stripState(vm)
+  return o + n
+end
+
+-- Opcode9A ($2297 / 1:$48DF / $490E / $495D): slide the window down nine steps,
+-- WY $90, then clear $C6EE. A closed window costs one frame; one mid-slide waits.
+M.handlers[0x9A] = function(vm, o, n, cur)
+  if vm.init then return o + n end
+  local h = vm.host
+  if h and h.boxBusy and coroutine.running() then -- the port's text box: wait out the page
+    local guard = 0
+    while h.boxBusy() and guard < 3600 do guard = guard + 1; coroutine.yield("wait", 1) end
+  end
+  frame(vm) -- Opcode9A: handler $48DF
+  while vm:rd8(C6EE) == 1 do frame(vm) end
+  if vm:rd8(C6EE) == 0 then
+    frame(vm) -- ClearScriptBankBit
+    return o + n
+  end
+  vm:wr8(C6EE, 1)
+  vm:wr8(0xFFA6, 9)
+  frame(vm)
+  for c = 9, 1, -1 do
+    vm:wr8(0xFFA6, c - 1)
+    setWY(vm, vm.rom:u8(SLIDE_TABLE + c))
+    frame(vm)
+  end
+  setWY(vm, 0x90)
+  frame(vm) -- count 0: handler $495D
+  vm:wr8(C6EE, 0)
+  if h and h.boxClose then h.boxClose() end
+  frame(vm) -- ClearC6EEResumeDispatch
+  return o + n
+end
+
 M.handlers[0xA0] = branchWhenLCDOff
 M.handlers[0xA1] = plantParkedWhenLCDOff
 M.handlers[0xA2] = branchParkedWhenLCDOff
