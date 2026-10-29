@@ -76,6 +76,10 @@ end
 function M.render(f)
   load()
   local img = love.image.newImageData(160, 144)
+  if f.off then -- LCD off (LCDC bit 7 clear): the CGB shows white
+    for y = 0, 143 do for x = 0, 159 do img:setPixel(x, y, 1, 1, 1, 1) end end
+    return img
+  end
   local bp = palrgb(D.pals[f.bp + 1])
   local lcdc = f.l
   local bit = function(n) return math.floor(lcdc / 2 ^ n) % 2 == 1 end

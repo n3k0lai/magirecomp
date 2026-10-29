@@ -1,6 +1,7 @@
 # Bank $4C battle scripts: first decoding pass
 
-Status: catalogued, not yet running in the port. Source: the decomp's
+Status: catalogued. The move, Fight and spell animations run in the port as
+the game's own code (see "Animations in the port" below). Source: the decomp's
 `src/battle_scripts_4c.asm` (one script stream, $4000-$5D2C) plus a ROM scan.
 
 ## How a battle uses bank $4C
@@ -20,6 +21,25 @@ Status: catalogued, not yet running in the port. Source: the decomp's
 - The battle background layout and HUD are drawn by bank-2 native code, not by
   bank $4C. That is the next thing to decode, and it needs a real battle state
   from PyBoy.
+
+## Animations in the port
+- Every animation the battle engine stages goes through
+  StagePointerUnlessD0B6Matches (02:472E: bank in A, script in BC; it returns
+  early when `$D0B6` = `$D103`, stores `$C9CA`/`$C9CC`, `$C9E0` = `$D0DB`,
+  `$C9E1` = `$D112`) and RunStagedPointerScript (04:71ED, called at 02:4760).
+  All callers pass bank `$4C` except the spell, which passes the group
+  record's `+$1F` bank and `+$20/$21` pointer (CopyD107GroupThenScript4A40).
+- `mn.fx.Gen.base` runs the Glade battle to its first staging call and keeps
+  that machine. Each request (`Gen.cutinFrames`) clones it, sets A/BC, `$D0B6`,
+  `$D103`, `$D0DB`, `$D112` and `$C9E4`, and streams frames until the return at
+  02:4763. `Battle:playAnim` shows them one per frame and feeds the player's B
+  and Start to the game's joypad (HandleScriptLoopB skips).
+- Summons run CountdownPanelCallbacks (04:61EB, entered as CallBankedHL does,
+  `$C938` = 4) with `$C9D8` = species and `$C9D9` = slot - 1: a palette frame,
+  then 20 card tiles copied by `$2949`, one a frame (21 frames). The card's
+  BG cells give the picture `Battle` keeps for the slot.
+- Checked: the Fight cut-in generated from the base's own staging values is the
+  captured Glade clip on all 114 overlapping frames (`mn_battle_anims_test`).
 
 ## Counts
 {'effect': 130, 'setup': 2, 'message': 83}, 215 entries total.

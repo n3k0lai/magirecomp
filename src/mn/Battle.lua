@@ -4,8 +4,9 @@
 -- through that engine byte for byte (tools/mn_battle/replay.lua).
 -- Screen: backdrop, creature pictures, Tony's sprite, hand cursors, portraits and the
 -- attack/elimination animations come from frames of the game's own battle code run on the
--- player's ROM (mn.fx.Gen, cached privately; drawn via mn.PpuFrame). Creatures with no
--- picture in that run are drawn as a name card.
+-- player's ROM (mn.fx.Gen, cached privately; drawn via mn.PpuFrame). Move, spell and summon
+-- animations and every creature's card picture are run from the game's own code at play time
+-- (Battle:playAnim / playSummon); a creature is drawn as a name card only if that fails.
 local Font = require("mn.Font")
 local Ppu = require("mn.PpuFrame")
 local Engine = require("mn.battle.Engine")
@@ -189,10 +190,11 @@ end
 
 -- ---------------------------------------------------------------- input
 function M:readInput()
-  self.inA, self.inB, self.inDir = false, false, nil
+  self.inA, self.inB, self.inDir, self.inStart = false, false, nil, false
   if self.auto then return end
   self.inA = self.ow.input("a") and true or false
   self.inB = self.ow.input("b") and true or false
+  self.inStart = self.ow.input("start") and true or false
   local d = self.ow.input("dir")
   if d ~= self.lastDir then self.inDir = d end
   self.lastDir = d
@@ -275,6 +277,112 @@ function M:eliminate(who, dy)
 end
 
 function M:fade(n) for i = 1, n do self.white = i / n; coroutine.yield() end end
+
+-- ---------------------------------------------------------------- move and summon animations
+-- They are the game's own code: mn.fx.Gen runs StagePointerUnlessD0B6Matches (02:472E ->
+-- RunStagedPointerScript 04:71ED, the bank-$4C animation scripts and their sprite records) and
+-- CountdownPanelCallbacks (04:61EB, the card picture copied in one tile per frame) on mn.fx.Cgb,
+-- from a machine stopped at the game's own staging call, on the player's ROM. The machine is built
+-- once per run; each animation runs on a copy of it, a frame per frame shown.
+local fxShared
+local function fx(self)
+  if fxShared ~= nil then return fxShared or nil end
+  local ok, r = pcall(function()
+    local Gen = require("mn.fx.Gen")
+    local Importer = require("mn.MnImporter")
+    local rom = assert(love.filesystem.read(Importer.CACHE .. "/rom.bin"), "ROM not imported")
+    local blocks = require("mn.fx.Blocks")
+    return { Gen = Gen, blocks = blocks, base = Gen.base(rom, blocks), st = Gen.storeFor(Ppu.data()) }
+  end)
+  if not ok then self:L("battle fx unavailable: " .. tostring(r)) end
+  fxShared = ok and r or false
+  return fxShared or nil
+end
+function M.resetFx() fxShared = nil end
+
+local function nearest(im) im:setFilter("nearest", "nearest"); return im end
+
+-- step a generated animation a frame per update; B and Start go to the game's joypad
+function M:playGenerated(next, m, onFrame)
+  local held = {}
+  while true do
+    for _, k in ipairs({ "b", "start" }) do
+      local p = (k == "b" and self.inB) or (k == "start" and self.inStart)
+      if p and not held[k] then m:button(k, true); held[k] = true
+      elseif held[k] then m:button(k, false); held[k] = nil end
+    end
+    local ok, f = pcall(next)
+    if not ok then self:L("battle fx: " .. tostring(f)); return false end
+    if not f then return true end
+    onFrame(f); coroutine.yield()
+  end
+end
+
+-- an "anim" event: the staged script, actor/target species and slots, and the battle's backdrop
+-- byte ($C9E4, op $25's first argument)
+function M:playAnim(ev)
+  local F = fx(self); if not F then return false end
+  local q = { bank = ev.bank or 0x4C, ptr = ev.script, actor = ev.actor, target = ev.target,
+    actorSlot = ev.actorSlot, targetSlot = ev.targetSlot, c9e4 = self.setup and self.setup.args and self.setup.args[1] }
+  self:L(("battle anim %02X:%04X"):format(q.bank, q.ptr))
+  local ok, next, m = pcall(F.Gen.cutinFrames, F.base, F.st, q, F.blocks)
+  if not ok then self:L("battle fx: " .. tostring(next)); return false end
+  local shown = 0
+  local played = self:playGenerated(next, m, function(f)
+    if self.anim and self.animOwned then self.anim:release() end
+    self.anim = nearest(love.graphics.newImage(Ppu.render(f))); self.animOwned = true; shown = shown + 1
+  end)
+  if self.anim and self.animOwned then self.anim:release() end
+  self.anim, self.animOwned = nil, nil
+  return played or shown > 0
+end
+
+-- the card cells of a summon frame as an image
+local function cardImage(f, c)
+  local im = love.image.newImageData(c.w * 8, c.h * 8)
+  Ppu.cells(im, f, c.map, c.col, c.row, c.w, c.h, 0, 0)
+  return nearest(love.graphics.newImage(im))
+end
+
+-- the summon run for a species (cached: the frames and the card's cells)
+function M:summonRun(species, slot)
+  self.summons = self.summons or {}
+  local k = species * 16 + slot
+  if self.summons[k] ~= nil then return self.summons[k] or nil end
+  local F = fx(self)
+  local ok, c = false, nil
+  if F then ok, c = pcall(F.Gen.summon, F.base, F.st, species, slot, F.blocks) end
+  if not ok and F then self:L("battle summon fx: " .. tostring(c)) end
+  self.summons[k] = ok and c or false
+  return ok and c or nil
+end
+
+-- the creature's card picture as the summon leaves it, for any species
+function M:speciesPic(species, slot)
+  self.speciesPics = self.speciesPics or {}
+  local p = self.speciesPics[species]
+  if p ~= nil then return p or nil end
+  local c = self:summonRun(species, slot or 1)
+  p = c and cardImage(c.frame, c) or false
+  self.speciesPics[species] = p
+  return p or nil
+end
+
+function M:playSummon(ev)
+  local c = self:summonRun(ev.species, ev.slot)
+  if not c then return false end
+  self:L(("battle summon %02X slot %d (%d frames)"):format(ev.species, ev.slot, #c.frames))
+  for _, f in ipairs(c.frames) do
+    if self.summonImg then self.summonImg:release() end
+    self.summonImg = cardImage(f, c); self.summonSlot = ev.slot
+    coroutine.yield()
+  end
+  if self.summonImg then self.summonImg:release() end
+  self.summonImg, self.summonSlot = nil, nil
+  self.speciesPics = self.speciesPics or {}
+  if not self.speciesPics[ev.species] then self.speciesPics[ev.species] = cardImage(c.frame, c) end
+  return true
+end
 
 
 -- ---------------------------------------------------------------- choosing
@@ -364,19 +472,25 @@ end
 local SCENES = { ["1C:53"] = "fight_furok_weebo", ["53:58"] = "fight_weebo_tony", ["53:1C"] = "fight_weebo_furok" }
 
 function M:play(events)
-  local lastAct
+  local lastAct, animated
   for _, ev in ipairs(events) do
     if ev.t == "msg" then
       self:say(ev.text, ev.actor == Engine.TONY_ID and "Tony" or nil)
     elseif ev.t == "act" then
-      lastAct = ev
+      lastAct, animated = ev, false
+    elseif ev.t == "anim" then
+      if self:playAnim(ev) then animated = true end
     elseif ev.t == "damage" then
+      -- the hit was shown by the move's own animation; without one (generator unavailable) the
+      -- captured clip or a blink stands in
       local key = lastAct and ("%02X:%02X"):format(lastAct.species, ev.species or 0)
-      if key and SCENES[key] then self:playScene(SCENES[key])
+      if animated then animated = false
+      elseif key and SCENES[key] then self:playScene(SCENES[key])
       else self.flash = ev.slot; for _ = 1, 16 do coroutine.yield() end; self.flash = nil end
     elseif ev.t == "summon" and not ev.pending then
+      local shown = self:playSummon(ev)
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
-      self:fade(8); self.white = nil
+      if not shown then self:fade(8); self.white = nil end
     elseif ev.t == "appear" then
       self.vis[ev.slot] = { species = ev.species, name = self.data.names[ev.species] }
     elseif ev.t == "eliminated" then
@@ -471,6 +585,8 @@ function M:drawCard(slot, v)
   if self.flash == slot and self.t % 4 < 2 then return end
   local key = PICS[v.species]
   if key and self.pics[key] then love.graphics.draw(self.pics[key], x + 0, y); return end
+  local pic = self:speciesPic(v.species, slot)
+  if pic then love.graphics.draw(pic, x, y); return end
   love.graphics.setColor(0.1, 0.1, 0.1); love.graphics.rectangle("fill", x, y, 32, 40)
   love.graphics.setColor(1, 1, 1); love.graphics.rectangle("line", x + 0.5, y + 0.5, 31, 39)
   local n = v.name or "?"
@@ -485,6 +601,7 @@ function M:draw()
   if self.anim then love.graphics.draw(self.anim, 0, 0); return self:drawWhite() end
   love.graphics.draw(self.bg, 0, 0)
   for slot = 1, 8 do local v = self.vis[slot]; if v then self:drawCard(slot, v) end end
+  if self.summonImg then local x, y = cardXY(self.summonSlot); love.graphics.draw(self.summonImg, x, y) end
   local mg = self.vis[9]
   if mg and mg.species ~= 0x6C and mg.name and mg.name ~= "" then Font.drawText(mg.name:sub(1, 5), 120, 8, WIN) end
   love.graphics.draw(self.imgs.tony, 0, 0)

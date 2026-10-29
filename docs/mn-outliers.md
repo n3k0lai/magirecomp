@@ -135,9 +135,9 @@ post-game (story `$19`/`$1A`).
    Unused_Script_19_62AA has no caller. Cut content: nothing in the ROM reaches it.
 2. **Map 167** (Cave/Mush Hyren room) has no script warp in. Its only references are an
    unused run at 10:4B2A-4B42 and word references at 15:6E0B and 59:5CC2.
-3. **`$29` and `$67`** have no use in any decoded script. `$29` is `jp $7449` in the current
-   script bank (a lone `ret` in bank 2, arbitrary bytes elsewhere); `$67` calls `$2F37`,
-   still INCBIN. The port logs both.
+3. **`$29`** has no use in any decoded script. It is `jp $7449` in the current script bank (a
+   lone `ret` in bank 2, arbitrary bytes elsewhere). The port logs it. (`$67` has no use either,
+   but `$2F37` is source now and the port runs it: ops/Records, `mn_unpack_map_test`.)
 4. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
    the port waits the worst case, 4 x (count + 1).
 5. **Map-40 data runs**: the reachable `$38` (02:4126, 51:5604) and `$9D` (7B:478F) uses and

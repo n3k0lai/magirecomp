@@ -1436,6 +1436,29 @@ K[1815] = function(e) -- 00:0717
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[1821] = function(e) -- 00:071D SoundSlotAEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(51490, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 1824 end
+    ::L1::
+    do B = 15 end
+    CY = CY + 8; if CY >= LIM then return 1826 end
+    ::L2::
+    do C = 1 end
+    CY = CY + 8; if CY >= LIM then return 1828 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 7, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 39, CY+20, 0); CY = CY + 24; return 20292
+end
+K[1831] = function(e) -- 00:0727
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 255 end
+    CY = CY + 8; if CY >= LIM then return 1833 end
+    ::L1::
+    do wr(51490, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 1836 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[1907] = function(e) -- 00:0773 CallBankedHL
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
     do A = rd(51512, CY+8, 0) end
@@ -2814,6 +2837,46 @@ K[2749] = function(e) -- 00:0ABD FillScriptRecord0808
     ::L26::
     CY = CY + 16; return 2719
 end
+K[2780] = function(e) -- 00:0ADC CopyTwoScriptBytesAndHandler
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 2781 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 2782 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 2783 end
+    ::L3::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 2784 end
+    ::L4::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 2785 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 2786 end
+    ::L6::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 2788 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 2789 end
+    ::L8::
+    do wr(H*256+L, 10, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 2791 end
+    ::L9::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 2792 end
+    ::L10::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 2793 end
+    ::L11::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 2794 end
+    ::L12::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[2970] = function(e) -- 00:0B9A Opcode04End
     SP = band(SP-1,0xFFFF); wr(SP, 11, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 157, CY+20, 0); CY = CY + 24; return 3579
 end
@@ -2834,6 +2897,50 @@ K[3036] = function(e) -- 00:0BDC Opcode07End
 end
 K[3039] = function(e) -- 00:0BDF
     CY = CY + 16; return 3593
+end
+K[3042] = function(e) -- 00:0BE2 Opcode08End
+    SP = band(SP-1,0xFFFF); wr(SP, 11, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 229, CY+20, 0); CY = CY + 24; return 3579
+end
+K[3045] = function(e) -- 00:0BE5
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do do local v = band(10,0xFFFF); D = rshift(v,8); E = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 3048 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 3049 end
+    ::L2::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 3050 end
+    ::L3::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 3051 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 3052 end
+    ::L5::
+    SP = band(SP-1,0xFFFF); wr(SP, 11, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 239, CY+20, 0); CY = CY + 24; return 2780
+end
+K[3055] = function(e) -- 00:0BEF
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 3056 end
+    ::L1::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 3057 end
+    ::L2::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 3058 end
+    ::L3::
+    do A = 2 end
+    CY = CY + 8; if CY >= LIM then return 3060 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 3061 end
+    ::L5::
+    do wr(H*256+L, 20, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 3063 end
+    ::L6::
+    CY = CY + 16; return 2662
 end
 K[3079] = function(e) -- 00:0C07 Opcode0AEnd
     SP = band(SP-1,0xFFFF); wr(SP, 12, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 10, CY+20, 0); CY = CY + 24; return 3579
@@ -2891,6 +2998,40 @@ K[3109] = function(e) -- 00:0C25
     CY = CY + 16; if CY >= LIM then return 3112 end
     ::L2::
     CY = CY + 16; return 2662
+end
+K[3115] = function(e) -- 00:0C2B Opcode0BEnd
+    SP = band(SP-1,0xFFFF); wr(SP, 12, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 46, CY+20, 0); CY = CY + 24; return 3579
+end
+K[3118] = function(e) -- 00:0C2E
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 128), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3120 end
+    ::L1::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 3121 end
+    ::L2::
+    do wr(65443, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3124 end
+    ::L3::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 3125 end
+    ::L4::
+    do wr(65442, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3128 end
+    ::L5::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 3130 end
+    ::L6::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3133 end
+    ::L7::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 3135 end
+    ::L8::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3138 end
+    ::L9::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[3579] = function(e) -- 00:0DFB LookupScriptIndexPointer
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
@@ -3000,6 +3141,19 @@ K[3618] = function(e) -- 00:0E22 CopySixScriptBytesEnd
     ::L2::
     do wr(51489, A, CY+8, 0) end
     CY = CY + 16; if CY >= LIM then return 3623 end
+    ::L3::
+    CY = CY + 16; return 2662
+end
+K[3626] = function(e) -- 00:0E2A Opcode1BEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 3627 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 3628 end
+    ::L2::
+    do wr(51490, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 3631 end
     ::L3::
     CY = CY + 16; return 2662
 end
@@ -3306,6 +3460,28 @@ end
 K[4168] = function(e) -- 00:1048
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[4169] = function(e) -- 00:1049 CopyScriptToD392End
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = 48 end
+    CY = CY + 8; if CY >= LIM then return 4171 end
+    ::L1::
+    do wr(51692, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4174 end
+    ::L2::
+    do A = 220 end
+    CY = CY + 8; if CY >= LIM then return 4176 end
+    ::L3::
+    do wr(51696, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4179 end
+    ::L4::
+    do A = 107 end
+    CY = CY + 8; if CY >= LIM then return 4181 end
+    ::L5::
+    do wr(51697, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4184 end
+    ::L6::
+    CY = CY + 16; return 4569
+end
 K[4364] = function(e) -- 00:110C InstallScriptRecordLoopBank4End
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
     do A = 1 end
@@ -3391,6 +3567,28 @@ end
 K[4416] = function(e) -- 00:1140
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[4433] = function(e) -- 00:1151 MarkScriptDoneEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = 48 end
+    CY = CY + 8; if CY >= LIM then return 4435 end
+    ::L1::
+    do wr(51692, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4438 end
+    ::L2::
+    do A = 12 end
+    CY = CY + 8; if CY >= LIM then return 4440 end
+    ::L3::
+    do wr(51696, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4443 end
+    ::L4::
+    do A = 108 end
+    CY = CY + 8; if CY >= LIM then return 4445 end
+    ::L5::
+    do wr(51697, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4448 end
+    ::L6::
+    CY = CY + 12; return 4569
+end
 K[4450] = function(e) -- 00:1162 PlantLimit24At6C3C
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
     do A = 36 end
@@ -3412,6 +3610,86 @@ K[4450] = function(e) -- 00:1162 PlantLimit24At6C3C
     CY = CY + 16; if CY >= LIM then return 4465 end
     ::L6::
     CY = CY + 12; return 4569
+end
+K[4520] = function(e) -- 00:11A8 PlantLimit54At6C60
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = 84 end
+    CY = CY + 8; if CY >= LIM then return 4522 end
+    ::L1::
+    do wr(51692, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4525 end
+    ::L2::
+    do A = 96 end
+    CY = CY + 8; if CY >= LIM then return 4527 end
+    ::L3::
+    do wr(51696, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4530 end
+    ::L4::
+    do A = 108 end
+    CY = CY + 8; if CY >= LIM then return 4532 end
+    ::L5::
+    do wr(51697, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4535 end
+    ::L6::
+    CY = CY + 12; return 4569
+end
+K[4554] = function(e) -- 00:11CA PlantLimit1DAt6D5C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do A = 29 end
+    CY = CY + 8; if CY >= LIM then return 4556 end
+    ::L1::
+    do wr(51692, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4559 end
+    ::L2::
+    do A = 92 end
+    CY = CY + 8; if CY >= LIM then return 4561 end
+    ::L3::
+    do wr(51696, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4564 end
+    ::L4::
+    do A = 109 end
+    CY = CY + 8; if CY >= LIM then return 4566 end
+    ::L5::
+    do wr(51697, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4569 end
+    ::L6::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 4570 end
+    ::L7::
+    do wr(51691, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4573 end
+    ::L8::
+    do wr(51694, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4576 end
+    ::L9::
+    do wr(51695, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4579 end
+    ::L10::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 4580 end
+    ::L11::
+    do wr(65443, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4583 end
+    ::L12::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 4584 end
+    ::L13::
+    do wr(65442, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4587 end
+    ::L14::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 4589 end
+    ::L15::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4592 end
+    ::L16::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 4594 end
+    ::L17::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 4597 end
+    ::L18::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[4569] = function(e) -- 00:11D9 PlantLimit1DAt6D5CEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
@@ -3552,6 +3830,51 @@ K[5122] = function(e) -- 00:1402 Bank1NibblePhaseCountdownEnd
     ::L10::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[5221] = function(e) -- 00:1465 EnterScriptFromLookup
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 5222 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 5223 end
+    ::L2::
+    do wr(65441, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 5226 end
+    ::L3::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 5227 end
+    ::L4::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 5228 end
+    ::L5::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 5229 end
+    ::L6::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 5230 end
+    ::L7::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 5231 end
+    ::L8::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 5232 end
+    ::L9::
+    do C = L end
+    CY = CY + 4; if CY >= LIM then return 5233 end
+    ::L10::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 5234 end
+    ::L11::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 5237 end
+    ::L12::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 5240 end
+    return 5240
+end
+K[5240] = function(e) -- 00:1478
+    CY = CY + 16; return 2662
+end
 K[5243] = function(e) -- 00:147B EnterScriptFromLookupEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
     do A = rd((B*256+C), CY+0, 0) end
@@ -3573,6 +3896,34 @@ K[5243] = function(e) -- 00:147B EnterScriptFromLookupEnd
     CY = CY + 4; if CY >= LIM then return 5249 end
     ::L6::
     CY = CY + 16; return 2662
+end
+K[5278] = function(e) -- 00:149E PickScriptRecordByDividerModEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 end end
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 5279 end
+    ::L1::
+    do wr(65445, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 5281 end
+    ::L2::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 5282 end
+    ::L3::
+    do wr(65444, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 5284 end
+    ::L4::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 5286 end
+    ::L5::
+    do wr(65444, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 5288 end
+    ::L6::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 5290 end
+    ::L7::
+    do wr(65445, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 5292 end
+    ::L8::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[5472] = function(e) -- 00:1560 QueueRepeatedSpriteList
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
@@ -4326,6 +4677,56 @@ end
 K[5819] = function(e) -- 00:16BB
     CY = CY + 16; return 2662
 end
+K[5925] = function(e) -- 00:1725 FillScriptRecordC70DFromScript
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = band(50957,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 5928 end
+    ::L1::
+    CY = CY + 16; return 6048
+end
+K[6048] = function(e) -- 00:17A0 CopyThreeScriptBytesThenDispatch
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6049 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 6050 end
+    ::L2::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6051 end
+    ::L3::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6052 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 6053 end
+    ::L5::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6054 end
+    ::L6::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6055 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 6056 end
+    ::L8::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6057 end
+    ::L9::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 6059 end
+    ::L10::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 6060 end
+    ::L11::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 6062 end
+    ::L12::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 6063 end
+    ::L13::
+    CY = CY + 16; return 2662
+end
 K[6211] = function(e) -- 00:1843 CallScriptBankedPtrThenCall2EE9
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
     do A = rd((B*256+C), CY+0, 0) end
@@ -4395,6 +4796,142 @@ K[6235] = function(e) -- 00:185B
 end
 K[6243] = function(e) -- 00:1863
     CY = CY + 16; return 2662
+end
+K[6470] = function(e) -- 00:1946 ArmCopyGlyphFromScript
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 elseif e == 31 then goto L31 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6471 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6472 end
+    ::L2::
+    do wr(65446, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6474 end
+    ::L3::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6475 end
+    ::L4::
+    do wr(50918, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6478 end
+    ::L5::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6479 end
+    ::L6::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6480 end
+    ::L7::
+    do wr(50919, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6483 end
+    ::L8::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6484 end
+    ::L9::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6485 end
+    ::L10::
+    do wr(50920, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6488 end
+    ::L11::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6489 end
+    ::L12::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6490 end
+    ::L13::
+    do wr(50921, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6493 end
+    ::L14::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6494 end
+    ::L15::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6495 end
+    ::L16::
+    do wr(50922, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6498 end
+    ::L17::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6499 end
+    ::L18::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6500 end
+    ::L19::
+    do wr(50923, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6503 end
+    ::L20::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6504 end
+    ::L21::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 6505 end
+    ::L22::
+    do wr(65443, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6508 end
+    ::L23::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 6509 end
+    ::L24::
+    do wr(65442, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6512 end
+    ::L25::
+    do A = 122 end
+    CY = CY + 8; if CY >= LIM then return 6514 end
+    ::L26::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6517 end
+    ::L27::
+    do A = 25 end
+    CY = CY + 8; if CY >= LIM then return 6519 end
+    ::L28::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6522 end
+    ::L29::
+    do A = 73 end
+    CY = CY + 8; if CY >= LIM then return 6524 end
+    ::L30::
+    do wr(50916, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6527 end
+    ::L31::
+    do A = 41 end
+    CY = CY + 8; if CY >= LIM then return 6529 end
+    return 6529
+end
+K[6529] = function(e) -- 00:1981
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do wr(50917, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6532 end
+    ::L1::
+    do A = rd(65446, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6534 end
+    ::L2::
+    do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
+    CY = CY + 4; if CY >= LIM then return 6535 end
+    ::L3::
+    if FZ then CY = CY + 12; return 6540 end
+    CY = CY + 8; return 6537
+end
+K[6537] = function(e) -- 00:1989
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do wr(65446, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6539 end
+    ::L1::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[6540] = function(e) -- 00:198C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 6542 end
+    ::L1::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6545 end
+    ::L2::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 6547 end
+    ::L3::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6550 end
+    ::L4::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[6551] = function(e) -- 00:1997 ArmCopyGlyphFromScriptEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
@@ -4594,6 +5131,137 @@ K[6655] = function(e) -- 00:19FF
     ::L10::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[6678] = function(e) -- 00:1A16 StageColorWordThenCall5C00
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 35 end
+    CY = CY + 8; if CY >= LIM then return 6680 end
+    ::L1::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6683 end
+    ::L2::
+    do A = 26 end
+    CY = CY + 8; if CY >= LIM then return 6685 end
+    ::L3::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6688 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 35, CY+20, 0); CY = CY + 24; return 6551
+end
+K[6691] = function(e) -- 00:1A23
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(65446, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6693 end
+    ::L1::
+    do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
+    CY = CY + 4; if CY >= LIM then return 6694 end
+    ::L2::
+    do wr(65446, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6696 end
+    ::L3::
+    if not FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 6697
+end
+K[6697] = function(e) -- 00:1A29
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 44, CY+20, 0); CY = CY + 24; return 6573
+end
+K[6700] = function(e) -- 00:1A2C
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 47, CY+20, 0); CY = CY + 24; return 6585
+end
+K[6703] = function(e) -- 00:1A2F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 6705 end
+    ::L1::
+    do wr(51676, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6708 end
+    ::L2::
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 6709 end
+    ::L3::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 6711 end
+    ::L4::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6714 end
+    ::L5::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6717 end
+    return 6717
+end
+K[6717] = function(e) -- 00:1A3D
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 64, CY+20, 0); CY = CY + 24; return 23552
+end
+K[6720] = function(e) -- 00:1A40
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 6721 end
+    ::L1::
+    CY = CY + 16; return 6632
+end
+K[6724] = function(e) -- 00:1A44 Call5C29AfterCountdown
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 81 end
+    CY = CY + 8; if CY >= LIM then return 6726 end
+    ::L1::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6729 end
+    ::L2::
+    do A = 26 end
+    CY = CY + 8; if CY >= LIM then return 6731 end
+    ::L3::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6734 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 81, CY+20, 0); CY = CY + 24; return 6551
+end
+K[6737] = function(e) -- 00:1A51
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(65446, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6739 end
+    ::L1::
+    do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
+    CY = CY + 4; if CY >= LIM then return 6740 end
+    ::L2::
+    do wr(65446, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6742 end
+    ::L3::
+    if not FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 6743
+end
+K[6743] = function(e) -- 00:1A57
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 90, CY+20, 0); CY = CY + 24; return 6573
+end
+K[6746] = function(e) -- 00:1A5A
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 6748 end
+    ::L1::
+    do wr(51676, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6751 end
+    ::L2::
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 6752 end
+    ::L3::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 6754 end
+    ::L4::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6757 end
+    ::L5::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6760 end
+    return 6760
+end
+K[6760] = function(e) -- 00:1A68
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 107, CY+20, 0); CY = CY + 24; return 23593
+end
+K[6763] = function(e) -- 00:1A6B
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 6764 end
+    ::L1::
+    CY = CY + 16; return 6632
+end
 K[6792] = function(e) -- 00:1A88 StageScriptByteWordThenCall4837
     SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 139, CY+20, 0); CY = CY + 24; return 6617
 end
@@ -4713,6 +5381,152 @@ K[6871] = function(e) -- 00:1AD7
     ::L1::
     CY = CY + 16; return 6632
 end
+K[6875] = function(e) -- 00:1ADB ArmCountdown1AE8AndDecFFA6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 232 end
+    CY = CY + 8; if CY >= LIM then return 6877 end
+    ::L1::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6880 end
+    ::L2::
+    do A = 26 end
+    CY = CY + 8; if CY >= LIM then return 6882 end
+    ::L3::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6885 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 232, CY+20, 0); CY = CY + 24; return 6551
+end
+K[6888] = function(e) -- 00:1AE8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(65446, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6890 end
+    ::L1::
+    do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
+    CY = CY + 4; if CY >= LIM then return 6891 end
+    ::L2::
+    do wr(65446, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 6893 end
+    ::L3::
+    if not FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 6894
+end
+K[6894] = function(e) -- 00:1AEE ArmCountdown1AE8AndDecFFA6End
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 241, CY+20, 0); CY = CY + 24; return 6573
+end
+K[6897] = function(e) -- 00:1AF1
+    SP = band(SP-1,0xFFFF); wr(SP, 26, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 244, CY+20, 0); CY = CY + 24; return 6585
+end
+K[6900] = function(e) -- 00:1AF4
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 6901 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 6902 end
+    ::L2::
+    do wr(51673, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6905 end
+    ::L3::
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 6907 end
+    ::L4::
+    do wr(51676, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6910 end
+    ::L5::
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 6911 end
+    ::L6::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 6913 end
+    ::L7::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6916 end
+    ::L8::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 6919 end
+    return 6919
+end
+K[6919] = function(e) -- 00:1B07
+    SP = band(SP-1,0xFFFF); wr(SP, 27, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 10, CY+20, 0); CY = CY + 24; return 16843
+end
+K[6922] = function(e) -- 00:1B0A
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 6923 end
+    ::L1::
+    CY = CY + 16; return 6632
+end
+K[7072] = function(e) -- 00:1BA0 StorePairThenCall42E3End
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 7073 end
+    ::L1::
+    do wr(51673, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7076 end
+    ::L2::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 7077 end
+    ::L3::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 7078 end
+    ::L4::
+    do wr(65443, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7081 end
+    ::L5::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 7082 end
+    ::L6::
+    do wr(65442, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7085 end
+    ::L7::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 7087 end
+    ::L8::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7090 end
+    ::L9::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7093 end
+    return 7093
+end
+K[7093] = function(e) -- 00:1BB5
+    SP = band(SP-1,0xFFFF); wr(SP, 27, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 184, CY+20, 0); CY = CY + 24; return 17203
+end
+K[7096] = function(e) -- 00:1BB8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 7098 end
+    ::L1::
+    do wr(50918, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7101 end
+    ::L2::
+    do A = 117 end
+    CY = CY + 8; if CY >= LIM then return 7103 end
+    ::L3::
+    do wr(50916, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7106 end
+    ::L4::
+    do A = 69 end
+    CY = CY + 8; if CY >= LIM then return 7108 end
+    ::L5::
+    do wr(50917, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7111 end
+    ::L6::
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 7113 end
+    ::L7::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7116 end
+    ::L8::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 7118 end
+    ::L9::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7121 end
+    ::L10::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[7173] = function(e) -- 00:1C05 SetCCA6Countdown1C17
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
     do A = 1 end
@@ -4785,6 +5599,144 @@ K[7220] = function(e) -- 00:1C34
     CY = CY + 12; if CY >= LIM then return 7221 end
     ::L1::
     CY = CY + 16; return 6632
+end
+K[7278] = function(e) -- 00:1C6E ReloadWordThenStepEightyEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 7279 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 7280 end
+    ::L2::
+    do wr(51669, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7283 end
+    ::L3::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 7284 end
+    ::L4::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 7285 end
+    ::L5::
+    do wr(51670, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7288 end
+    ::L6::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 7289 end
+    ::L7::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 7290 end
+    ::L8::
+    do wr(51671, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7293 end
+    ::L9::
+    SP = band(SP-1,0xFFFF); wr(SP, 28, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 128, CY+20, 0); CY = CY + 24; return 6611
+end
+K[7296] = function(e) -- 00:1C80
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 7297 end
+    ::L1::
+    do wr(65443, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7300 end
+    ::L2::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 7301 end
+    ::L3::
+    do wr(65442, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7304 end
+    ::L4::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 7306 end
+    ::L5::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7309 end
+    ::L6::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7312 end
+    return 7312
+end
+K[7312] = function(e) -- 00:1C90
+    SP = band(SP-1,0xFFFF); wr(SP, 28, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 147, CY+20, 0); CY = CY + 24; return 18444
+end
+K[7315] = function(e) -- 00:1C93
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = rd(51512, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7318 end
+    ::L1::
+    do do local v = (A*256 + (FZ and 128 or 0) + (FN and 64 or 0) + (FH and 32 or 0) + (FC and 16 or 0)); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 7319 end
+    ::L2::
+    do A = rd(51671, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7322 end
+    ::L3::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7325 end
+    ::L4::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7328 end
+    return 7328
+end
+K[7328] = function(e) -- 00:1CA0
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do A = rd(51675, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7331 end
+    ::L1::
+    do H = A end
+    CY = CY + 4; if CY >= LIM then return 7332 end
+    ::L2::
+    do A = rd(51674, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7335 end
+    ::L3::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 7336 end
+    ::L4::
+    do A = rd(51670, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7339 end
+    ::L5::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 7340 end
+    ::L6::
+    do A = rd(51669, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7343 end
+    ::L7::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 7344 end
+    ::L8::
+    do E = 0 end
+    CY = CY + 8; if CY >= LIM then return 7346 end
+    ::L9::
+    do A = rd(51673, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7349 end
+    ::L10::
+    SP = band(SP-1,0xFFFF); wr(SP, 28, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 184, CY+20, 0); CY = CY + 24; return 11958
+end
+K[7352] = function(e) -- 00:1CB8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = hi*256+band(lo,0xF0); A = rshift(v,8); FZ = band(v,128)~=0; FN = band(v,64)~=0; FH = band(v,32)~=0; FC = band(v,16)~=0 end end end
+    CY = CY + 12; if CY >= LIM then return 7353 end
+    ::L1::
+    do wr(51512, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7356 end
+    ::L2::
+    do wr(8192, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7359 end
+    return 7359
+end
+K[7359] = function(e) -- 00:1CBF
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 102 end
+    CY = CY + 8; if CY >= LIM then return 7361 end
+    ::L1::
+    do wr(65444, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7364 end
+    ::L2::
+    do A = 10 end
+    CY = CY + 8; if CY >= LIM then return 7366 end
+    ::L3::
+    do wr(65445, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 7369 end
+    ::L4::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[7370] = function(e) -- 00:1CCA StagePairSourceThenCopyWordsEnd
     SP = band(SP-1,0xFFFF); wr(SP, 28, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 205, CY+20, 0); CY = CY + 24; return 6611
@@ -11427,6 +12379,297 @@ K[14694] = function(e) -- 00:3966
     ::L10::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[15024] = function(e) -- 00:3AB0 MapRomBank
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do do local v = (A*256 + (FZ and 128 or 0) + (FN and 64 or 0) + (FH and 32 or 0) + (FC and 16 or 0)); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 15025 end
+    ::L1::
+    do A = rd(57089, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15028 end
+    ::L2::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 15029 end
+    ::L3::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = hi*256+band(lo,0xF0); A = rshift(v,8); FZ = band(v,128)~=0; FN = band(v,64)~=0; FH = band(v,32)~=0; FC = band(v,16)~=0 end end end
+    CY = CY + 12; if CY >= LIM then return 15030 end
+    ::L4::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15031 end
+    ::L5::
+    do wr(8448, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15034 end
+    return 15034
+end
+K[15034] = function(e) -- 00:3ABA
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[15283] = function(e) -- 00:3BB3 CopyMappedWaveformEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 15284 end
+    ::L1::
+    do A = rd(57205, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15287 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 59, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 186, CY+20, 0); CY = CY + 24; return 15024
+end
+K[15290] = function(e) -- 00:3BBA
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 15291 end
+    ::L1::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 15293 end
+    ::L2::
+    do do local v = 112; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 15295 end
+    ::L3::
+    if not FZ then CY = CY + 12; return 15328 end
+    CY = CY + 8; return 15297
+end
+K[15328] = function(e) -- 00:3BE0 StageWaveCopy
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 15329 end
+    ::L1::
+    do wr(57213, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15332 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 59, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 231, CY+20, 0); CY = CY + 24; return 15410
+end
+K[15335] = function(e) -- 00:3BE7 StageWaveRestore
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do A = rd(57088, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15338 end
+    ::L1::
+    SP = band(SP-1,0xFFFF); wr(SP, 59, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 237, CY+20, 0); CY = CY + 24; return 15024
+end
+K[15341] = function(e) -- 00:3BED
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 15342 end
+    ::L1::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[15343] = function(e) -- 00:3BEF LoadWaveform
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 15344 end
+    ::L1::
+    do A = rd(57205, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15347 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 59, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 246, CY+20, 0); CY = CY + 24; return 15024
+end
+K[15350] = function(e) -- 00:3BF6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 15351 end
+    ::L1::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 15353 end
+    ::L2::
+    do do local v = 112; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 15355 end
+    ::L3::
+    if not FZ then CY = CY + 12; return 15388 end
+    CY = CY + 8; return 15357
+end
+K[15388] = function(e) -- 00:3C1C LoadWaveformCopy
+    SP = band(SP-1,0xFFFF); wr(SP, 60, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 31, CY+20, 0); CY = CY + 24; return 15410
+end
+K[15391] = function(e) -- 00:3C1F LoadWaveformRetrigger
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = rd(57108, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15394 end
+    ::L1::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 15396 end
+    ::L2::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 15398 end
+    ::L3::
+    do A = band(A, 127); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 15400 end
+    ::L4::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 15402 end
+    ::L5::
+    do A = rd(57088, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 15405 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 60, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 48, CY+20, 0); CY = CY + 24; return 15024
+end
+K[15408] = function(e) -- 00:3C30
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 15409 end
+    ::L1::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[15410] = function(e) -- 00:3C32 CopyWaveform
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 elseif e == 31 then goto L31 end end
+    do C = 48 end
+    CY = CY + 8; if CY >= LIM then return 15412 end
+    ::L1::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 15413 end
+    ::L2::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 15415 end
+    ::L3::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15416 end
+    ::L4::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15417 end
+    ::L5::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15418 end
+    ::L6::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15419 end
+    ::L7::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15420 end
+    ::L8::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15421 end
+    ::L9::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15422 end
+    ::L10::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15423 end
+    ::L11::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15424 end
+    ::L12::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15425 end
+    ::L13::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15426 end
+    ::L14::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15427 end
+    ::L15::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15428 end
+    ::L16::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15429 end
+    ::L17::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15430 end
+    ::L18::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15431 end
+    ::L19::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15432 end
+    ::L20::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15433 end
+    ::L21::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15434 end
+    ::L22::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15435 end
+    ::L23::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15436 end
+    ::L24::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15437 end
+    ::L25::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15438 end
+    ::L26::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15439 end
+    ::L27::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15440 end
+    ::L28::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15441 end
+    ::L29::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15442 end
+    ::L30::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15443 end
+    ::L31::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15444 end
+    return 15444
+end
+K[15444] = function(e) -- 00:3C54
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 end end
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15445 end
+    ::L1::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15446 end
+    ::L2::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15447 end
+    ::L3::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15448 end
+    ::L4::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15449 end
+    ::L5::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15450 end
+    ::L6::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15451 end
+    ::L7::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15452 end
+    ::L8::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15453 end
+    ::L9::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15454 end
+    ::L10::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15455 end
+    ::L11::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15456 end
+    ::L12::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15457 end
+    ::L13::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15458 end
+    ::L14::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15459 end
+    ::L15::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 15460 end
+    ::L16::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 15461 end
+    ::L17::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 15462 end
+    ::L18::
+    do A = 128 end
+    CY = CY + 8; if CY >= LIM then return 15464 end
+    ::L19::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 15466 end
+    ::L20::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[81920] = function(e) -- 01:4000 RestoreScratchRecord
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
     do A = rd(49544, CY+8, 0) end
@@ -11519,6 +12762,64 @@ K[81997] = function(e) -- 01:404D
     do wr(49458, A, CY+8, 0) end
     CY = CY + 16; if CY >= LIM then return 16481 end
     ::L15::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[82018] = function(e) -- 01:4062 ReturnPointerSlot
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do A = rd(49459, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16485 end
+    ::L1::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 16486 end
+    ::L2::
+    do A = rd(49458, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16489 end
+    ::L3::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 16490 end
+    ::L4::
+    do do local v = band((B*256+C)-1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 16491 end
+    ::L5::
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 16492 end
+    ::L6::
+    do wr((B*256+C), A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 16493 end
+    ::L7::
+    do do local v = band((B*256+C)-1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 16494 end
+    ::L8::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 16495 end
+    ::L9::
+    do wr((B*256+C), A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 16496 end
+    ::L10::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 16497 end
+    ::L11::
+    do wr(49459, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16500 end
+    ::L12::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 16501 end
+    ::L13::
+    do wr(49458, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16504 end
+    ::L14::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16505 end
+    ::L15::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 16506 end
+    ::L16::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 16507 end
+    ::L17::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 16508 end
+    ::L18::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[82045] = function(e) -- 01:407D ReturnPointerSlotEnd
@@ -11680,6 +12981,28 @@ K[82090] = function(e) -- 01:40AA
     CY = CY + 8; if CY >= LIM then return 16569 end
     ::L15::
     CY = CY + 12; return 16582
+end
+K[82107] = function(e) -- 01:40BB
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do A = band(A, 191) end
+    CY = CY + 8; if CY >= LIM then return 16573 end
+    ::L1::
+    do do local v = band((H*256+L)-1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 16574 end
+    ::L2::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 16575 end
+    ::L3::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 16576 end
+    ::L4::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); D = rshift(v,8); E = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 16577 end
+    ::L5::
+    SP = band(SP-1,0xFFFF); wr(SP, 64, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 196, CY+20, 0); CY = CY + 24; return 16482
+end
+K[82116] = function(e) -- 01:40C4
+    CY = CY + 12; return 16584
 end
 K[82118] = function(e) -- 01:40C6
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
@@ -26961,6 +28284,60 @@ K[291029] = function(e) -- 04:70D5
     if not FZ then CY = CY + 12; return 28927 end
     CY = CY + 8; return 28888
 end
+K[291032] = function(e) -- 04:70D8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(51693, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28891 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 28892 end
+    ::L2::
+    if not FZ then CY = CY + 12; return 28903 end
+    CY = CY + 8; return 28894
+end
+K[291038] = function(e) -- 04:70DE
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 28895 end
+    ::L1::
+    do wr(51691, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28898 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 28899 end
+    ::L3::
+    do wr(51693, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28902 end
+    ::L4::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[291047] = function(e) -- 04:70E7
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = rd(51693, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28906 end
+    ::L1::
+    do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
+    CY = CY + 4; if CY >= LIM then return 28907 end
+    ::L2::
+    do wr(51693, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28910 end
+    ::L3::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 28911 end
+    ::L4::
+    if FZ then CY = CY + 12; return 28918 end
+    CY = CY + 8; return 28913
+end
+K[291057] = function(e) -- 04:70F1
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 28914 end
+    ::L1::
+    do wr(51691, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28917 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[291071] = function(e) -- 04:70FF
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
     do A = rd(51652, CY+8, 0) end
@@ -26983,6 +28360,25 @@ K[291071] = function(e) -- 04:70FF
     ::L6::
     if FC then CY = CY + 12; return 28944 end
     CY = CY + 8; return 28942
+end
+K[291086] = function(e) -- 04:710E
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do A = 113 end
+    CY = CY + 8; if CY >= LIM then return 28944 end
+    ::L1::
+    do wr(51651, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28947 end
+    ::L2::
+    do A = rd(51691, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28950 end
+    ::L3::
+    do do local v = 3; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 28952 end
+    ::L4::
+    do wr(51691, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 28955 end
+    ::L5::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[291088] = function(e) -- 04:7110
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
@@ -37125,6 +38521,230 @@ K[475575] = function(e) -- 07:41B7
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[475595] = function(e) -- 07:41CB DispatchPanelSlotBlendEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16844 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16847 end
+    ::L2::
+    do A = rd(51676, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16850 end
+    ::L3::
+    do wr(51248, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16853 end
+    ::L4::
+    do A = rd(51675, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16856 end
+    ::L5::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 16857 end
+    ::L6::
+    do A = rd(51674, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16860 end
+    ::L7::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 16861 end
+    ::L8::
+    do A = rd(51673, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16864 end
+    ::L9::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16865 end
+    ::L10::
+    if not FZ then CY = CY + 12; return 16929 end
+    CY = CY + 8; return 16867
+end
+K[475681] = function(e) -- 07:4221
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51141,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16932 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16935 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 66, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 42, CY+20, 0); CY = CY + 24; return 18148
+end
+K[475690] = function(e) -- 07:422A
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51149,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16941 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16944 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 66, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 51, CY+20, 0); CY = CY + 24; return 18148
+end
+K[475699] = function(e) -- 07:4233
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51157,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16950 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16953 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 66, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 60, CY+20, 0); CY = CY + 24; return 18148
+end
+K[475708] = function(e) -- 07:423C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(51683, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16959 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16960 end
+    ::L2::
+    if FZ then CY = CY + 12; return 16968 end
+    CY = CY + 8; return 16962
+end
+K[475714] = function(e) -- 07:4242
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 16964 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16967 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[475720] = function(e) -- 07:4248
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = rd(51675, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16971 end
+    ::L1::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 16972 end
+    ::L2::
+    do A = rd(51674, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16975 end
+    ::L3::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 16976 end
+    ::L4::
+    do do local v = band(51155,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16979 end
+    ::L5::
+    do do local v = band(1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16982 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 66, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 89, CY+20, 0); CY = CY + 24; return 18148
+end
+K[475737] = function(e) -- 07:4259
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 16987 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 16990 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[475955] = function(e) -- 07:4333 ComplementPanelSlotPalettes
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17204 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17207 end
+    ::L2::
+    do A = rd(51672, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17210 end
+    ::L3::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17211 end
+    ::L4::
+    do A = rd(51673, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17214 end
+    ::L5::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17215 end
+    ::L6::
+    if not FZ then CY = CY + 12; return 17279 end
+    CY = CY + 8; return 17217
+end
+K[476031] = function(e) -- 07:437F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51141,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17282 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17285 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 136, CY+20, 0); CY = CY + 24; return 18385
+end
+K[476040] = function(e) -- 07:4388
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51149,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17291 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17294 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 145, CY+20, 0); CY = CY + 24; return 18385
+end
+K[476049] = function(e) -- 07:4391
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(51157,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17300 end
+    ::L1::
+    do do local v = band(3,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17303 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 154, CY+20, 0); CY = CY + 24; return 18385
+end
+K[476058] = function(e) -- 07:439A
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(51683, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17309 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17310 end
+    ::L2::
+    if FZ then CY = CY + 12; return 17318 end
+    CY = CY + 8; return 17312
+end
+K[476064] = function(e) -- 07:43A0
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 17314 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17317 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[476070] = function(e) -- 07:43A6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = rd(51675, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17321 end
+    ::L1::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 17322 end
+    ::L2::
+    do A = rd(51674, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17325 end
+    ::L3::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17326 end
+    ::L4::
+    do do local v = band(51155,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17329 end
+    ::L5::
+    do do local v = band(1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17332 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 183, CY+20, 0); CY = CY + 24; return 18385
+end
+K[476087] = function(e) -- 07:43B7
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 17337 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17340 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[476255] = function(e) -- 07:445F BlendHighSlotPalettesEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 elseif e == 31 then goto L31 end end
     do do local v = band(51115,0xFFFF); H = rshift(v,8); L = band(v,255) end end
@@ -38217,6 +39837,16 @@ K[476741] = function(e) -- 07:4645
     if not FC then CY = CY + 12; return 17996 end
     CY = CY + 8; return 17991
 end
+K[476743] = function(e) -- 07:4647
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17993 end
+    ::L1::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 17994 end
+    ::L2::
+    CY = CY + 12; return 17998
+end
 K[476748] = function(e) -- 07:464C
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
     do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
@@ -38249,6 +39879,16 @@ K[476754] = function(e) -- 07:4652
     if not FC then CY = CY + 12; return 18009 end
     CY = CY + 8; return 18004
 end
+K[476756] = function(e) -- 07:4654
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 18006 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18007 end
+    ::L2::
+    CY = CY + 12; return 18011
+end
 K[476761] = function(e) -- 07:4659
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
     do do local v = band(A-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; A = v end end
@@ -38280,6 +39920,16 @@ end
 K[476767] = function(e) -- 07:465F
     if not FC then CY = CY + 12; return 18022 end
     CY = CY + 8; return 18017
+end
+K[476769] = function(e) -- 07:4661
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 18019 end
+    ::L1::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 18020 end
+    ::L2::
+    CY = CY + 12; return 18024
 end
 K[476774] = function(e) -- 07:4666
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
@@ -38936,6 +40586,41 @@ end
 K[477062] = function(e) -- 07:4786
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[477137] = function(e) -- 07:47D1 ComplementColorWords
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18386 end
+    ::L1::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 18387 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18388 end
+    ::L3::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18389 end
+    ::L4::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 18390 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18391 end
+    ::L6::
+    do do local v = band((B*256+C)-1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 18392 end
+    ::L7::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 18393 end
+    ::L8::
+    do A = bor(A, B); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 18394 end
+    ::L9::
+    if not FZ then CY = CY + 12; return 18385 end
+    CY = CY + 8; return 18396
+end
+K[477148] = function(e) -- 07:47DC
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[477149] = function(e) -- 07:47DD ComplementColorWordsEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 end end
     do do local v = band(50987,0xFFFF); H = rshift(v,8); L = band(v,255) end end
@@ -39014,6 +40699,32 @@ K[477176] = function(e) -- 07:47F8 PanelQuadFromLowNibble
     do E = D end
     CY = CY + 4; if CY >= LIM then return 18443 end
     ::L11::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[477196] = function(e) -- 07:480C PanelQuadFromLowNibbleEnd
+    SP = band(SP-1,0xFFFF); wr(SP, 72, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 15, CY+20, 0); CY = CY + 24; return 18397
+end
+K[477199] = function(e) -- 07:480F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 18448 end
+    ::L1::
+    do wr(51675, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18451 end
+    ::L2::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 18452 end
+    ::L3::
+    do wr(51674, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18455 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 72, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 26, CY+20, 0); CY = CY + 24; return 18424
+end
+K[477210] = function(e) -- 07:481A
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do wr(51673, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18461 end
+    ::L1::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[477214] = function(e) -- 07:481E RunPanelIndexThrough2EB6
@@ -39312,6 +41023,58 @@ K[477397] = function(e) -- 07:48D5
     ::L1::
     do wr(51249, A, CY+8, 0) end
     CY = CY + 16; if CY >= LIM then return 18650 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[477437] = function(e) -- 07:48FD ComplementColorsEightyPastRowEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 18686 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18689 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 73, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 4, CY+20, 0); CY = CY + 24; return 18397
+end
+K[477444] = function(e) -- 07:4904
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(128,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18695 end
+    ::L1::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18696 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 73, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 11, CY+20, 0); CY = CY + 24; return 18424
+end
+K[477451] = function(e) -- 07:490B
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 18701 end
+    ::L1::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 18702 end
+    ::L2::
+    do A = rd(51675, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18705 end
+    ::L3::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 18706 end
+    ::L4::
+    do A = rd(51674, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18709 end
+    ::L5::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18710 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 73, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 25, CY+20, 0); CY = CY + 24; return 18148
+end
+K[477465] = function(e) -- 07:4919
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 18715 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18718 end
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
@@ -39630,6 +41393,22 @@ K[481558] = function(e) -- 07:5916
     if FZ then CY = CY + 12; return 22824 end
     CY = CY + 8; return 22813
 end
+K[481565] = function(e) -- 07:591D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = 29 end
+    CY = CY + 8; if CY >= LIM then return 22815 end
+    ::L1::
+    do wr(51483, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 22818 end
+    ::L2::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 22820 end
+    ::L3::
+    do wr(51484, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 22823 end
+    ::L4::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[481576] = function(e) -- 07:5928
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
     do A = rd(51492, CY+8, 0) end
@@ -39900,6 +41679,126 @@ end
 K[481974] = function(e) -- 07:5AB6
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[482304] = function(e) -- 07:5C00 SramListPricesFrom420End
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 23553 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23556 end
+    ::L2::
+    do A = rd(51676, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23559 end
+    ::L3::
+    do wr(51248, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23562 end
+    ::L4::
+    do A = 97 end
+    CY = CY + 8; if CY >= LIM then return 23564 end
+    ::L5::
+    do wr(51672, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23567 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 92, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 18, CY+20, 0); CY = CY + 24; return 18685
+end
+K[482322] = function(e) -- 07:5C12
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 end end
+    do do local v = band(51163,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23573 end
+    ::L1::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 23574 end
+    ::L2::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 23575 end
+    ::L3::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 23576 end
+    ::L4::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 23577 end
+    ::L5::
+    do wr(51686, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23580 end
+    ::L6::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 23581 end
+    ::L7::
+    do wr(51685, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23584 end
+    ::L8::
+    SP = band(SP-1,0xFFFF); wr(SP, 92, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 35, CY+20, 0); CY = CY + 24; return 23778
+end
+K[482339] = function(e) -- 07:5C23
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 23589 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23592 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[482345] = function(e) -- 07:5C29 ApplyPanelRowAndCopyC7DB
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 23594 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23597 end
+    ::L2::
+    do A = rd(51676, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23600 end
+    ::L3::
+    do wr(51248, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23603 end
+    ::L4::
+    do A = 97 end
+    CY = CY + 8; if CY >= LIM then return 23605 end
+    ::L5::
+    do wr(51672, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23608 end
+    ::L6::
+    SP = band(SP-1,0xFFFF); wr(SP, 92, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 59, CY+20, 0); CY = CY + 24; return 18589
+end
+K[482363] = function(e) -- 07:5C3B
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 end end
+    do do local v = band(51163,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23614 end
+    ::L1::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 23615 end
+    ::L2::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 23616 end
+    ::L3::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 23617 end
+    ::L4::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 23618 end
+    ::L5::
+    do wr(51686, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23621 end
+    ::L6::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 23622 end
+    ::L7::
+    do wr(51685, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23625 end
+    ::L8::
+    SP = band(SP-1,0xFFFF); wr(SP, 92, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 76, CY+20, 0); CY = CY + 24; return 23778
+end
+K[482380] = function(e) -- 07:5C4C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 23630 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23633 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[482386] = function(e) -- 07:5C52 ApplyPanelRowAndCopyC7DBEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
     do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
@@ -40062,6 +41961,108 @@ K[482524] = function(e) -- 07:5CDC
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[482530] = function(e) -- 07:5CE2 WriteC9E5WordAtC7ABSlots
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 23779 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23782 end
+    ::L2::
+    do A = rd(51686, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23785 end
+    ::L3::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 23786 end
+    ::L4::
+    do A = rd(51685, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23789 end
+    ::L5::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 23790 end
+    ::L6::
+    do do local v = band(51115,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23793 end
+    ::L7::
+    do E = 0 end
+    CY = CY + 8; if CY >= LIM then return 23795 end
+    ::L8::
+    do A = 2 end
+    CY = CY + 8; if CY >= LIM then return 23797 end
+    ::L9::
+    SP = band(SP-1,0xFFFF); wr(SP, 92, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 248, CY+20, 0); CY = CY + 24; return 18292
+end
+K[482552] = function(e) -- 07:5CF8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = band(51115,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23803 end
+    ::L1::
+    do E = 12 end
+    CY = CY + 8; if CY >= LIM then return 23805 end
+    ::L2::
+    do A = 2 end
+    CY = CY + 8; if CY >= LIM then return 23807 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 93, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 2, CY+20, 0); CY = CY + 24; return 18292
+end
+K[482562] = function(e) -- 07:5D02
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = band(51115,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23813 end
+    ::L1::
+    do E = 24 end
+    CY = CY + 8; if CY >= LIM then return 23815 end
+    ::L2::
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 23817 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 93, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 12, CY+20, 0); CY = CY + 24; return 18292
+end
+K[482572] = function(e) -- 07:5D0C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(51682, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23823 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 23824 end
+    ::L2::
+    if FZ then CY = CY + 12; return 23836 end
+    CY = CY + 8; return 23826
+end
+K[482588] = function(e) -- 07:5D1C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(51683, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23839 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 23840 end
+    ::L2::
+    if FZ then CY = CY + 12; return 23852 end
+    CY = CY + 8; return 23842
+end
+K[482594] = function(e) -- 07:5D22
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = band(51115,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 23845 end
+    ::L1::
+    do E = 20 end
+    CY = CY + 8; if CY >= LIM then return 23847 end
+    ::L2::
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 23849 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 93, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 44, CY+20, 0); CY = CY + 24; return 18292
+end
+K[482604] = function(e) -- 07:5D2C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 23854 end
+    ::L1::
+    do wr(51249, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 23857 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[482610] = function(e) -- 07:5D32 Replace3DE0AtSlots08And14
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 end end
     do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
@@ -40217,6 +42218,315 @@ K[482684] = function(e) -- 07:5D7C
     ::L1::
     do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
     CY = CY + 12; if CY >= LIM then return 23934 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3162112] = function(e) -- 30:4000 MultiplyAByC
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 16386 end
+    ::L1::
+    do do local v = band(0,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16389 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16390 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16393 end
+    CY = CY + 8; return 16392
+end
+K[3162114] = function(e) -- 30:4002 MultiplyAByBc
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(0,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 16389 end
+    ::L1::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16390 end
+    ::L2::
+    if not FC then CY = CY + 12; return 16393 end
+    CY = CY + 8; return 16392
+end
+K[3162120] = function(e) -- 30:4008
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16393 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16395 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16397 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16398 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16401 end
+    CY = CY + 8; return 16400
+end
+K[3162121] = function(e) -- 30:4009
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16395 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16397 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16398 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16401 end
+    CY = CY + 8; return 16400
+end
+K[3162128] = function(e) -- 30:4010
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16401 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16403 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16405 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16406 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16409 end
+    CY = CY + 8; return 16408
+end
+K[3162129] = function(e) -- 30:4011
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16403 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16405 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16406 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16409 end
+    CY = CY + 8; return 16408
+end
+K[3162136] = function(e) -- 30:4018
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16409 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16411 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16413 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16414 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16417 end
+    CY = CY + 8; return 16416
+end
+K[3162137] = function(e) -- 30:4019
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16411 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16413 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16414 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16417 end
+    CY = CY + 8; return 16416
+end
+K[3162144] = function(e) -- 30:4020
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16417 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16419 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16421 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16422 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16425 end
+    CY = CY + 8; return 16424
+end
+K[3162145] = function(e) -- 30:4021
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16419 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16421 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16422 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16425 end
+    CY = CY + 8; return 16424
+end
+K[3162152] = function(e) -- 30:4028
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16425 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16427 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16429 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16430 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16433 end
+    CY = CY + 8; return 16432
+end
+K[3162153] = function(e) -- 30:4029
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16427 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16429 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16430 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16433 end
+    CY = CY + 8; return 16432
+end
+K[3162160] = function(e) -- 30:4030
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16433 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16435 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16437 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16438 end
+    ::L4::
+    if not FC then CY = CY + 12; return 16441 end
+    CY = CY + 8; return 16440
+end
+K[3162161] = function(e) -- 30:4031
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16435 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16437 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16438 end
+    ::L3::
+    if not FC then CY = CY + 12; return 16441 end
+    CY = CY + 8; return 16440
+end
+K[3162168] = function(e) -- 30:4038
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16441 end
+    ::L1::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16443 end
+    ::L2::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16445 end
+    ::L3::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16446 end
+    ::L4::
+    if not FC then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 16447
+end
+K[3162169] = function(e) -- 30:4039
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 16443 end
+    ::L1::
+    do do local v = B; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; B = r end end
+    CY = CY + 8; if CY >= LIM then return 16445 end
+    ::L2::
+    do do local c = band(A,1); A = rshift(A,1) + c*128; FC = c == 1; FZ = false; FN = false; FH = false end end
+    CY = CY + 4; if CY >= LIM then return 16446 end
+    ::L3::
+    if not FC then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 16447
+end
+K[3162175] = function(e) -- 30:403F
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 16448 end
+    ::L1::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3162509] = function(e) -- 30:418D CompareHlWithBc
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 16782 end
+    ::L1::
+    do do local v = B; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 16783 end
+    ::L2::
+    if FC then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 16784
+end
+K[3162512] = function(e) -- 30:4190
+    if FZ then CY = CY + 12; return 16789 end
+    CY = CY + 8; return 16786
+end
+K[3162514] = function(e) -- 30:4192
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16787 end
+    ::L1::
+    do do local v = band(A+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; A = v end end
+    CY = CY + 4; if CY >= LIM then return 16788 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3162517] = function(e) -- 30:4195
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 16790 end
+    ::L1::
+    do do local v = C; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 16791 end
+    ::L2::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3162520] = function(e) -- 30:4198 CompareHlWithDe
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 16793 end
+    ::L1::
+    do do local v = D; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 16794 end
+    ::L2::
+    if FC then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 16795
+end
+K[3162523] = function(e) -- 30:419B
+    if FZ then CY = CY + 12; return 16800 end
+    CY = CY + 8; return 16797
+end
+K[3162525] = function(e) -- 30:419D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 16798 end
+    ::L1::
+    do do local v = band(A+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; A = v end end
+    CY = CY + 4; if CY >= LIM then return 16799 end
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
@@ -40500,6 +42810,88 @@ K[3163012] = function(e) -- 30:4384
     if FZ then CY = CY + 12; return 17331 end
     CY = CY + 8; return 17292
 end
+K[3163020] = function(e) -- 30:438C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 end end
+    do wr(H*256+L, band(rd(H*256+L, CY+4, 0), 223), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17294 end
+    ::L1::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 64), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17296 end
+    ::L2::
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 17297 end
+    ::L3::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 17299 end
+    ::L4::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 17301 end
+    ::L5::
+    do E = C end
+    CY = CY + 4; if CY >= LIM then return 17302 end
+    ::L6::
+    do do local v = band(57109,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17305 end
+    ::L7::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17306 end
+    ::L8::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17307 end
+    ::L9::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17308 end
+    ::L10::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 17309 end
+    ::L11::
+    do do local v = band(57117,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17312 end
+    ::L12::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17313 end
+    ::L13::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17314 end
+    ::L14::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17315 end
+    ::L15::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 17316 end
+    ::L16::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17317 end
+    ::L17::
+    do C = L end
+    CY = CY + 4; if CY >= LIM then return 17318 end
+    ::L18::
+    do B = H end
+    CY = CY + 4; if CY >= LIM then return 17319 end
+    ::L19::
+    do do local v = band(57123,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17322 end
+    ::L20::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17323 end
+    ::L21::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17324 end
+    ::L22::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17325 end
+    ::L23::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 17326 end
+    ::L24::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17327 end
+    ::L25::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 17328 end
+    ::L26::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 179, CY+20, 0); CY = CY + 24; return 20868
+end
 K[3163059] = function(e) -- 30:43B3
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
     do do local v = band(57101,0xFFFF); H = rshift(v,8); L = band(v,255) end end
@@ -40586,6 +42978,597 @@ K[3163100] = function(e) -- 30:43DC
     SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 223, CY+20, 0); CY = CY + 24; return 22524
 end
 K[3163103] = function(e) -- 30:43DF
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3163104] = function(e) -- 30:43E0 UpdateWaveDuty
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17379 end
+    ::L1::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17380 end
+    ::L2::
+    do D = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17381 end
+    ::L3::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17382 end
+    ::L4::
+    do do local v = band(57211,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17385 end
+    ::L5::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17386 end
+    ::L6::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17387 end
+    ::L7::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 17388 end
+    ::L8::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17389 end
+    ::L9::
+    do B = H end
+    CY = CY + 4; if CY >= LIM then return 17390 end
+    ::L10::
+    do C = L end
+    CY = CY + 4; if CY >= LIM then return 17391 end
+    ::L11::
+    do FZ = band(D, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17393 end
+    ::L12::
+    if not FZ then CY = CY + 12; return 17445 end
+    CY = CY + 8; return 17395
+end
+K[3163123] = function(e) -- 30:43F3
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(57210, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17398 end
+    ::L1::
+    do H = A end
+    CY = CY + 4; if CY >= LIM then return 17399 end
+    ::L2::
+    do L = 0 end
+    CY = CY + 8; if CY >= LIM then return 17401 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 67, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 252, CY+20, 0); CY = CY + 24; return 16781
+end
+K[3163132] = function(e) -- 30:43FC
+    if not FC then CY = CY + 12; return 17437 end
+    CY = CY + 8; return 17406
+end
+K[3163134] = function(e) -- 30:43FE
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 end end
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 17407 end
+    ::L1::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 17408 end
+    ::L2::
+    do do local v = 1; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17410 end
+    ::L3::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 17411 end
+    ::L4::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 17412 end
+    ::L5::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 17413 end
+    ::L6::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17415 end
+    ::L7::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 17416 end
+    ::L8::
+    do do local v = H; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; H = r end end
+    CY = CY + 8; if CY >= LIM then return 17418 end
+    ::L9::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17419 end
+    ::L10::
+    do B = H end
+    CY = CY + 4; if CY >= LIM then return 17420 end
+    ::L11::
+    do C = L end
+    CY = CY + 4; if CY >= LIM then return 17421 end
+    ::L12::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 17422 end
+    ::L13::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 17423 end
+    ::L14::
+    do do local v = 1; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17425 end
+    ::L15::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17426 end
+    ::L16::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 17427 end
+    ::L17::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 17428 end
+    ::L18::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17430 end
+    ::L19::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 17431 end
+    ::L20::
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17434 end
+    ::L21::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 17435 end
+    ::L22::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17436 end
+    ::L23::
+    do wr(H*256+L, D, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17437 end
+    ::L24::
+    do do local v = band(57211,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17440 end
+    ::L25::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 17441 end
+    ::L26::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17442 end
+    ::L27::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17443 end
+    ::L28::
+    CY = CY + 12; return 17468
+end
+K[3163165] = function(e) -- 30:441D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local v = band(57211,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17440 end
+    ::L1::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 17441 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17442 end
+    ::L3::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17443 end
+    ::L4::
+    CY = CY + 12; return 17468
+end
+K[3163173] = function(e) -- 30:4425
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = rd(57208, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17448 end
+    ::L1::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 17449 end
+    ::L2::
+    do FZ = band(B, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17451 end
+    ::L3::
+    if not FZ then CY = CY + 12; return 17457 end
+    CY = CY + 8; return 17453
+end
+K[3163181] = function(e) -- 30:442D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 17454 end
+    ::L1::
+    do do local v = L; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 17455 end
+    ::L2::
+    if not FC then CY = CY + 12; return 17462 end
+    CY = CY + 8; return 17457
+end
+K[3163185] = function(e) -- 30:4431
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do H = L end
+    CY = CY + 4; if CY >= LIM then return 17458 end
+    ::L1::
+    do L = 0 end
+    CY = CY + 8; if CY >= LIM then return 17460 end
+    ::L2::
+    CY = CY + 12; return 17406
+end
+K[3163190] = function(e) -- 30:4436
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do do local v = band(57211,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17465 end
+    ::L1::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 17466 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17467 end
+    ::L3::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17468 end
+    ::L4::
+    do A = rd(57205, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17471 end
+    ::L5::
+    do do local v = B; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 17472 end
+    ::L6::
+    if not FZ then CY = CY + 12; return 17483 end
+    CY = CY + 8; return 17474
+end
+K[3163196] = function(e) -- 30:443C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(57205, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17471 end
+    ::L1::
+    do do local v = B; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 17472 end
+    ::L2::
+    if not FZ then CY = CY + 12; return 17483 end
+    CY = CY + 8; return 17474
+end
+K[3163202] = function(e) -- 30:4442
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = rd(57213, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17477 end
+    ::L1::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 17478 end
+    ::L2::
+    do A = rd(57137, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17481 end
+    ::L3::
+    do do local v = C; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 17482 end
+    ::L4::
+    if FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 17483
+end
+K[3163211] = function(e) -- 30:444B
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 17484 end
+    ::L1::
+    do wr(57205, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17487 end
+    ::L2::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 17488 end
+    ::L3::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 17490 end
+    ::L4::
+    do do local v = A; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 17492 end
+    ::L5::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17493 end
+    ::L6::
+    do A = 7 end
+    CY = CY + 8; if CY >= LIM then return 17495 end
+    ::L7::
+    do do local v = E; local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 4; if CY >= LIM then return 17496 end
+    ::L8::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17497 end
+    ::L9::
+    do do local v = band(17520,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17500 end
+    ::L10::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17501 end
+    ::L11::
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 17502 end
+    ::L12::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17503 end
+    ::L13::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17505 end
+    ::L14::
+    do A = rd(57137, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17508 end
+    ::L15::
+    do wr(57213, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17511 end
+    ::L16::
+    do do local v = band(65328,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17514 end
+    ::L17::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17515 end
+    ::L18::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 17516 end
+    ::L19::
+    do do local v = A; local r; r = band(lshift(v,4),0xF0) + rshift(v,4); FC = false; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 17518 end
+    ::L20::
+    do A = bor(A, B); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17519 end
+    ::L21::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3163248] = function(e) -- 30:4470
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17521 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17522 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17523 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17524 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17525 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L6::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L7::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L8::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163249] = function(e) -- 30:4471
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17522 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17523 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17524 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17525 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L6::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L7::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163250] = function(e) -- 30:4472
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17523 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17524 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17525 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L5::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L6::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163251] = function(e) -- 30:4473
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17524 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17525 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L4::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L5::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163252] = function(e) -- 30:4474
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17525 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L3::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L4::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163253] = function(e) -- 30:4475
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17526 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L2::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L3::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163254] = function(e) -- 30:4476
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17527 end
+    ::L1::
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L2::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163255] = function(e) -- 30:4477
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(C, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 17529 end
+    ::L1::
+    if FZ then CY = CY + 12; return 17534 end
+    CY = CY + 8; return 17531
+end
+K[3163259] = function(e) -- 30:447B
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 17533 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17534 end
+    ::L2::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17535 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17536 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17537 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17538 end
+    ::L6::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17539 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17540 end
+    ::L8::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17541 end
+    ::L9::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17542 end
+    ::L10::
+    do A = 128 end
+    CY = CY + 8; if CY >= LIM then return 17544 end
+    ::L11::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17546 end
+    ::L12::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17547 end
+    ::L13::
+    do wr(65307, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17549 end
+    ::L14::
+    do A = 32 end
+    CY = CY + 8; if CY >= LIM then return 17551 end
+    ::L15::
+    do wr(65308, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17553 end
+    ::L16::
+    do A = rd(57108, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17556 end
+    ::L17::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 17558 end
+    ::L18::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17560 end
+    ::L19::
+    do A = band(A, 127); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 17562 end
+    ::L20::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17564 end
+    ::L21::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3163262] = function(e) -- 30:447E
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17535 end
+    ::L1::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17536 end
+    ::L2::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17537 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17538 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17539 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17540 end
+    ::L6::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17541 end
+    ::L7::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17542 end
+    ::L8::
+    do A = 128 end
+    CY = CY + 8; if CY >= LIM then return 17544 end
+    ::L9::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17546 end
+    ::L10::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17547 end
+    ::L11::
+    do wr(65307, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17549 end
+    ::L12::
+    do A = 32 end
+    CY = CY + 8; if CY >= LIM then return 17551 end
+    ::L13::
+    do wr(65308, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17553 end
+    ::L14::
+    do A = rd(57108, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17556 end
+    ::L15::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 17558 end
+    ::L16::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17560 end
+    ::L17::
+    do A = band(A, 127); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 17562 end
+    ::L18::
+    do wr(65310, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 17564 end
+    ::L19::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[3163293] = function(e) -- 30:449D ResetApu
@@ -41017,6 +44000,66 @@ K[3163563] = function(e) -- 30:45AB
     if FZ then CY = CY + 12; return 17870 end
     CY = CY + 8; return 17839
 end
+K[3163567] = function(e) -- 30:45AF
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do do local v = band(57101,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17842 end
+    ::L1::
+    do do local v = E; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 17844 end
+    ::L2::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17845 end
+    ::L3::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 17847 end
+    ::L4::
+    do FZ = band(rd(H*256+L, CY+4, 0), 128) == 0; FN = false; FH = true end
+    CY = CY + 12; if CY >= LIM then return 17849 end
+    ::L5::
+    if FZ then CY = CY + 12; return 17870 end
+    CY = CY + 8; return 17851
+end
+K[3163579] = function(e) -- 30:45BB
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do do local v = band(57235,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17854 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17855 end
+    ::L2::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 17856 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17857 end
+    ::L4::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17858 end
+    ::L5::
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17861 end
+    ::L6::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 17862 end
+    ::L7::
+    do do local v = 4; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17864 end
+    ::L8::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17865 end
+    ::L9::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 17866 end
+    ::L10::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 17868 end
+    ::L11::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17869 end
+    ::L12::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[3163586] = function(e) -- 30:45C2
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
     do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
@@ -41112,6 +44155,84 @@ K[3163620] = function(e) -- 30:45E4
     CY = CY + 8; if CY >= LIM then return 17899 end
     ::L5::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3163691] = function(e) -- 30:462B SoundCommandPhaseScript
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
+    do do local v = band(23161,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17966 end
+    ::L1::
+    do E = L end
+    CY = CY + 4; if CY >= LIM then return 17967 end
+    ::L2::
+    do D = H end
+    CY = CY + 4; if CY >= LIM then return 17968 end
+    ::L3::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17969 end
+    ::L4::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17970 end
+    ::L5::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 17971 end
+    ::L6::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17972 end
+    ::L7::
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 17973 end
+    ::L8::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17974 end
+    ::L9::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17975 end
+    ::L10::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 17977 end
+    ::L11::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 17979 end
+    ::L12::
+    do do local v = D; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; D = r end end
+    CY = CY + 8; if CY >= LIM then return 17981 end
+    ::L13::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17982 end
+    ::L14::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 17983 end
+    ::L15::
+    do D = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 17984 end
+    ::L16::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 17985 end
+    ::L17::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 17986 end
+    ::L18::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 17987 end
+    ::L19::
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 17990 end
+    ::L20::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 17991 end
+    ::L21::
+    SP = band(SP-1,0xFFFF); wr(SP, 70, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 74, CY+20, 0); CY = CY + 24; return 21740
+end
+K[3163722] = function(e) -- 30:464A
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 17997 end
+    ::L1::
+    do do local v = band(rd(H*256+L, CY+0, 0)+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; wr(H*256+L, v, CY+4, 0) end end
+    CY = CY + 12; if CY >= LIM then return 17998 end
+    ::L2::
+    if not FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 17999
 end
 K[3163730] = function(e) -- 30:4652 SoundCommandPhaseScriptEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 end end
@@ -41394,6 +44515,246 @@ K[3163882] = function(e) -- 30:46EA SoundCommandRestartWithDuty
     if not FC then CY = CY + 16; return 20710 end
     CY = CY + 12; return 18173
 end
+K[3163901] = function(e) -- 30:46FD
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = 255; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 18175 end
+    ::L1::
+    if not FZ then CY = CY + 16; return 20710 end
+    CY = CY + 12; return 18178
+end
+K[3163920] = function(e) -- 30:4710 ContinueClearedChannel
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18195 end
+    ::L1::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 18196 end
+    ::L2::
+    CY = CY + 16; return 20572
+end
+K[3164218] = function(e) -- 30:483A SoundCommandSetOrAddSlideEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18491 end
+    ::L1::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 18492 end
+    ::L2::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 18493 end
+    ::L3::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18494 end
+    ::L4::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 18495 end
+    ::L5::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18496 end
+    ::L6::
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18499 end
+    ::L7::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 18500 end
+    ::L8::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18501 end
+    ::L9::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18502 end
+    ::L10::
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18505 end
+    ::L11::
+    do do local v = 3; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 18507 end
+    ::L12::
+    if FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 18508
+end
+K[3164236] = function(e) -- 30:484C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 18509 end
+    ::L1::
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 18511 end
+    ::L2::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18514 end
+    ::L3::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18515 end
+    ::L4::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18517 end
+    ::L5::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 18519 end
+    ::L6::
+    do do local v = band(57109,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18522 end
+    ::L7::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18523 end
+    ::L8::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 18524 end
+    ::L9::
+    do do local v = rd(H*256+L, CY+0, 0); local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 18525 end
+    ::L10::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 18526 end
+    ::L11::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18527 end
+    ::L12::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 18528 end
+    ::L13::
+    do do local v = rd(H*256+L, CY+0, 0); local c = FC and 1 or 0; local r = A - v - c; FH = band(A,15) - band(v,15) - c < 0; FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 18529 end
+    ::L14::
+    do do local v = band(57124,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18532 end
+    ::L15::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18533 end
+    ::L16::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18534 end
+    ::L17::
+    do wr(H*256+L, E, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18535 end
+    ::L18::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164297] = function(e) -- 30:4889 SoundCommand01
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 end end
+    do L = C end
+    CY = CY + 4; if CY >= LIM then return 18570 end
+    ::L1::
+    do H = B end
+    CY = CY + 4; if CY >= LIM then return 18571 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18572 end
+    ::L3::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 18573 end
+    ::L4::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18574 end
+    ::L5::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18575 end
+    ::L6::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18576 end
+    ::L7::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 18577 end
+    ::L8::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 18578 end
+    ::L9::
+    do wr(57242, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18581 end
+    ::L10::
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 18582 end
+    ::L11::
+    do wr(57243, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18585 end
+    ::L12::
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18588 end
+    ::L13::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 18589 end
+    ::L14::
+    do do local v = 3; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 18591 end
+    ::L15::
+    if FC then CY = CY + 16; return 21357 end
+    CY = CY + 12; return 18594
+end
+K[3164323] = function(e) -- 30:48A3 SoundCommand03
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do L = C end
+    CY = CY + 4; if CY >= LIM then return 18596 end
+    ::L1::
+    do H = B end
+    CY = CY + 4; if CY >= LIM then return 18597 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18598 end
+    ::L3::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 18599 end
+    ::L4::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18600 end
+    ::L5::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 18601 end
+    ::L6::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18602 end
+    ::L7::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 18603 end
+    ::L8::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18604 end
+    ::L9::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18605 end
+    ::L10::
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18608 end
+    ::L11::
+    do do local v = 3; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 18610 end
+    ::L12::
+    if not FC then CY = CY + 12; return 18616 end
+    CY = CY + 8; return 18612
+end
+K[3164340] = function(e) -- 30:48B4
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do A = bor(A, rd(H*256+L, CY+0, 0)); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 18613 end
+    ::L1::
+    SP = band(SP-1,0xFFFF); wr(SP, 72, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 184, CY+20, 0); CY = CY + 24; return 21404
+end
+K[3164344] = function(e) -- 30:48B8 SoundCommand03Advance
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18619 end
+    ::L1::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18620 end
+    ::L2::
+    do do local v = 5; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 18622 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18623 end
+    ::L4::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18624 end
+    ::L5::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 18626 end
+    ::L6::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18627 end
+    ::L7::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[3164356] = function(e) -- 30:48C4 SoundCommandSetNoise
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
     do A = rd((B*256+C), CY+0, 0) end
@@ -41531,6 +44892,359 @@ K[3164529] = function(e) -- 30:4971
     ::L1::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[3164531] = function(e) -- 30:4973 SoundCommandSetEnvelope
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18804 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18805 end
+    ::L2::
+    do do local v = band((B*256+C)+1,0xFFFF); B = rshift(v,8); C = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 18806 end
+    ::L3::
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18809 end
+    ::L4::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 18810 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18811 end
+    ::L6::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18812 end
+    ::L7::
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18815 end
+    ::L8::
+    do do local v = 2; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 18817 end
+    ::L9::
+    if FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 18818
+end
+K[3164546] = function(e) -- 30:4982
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 end end
+    do C = E end
+    CY = CY + 4; if CY >= LIM then return 18819 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 18820 end
+    ::L2::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 18822 end
+    ::L3::
+    do do local v = band(57101,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18825 end
+    ::L4::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18826 end
+    ::L5::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18827 end
+    ::L6::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 18829 end
+    ::L7::
+    do A = bor(A, 32); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 18831 end
+    ::L8::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18832 end
+    ::L9::
+    do do local v = band(57135,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18835 end
+    ::L10::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18836 end
+    ::L11::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 18837 end
+    ::L12::
+    do do local v = A; local r; r = band(lshift(v,4),0xF0) + rshift(v,4); FC = false; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 18839 end
+    ::L13::
+    do A = bor(A, C); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 18840 end
+    ::L14::
+    do FZ = band(A, 8) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 18842 end
+    ::L15::
+    if FZ then CY = CY + 12; return 18850 end
+    CY = CY + 8; return 18844
+end
+K[3164572] = function(e) -- 30:499C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
+    do do local v = band(57332,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18847 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18848 end
+    ::L2::
+    do wr(H*256+L, 0, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 18850 end
+    ::L3::
+    do do local v = band(18857,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18853 end
+    ::L4::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18854 end
+    ::L5::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18855 end
+    ::L6::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18856 end
+    ::L7::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164578] = function(e) -- 30:49A2
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local v = band(18857,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18853 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 18854 end
+    ::L2::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18855 end
+    ::L3::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18856 end
+    ::L4::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164589] = function(e) -- 30:49AD
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 end end
+    do L = C end
+    CY = CY + 4; if CY >= LIM then return 18862 end
+    ::L1::
+    do H = B end
+    CY = CY + 4; if CY >= LIM then return 18863 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18864 end
+    ::L3::
+    do wr(57208, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18867 end
+    ::L4::
+    do wr(57212, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18870 end
+    ::L5::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 18871 end
+    ::L6::
+    do wr(57211, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18874 end
+    ::L7::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18875 end
+    ::L8::
+    do wr(57210, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18878 end
+    ::L9::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18879 end
+    ::L10::
+    do wr(57207, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18882 end
+    ::L11::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18883 end
+    ::L12::
+    do wr(57206, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18886 end
+    ::L13::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 18887 end
+    ::L14::
+    do wr(57242, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18890 end
+    ::L15::
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 18891 end
+    ::L16::
+    do wr(57243, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18894 end
+    ::L17::
+    do A = 255 end
+    CY = CY + 8; if CY >= LIM then return 18896 end
+    ::L18::
+    do wr(57205, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18899 end
+    ::L19::
+    do wr(57213, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18902 end
+    ::L20::
+    SP = band(SP-1,0xFFFF); wr(SP, 73, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 217, CY+20, 0); CY = CY + 24; return 18920
+end
+K[3164633] = function(e) -- 30:49D9
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 1 end
+    CY = CY + 8; if CY >= LIM then return 18907 end
+    ::L1::
+    do wr(57204, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 18910 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 73, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 225, CY+20, 0); CY = CY + 24; return 17376
+end
+K[3164641] = function(e) -- 30:49E1
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = 255 end
+    CY = CY + 8; if CY >= LIM then return 18915 end
+    ::L1::
+    do C = 2 end
+    CY = CY + 8; if CY >= LIM then return 18917 end
+    ::L2::
+    CY = CY + 16; return 20710
+end
+K[3164648] = function(e) -- 30:49E8 ClearWaveTail
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 18921 end
+    ::L1::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 18923 end
+    ::L2::
+    do do local v = band(65337,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 18926 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18927 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18928 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18929 end
+    ::L6::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18930 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18931 end
+    ::L8::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 18932 end
+    ::L9::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 18933 end
+    ::L10::
+    do A = 128 end
+    CY = CY + 8; if CY >= LIM then return 18935 end
+    ::L11::
+    do wr(65306, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 18937 end
+    ::L12::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164828] = function(e) -- 30:4A9C ClearSlotEffects
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19103 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 19104 end
+    ::L2::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 19106 end
+    ::L3::
+    do do local v = 2; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 19108 end
+    ::L4::
+    if not FZ then CY = CY + 12; return 19118 end
+    CY = CY + 8; return 19110
+end
+K[3164838] = function(e) -- 30:4AA6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = rd(57204, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19113 end
+    ::L1::
+    do A = band(A, 254); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19115 end
+    ::L2::
+    do wr(57204, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19118 end
+    ::L3::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19121 end
+    ::L4::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 19122 end
+    ::L5::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 19123 end
+    ::L6::
+    do A = band(A, 226); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19125 end
+    ::L7::
+    do A = bor(A, 32); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19127 end
+    ::L8::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19128 end
+    ::L9::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164846] = function(e) -- 30:4AAE
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19121 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 19122 end
+    ::L2::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 19123 end
+    ::L3::
+    do A = band(A, 226); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19125 end
+    ::L4::
+    do A = bor(A, 32); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19127 end
+    ::L5::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19128 end
+    ::L6::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164857] = function(e) -- 30:4AB9 ClearSlotEffectsAndSlide
+    SP = band(SP-1,0xFFFF); wr(SP, 74, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 188, CY+20, 0); CY = CY + 24; return 19100
+end
+K[3164860] = function(e) -- 30:4ABC
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 19133 end
+    ::L1::
+    do do local v = 3; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 19135 end
+    ::L2::
+    if FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 19136
+end
+K[3164864] = function(e) -- 30:4AC0
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 end end
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 19138 end
+    ::L1::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 19139 end
+    ::L2::
+    do do local v = band(57117,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19142 end
+    ::L3::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 19143 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19144 end
+    ::L5::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19145 end
+    ::L6::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[3164874] = function(e) -- 30:4ACA ClearSlotEffectsAndSlideEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 end end
     do A = rd((B*256+C), CY+0, 0) end
@@ -41572,6 +45286,248 @@ K[3164874] = function(e) -- 30:4ACA ClearSlotEffectsAndSlideEnd
     do wr(H*256+L, B, CY+0, 0) end
     CY = CY + 8; if CY >= LIM then return 19168 end
     ::L13::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3164992] = function(e) -- 30:4B40 SoundCommandBranchIfRandomAtLeastEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(57244, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19267 end
+    ::L1::
+    do do local v = 2; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 19269 end
+    ::L2::
+    if not FZ then CY = CY + 12; return 19294 end
+    CY = CY + 8; return 19271
+end
+K[3164999] = function(e) -- 30:4B47
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 19272 end
+    ::L1::
+    do wr(57204, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19275 end
+    ::L2::
+    do A = rd((B*256+C), CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19276 end
+    ::L3::
+    SP = band(SP-1,0xFFFF); wr(SP, 75, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 79, CY+20, 0); CY = CY + 24; return 20826
+end
+K[3165007] = function(e) -- 30:4B4F
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(E, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 19281 end
+    ::L1::
+    if not FZ then CY = CY + 12; return 19306 end
+    CY = CY + 8; return 19283
+end
+K[3165011] = function(e) -- 30:4B53
+    SP = band(SP-1,0xFFFF); wr(SP, 75, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 86, CY+20, 0); CY = CY + 24; return 19326
+end
+K[3165014] = function(e) -- 30:4B56
+    SP = band(SP-1,0xFFFF); wr(SP, 75, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 89, CY+20, 0); CY = CY + 24; return 19369
+end
+K[3165017] = function(e) -- 30:4B59
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do do local v = band(57204,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19292 end
+    ::L1::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 128), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19294 end
+    ::L2::
+    do do local v = band(57242,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19297 end
+    ::L3::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 19298 end
+    ::L4::
+    do do local v = 1; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 19300 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19301 end
+    ::L6::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 19302 end
+    ::L7::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 19304 end
+    ::L8::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19305 end
+    ::L9::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3165054] = function(e) -- 30:4B7E SoundCommandSelectWaveEnd
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do wr(57205, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19329 end
+    ::L1::
+    SP = band(SP-1,0xFFFF); wr(SP, 75, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 132, CY+20, 0); CY = CY + 24; return 15283
+end
+K[3165060] = function(e) -- 30:4B84
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(H, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 19334 end
+    ::L1::
+    if FZ then CY = CY + 12; return 19345 end
+    CY = CY + 8; return 19336
+end
+K[3165064] = function(e) -- 30:4B88
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do H = 64 end
+    CY = CY + 8; if CY >= LIM then return 19338 end
+    ::L1::
+    do A = rd(57205, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19341 end
+    ::L2::
+    do do local v = band(A+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; A = v end end
+    CY = CY + 4; if CY >= LIM then return 19342 end
+    ::L3::
+    do wr(57205, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19345 end
+    ::L4::
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 19346 end
+    ::L5::
+    do do local v = band(57208,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19349 end
+    ::L6::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 19350 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19351 end
+    ::L8::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 19352 end
+    ::L9::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19353 end
+    ::L10::
+    do wr(H*256+L, 0, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 19355 end
+    ::L11::
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19358 end
+    ::L12::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 19359 end
+    ::L13::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 19360 end
+    ::L14::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19361 end
+    ::L15::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19362 end
+    ::L16::
+    do A = 255 end
+    CY = CY + 8; if CY >= LIM then return 19364 end
+    ::L17::
+    do C = 2 end
+    CY = CY + 8; if CY >= LIM then return 19366 end
+    ::L18::
+    CY = CY + 16; return 20710
+end
+K[3165073] = function(e) -- 30:4B91
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 end end
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 19346 end
+    ::L1::
+    do do local v = band(57208,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19349 end
+    ::L2::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 19350 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19351 end
+    ::L4::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 19352 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19353 end
+    ::L6::
+    do wr(H*256+L, 0, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 19355 end
+    ::L7::
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19358 end
+    ::L8::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 19359 end
+    ::L9::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 19360 end
+    ::L10::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19361 end
+    ::L11::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19362 end
+    ::L12::
+    do A = 255 end
+    CY = CY + 8; if CY >= LIM then return 19364 end
+    ::L13::
+    do C = 2 end
+    CY = CY + 8; if CY >= LIM then return 19366 end
+    ::L14::
+    CY = CY + 16; return 20710
+end
+K[3165097] = function(e) -- 30:4BA9 SetWavePeriodDelta
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do do local v = band(57099,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19372 end
+    ::L1::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19374 end
+    ::L2::
+    do do local v = band(57113,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19377 end
+    ::L3::
+    do A = rd(57092, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 19380 end
+    ::L4::
+    do do local v = 129; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 19382 end
+    ::L5::
+    if not FZ then CY = CY + 12; return 19395 end
+    CY = CY + 8; return 19384
+end
+K[3165123] = function(e) -- 30:4BC3
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do do local v = band(10888,0xFFFF); D = rshift(v,8); E = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19398 end
+    ::L1::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 19399 end
+    ::L2::
+    do do local v = rd(H*256+L, CY+0, 0); local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 19400 end
+    ::L3::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 19401 end
+    ::L4::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 19402 end
+    ::L5::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 19403 end
+    ::L6::
+    do do local v = rd(H*256+L, CY+0, 0); local c = FC and 1 or 0; local r = A - v - c; FH = band(A,15) - band(v,15) - c < 0; FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 19404 end
+    ::L7::
+    do do local v = band(57128,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 19407 end
+    ::L8::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 19408 end
+    ::L9::
+    do wr(H*256+L, E, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 19409 end
+    ::L10::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[3165507] = function(e) -- 30:4D43 SoundCommandGlideEnd
@@ -41747,6 +45703,109 @@ K[3165718] = function(e) -- 30:4E16
     if FZ then CY = CY + 12; return 20037 end
     CY = CY + 8; return 19996
 end
+K[3165724] = function(e) -- 30:4E1C
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = band(A, 128); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 19998 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 19999 end
+    ::L2::
+    do A = rd(57254, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20002 end
+    ::L3::
+    do FZ = band(A, 64) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20004 end
+    ::L4::
+    if not FZ then CY = CY + 12; return 20020 end
+    CY = CY + 8; return 20006
+end
+K[3165734] = function(e) -- 30:4E26
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 end end
+    do A = bor(A, 64) end
+    CY = CY + 8; if CY >= LIM then return 20008 end
+    ::L1::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 20009 end
+    ::L2::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 20010 end
+    ::L3::
+    do A = band(A, 1); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20012 end
+    ::L4::
+    do do local v = A; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20014 end
+    ::L5::
+    do do local v = A; local r; r = band(lshift(v,4),0xF0) + rshift(v,4); FC = false; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20016 end
+    ::L6::
+    do A = bor(A, D); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20017 end
+    ::L7::
+    do wr(57254, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20020 end
+    ::L8::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 20021 end
+    ::L9::
+    do do local v = A; local r; r = band(lshift(v,4),0xF0) + rshift(v,4); FC = false; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20023 end
+    ::L10::
+    do do local v = A; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20025 end
+    ::L11::
+    do A = band(A, 1); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20027 end
+    ::L12::
+    do A = bor(A, E); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20028 end
+    ::L13::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 20029 end
+    ::L14::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 20030 end
+    ::L15::
+    do A = bxor(A, 32); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20032 end
+    ::L16::
+    do wr(57254, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20035 end
+    ::L17::
+    CY = CY + 12; return 20045
+end
+K[3165748] = function(e) -- 30:4E34
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 20021 end
+    ::L1::
+    do do local v = A; local r; r = band(lshift(v,4),0xF0) + rshift(v,4); FC = false; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20023 end
+    ::L2::
+    do do local v = A; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 20025 end
+    ::L3::
+    do A = band(A, 1); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20027 end
+    ::L4::
+    do A = bor(A, E); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20028 end
+    ::L5::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 20029 end
+    ::L6::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 20030 end
+    ::L7::
+    do A = bxor(A, 32); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20032 end
+    ::L8::
+    do wr(57254, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20035 end
+    ::L9::
+    CY = CY + 12; return 20045
+end
 K[3165765] = function(e) -- 30:4E45
     if e ~= 0 then if e == 1 then goto L1 end end
     do do local v = 255; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
@@ -41766,6 +45825,14 @@ K[3165772] = function(e) -- 30:4E4C
     if not FZ then CY = CY + 16; return 20190 end
     CY = CY + 12; return 20050
 end
+K[3165773] = function(e) -- 30:4E4D
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(C, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20047 end
+    ::L1::
+    if not FZ then CY = CY + 16; return 20190 end
+    CY = CY + 12; return 20050
+end
 K[3165778] = function(e) -- 30:4E52
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
     do A = C end
@@ -41776,6 +45843,44 @@ K[3165778] = function(e) -- 30:4E52
     ::L2::
     if not FZ then CY = CY + 12; return 20089 end
     CY = CY + 8; return 20055
+end
+K[3165783] = function(e) -- 30:4E57
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do A = rd(57247, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20058 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20059 end
+    ::L2::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 20060 end
+    ::L3::
+    do do local v = E; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 20061 end
+    ::L4::
+    if FC then CY = CY + 12; return 20089 end
+    CY = CY + 8; return 20063
+end
+K[3165791] = function(e) -- 30:4E5F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(57204, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20066 end
+    ::L1::
+    do FZ = band(A, 64) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20068 end
+    ::L2::
+    if FZ then CY = CY + 12; return 20085 end
+    CY = CY + 8; return 20070
+end
+K[3165813] = function(e) -- 30:4E75
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20086 end
+    ::L1::
+    do wr(57204, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20089 end
+    ::L2::
+    SP = band(SP-1,0xFFFF); wr(SP, 78, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 124, CY+20, 0); CY = CY + 24; return 20190
 end
 K[3165817] = function(e) -- 30:4E79
     SP = band(SP-1,0xFFFF); wr(SP, 78, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 124, CY+20, 0); CY = CY + 24; return 20190
@@ -41824,6 +45929,17 @@ K[3165821] = function(e) -- 30:4E7D
     ::L12::
     if FZ then CY = CY + 12; return 20159 end
     CY = CY + 8; return 20116
+end
+K[3165844] = function(e) -- 30:4E94
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = rd(57342, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20119 end
+    ::L1::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20120 end
+    ::L2::
+    if not FZ then CY = CY + 12; return 20146 end
+    CY = CY + 8; return 20122
 end
 K[3165874] = function(e) -- 30:4EB2
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
@@ -42727,6 +46843,19 @@ K[3166359] = function(e) -- 30:5097
     if FZ then CY = CY + 12; return 20650 end
     CY = CY + 8; return 20645
 end
+K[3166373] = function(e) -- 30:50A5
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do A = 128 end
+    CY = CY + 8; if CY >= LIM then return 20647 end
+    ::L1::
+    do A = bor(A, rd(H*256+L, CY+0, 0)); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20648 end
+    ::L2::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20649 end
+    ::L3::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[3166378] = function(e) -- 30:50AA
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
     do A = 128 end
@@ -42736,6 +46865,86 @@ K[3166378] = function(e) -- 30:50AA
     CY = CY + 8; if CY >= LIM then return 20653 end
     ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3166382] = function(e) -- 30:50AE
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
+    do A = band(A, 12); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20656 end
+    ::L1::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 20657 end
+    ::L2::
+    do A = rd(57137, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20660 end
+    ::L3::
+    do A = band(A, 12); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20662 end
+    ::L4::
+    do do local v = D; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 20663 end
+    ::L5::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 20664 end
+    ::L6::
+    do wr(57137, A, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20667 end
+    ::L7::
+    if FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 20668
+end
+K[3166396] = function(e) -- 30:50BC
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do E = C end
+    CY = CY + 4; if CY >= LIM then return 20669 end
+    ::L1::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 20670 end
+    ::L2::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 20672 end
+    ::L3::
+    do A = rd(57204, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20675 end
+    ::L4::
+    do FZ = band(A, 1) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20677 end
+    ::L5::
+    if not FZ then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 20678
+end
+K[3166406] = function(e) -- 30:50C6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 20680 end
+    ::L1::
+    do do local v = C; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 20682 end
+    ::L2::
+    do do local v = C; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 20684 end
+    ::L3::
+    do do local v = band(20706,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20687 end
+    ::L4::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20688 end
+    ::L5::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20689 end
+    ::L6::
+    do A = rd(65308, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 20691 end
+    ::L7::
+    do A = band(A, 159); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20693 end
+    ::L8::
+    do A = bor(A, B); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20694 end
+    ::L9::
+    do wr(65308, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 20696 end
+    ::L10::
+    CY = CY + 12; return 20631
 end
 K[3166438] = function(e) -- 30:50E6 RestartChannel
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
@@ -42753,6 +46962,119 @@ K[3166438] = function(e) -- 30:50E6 RestartChannel
     ::L4::
     if FZ then CY = CY + 16; return 20791 end
     CY = CY + 12; return 20719
+end
+K[3166447] = function(e) -- 30:50EF
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = 2; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 20721 end
+    ::L1::
+    if FZ then CY = CY + 12; return 20757 end
+    CY = CY + 8; return 20723
+end
+K[3166451] = function(e) -- 30:50F3
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 20724 end
+    ::L1::
+    do do local v = 4; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 20726 end
+    ::L2::
+    if not FC then CY = CY + 12; return 20740 end
+    CY = CY + 8; return 20728
+end
+K[3166456] = function(e) -- 30:50F8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 end end
+    do do local v = band(20817,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20731 end
+    ::L1::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20732 end
+    ::L2::
+    do L = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20733 end
+    ::L3::
+    do H = 255 end
+    CY = CY + 8; if CY >= LIM then return 20735 end
+    ::L4::
+    do do local v = E; local r; local c = band(v,1); r = rshift(v,1) + c*128; FC = c == 1; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20737 end
+    ::L5::
+    do do local v = E; local r; local c = band(v,1); r = rshift(v,1) + c*128; FC = c == 1; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20739 end
+    ::L6::
+    do wr(H*256+L, E, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20740 end
+    ::L7::
+    do do local v = band(57106,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20743 end
+    ::L8::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20744 end
+    ::L9::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 20745 end
+    ::L10::
+    do do local v = band(20819,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20748 end
+    ::L11::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20749 end
+    ::L12::
+    do L = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20750 end
+    ::L13::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20752 end
+    ::L14::
+    do H = 255 end
+    CY = CY + 8; if CY >= LIM then return 20754 end
+    ::L15::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20755 end
+    ::L16::
+    CY = CY + 12; return 20791
+end
+K[3166468] = function(e) -- 30:5104
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do do local v = band(57106,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20743 end
+    ::L1::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20744 end
+    ::L2::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 20745 end
+    ::L3::
+    do do local v = band(20819,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20748 end
+    ::L4::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20749 end
+    ::L5::
+    do L = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20750 end
+    ::L6::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20752 end
+    ::L7::
+    do H = 255 end
+    CY = CY + 8; if CY >= LIM then return 20754 end
+    ::L8::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20755 end
+    ::L9::
+    CY = CY + 12; return 20791
+end
+K[3166485] = function(e) -- 30:5115
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 20758 end
+    ::L1::
+    do do local v = 255; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 20760 end
+    ::L2::
+    if FZ then CY = CY + 12; return 20773 end
+    CY = CY + 8; return 20762
 end
 K[3166500] = function(e) -- 30:5124
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 end end
@@ -42845,6 +47167,94 @@ K[3166500] = function(e) -- 30:5124
     ::L29::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
+K[3166501] = function(e) -- 30:5125
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 end end
+    do D = C end
+    CY = CY + 4; if CY >= LIM then return 20774 end
+    ::L1::
+    do do local v = band(57106,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20777 end
+    ::L2::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20778 end
+    ::L3::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 20779 end
+    ::L4::
+    do do local v = band(20819,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20782 end
+    ::L5::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20783 end
+    ::L6::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20784 end
+    ::L7::
+    do A = bor(A, 128); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20786 end
+    ::L8::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20787 end
+    ::L9::
+    do A = band(A, 127); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 20789 end
+    ::L10::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20790 end
+    ::L11::
+    do C = D end
+    CY = CY + 4; if CY >= LIM then return 20791 end
+    ::L12::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20794 end
+    ::L13::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20795 end
+    ::L14::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 128), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20797 end
+    ::L15::
+    do do local v = band(20822,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20800 end
+    ::L16::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20801 end
+    ::L17::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20802 end
+    ::L18::
+    do A = rd(65317, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 20804 end
+    ::L19::
+    do A = band(A, B); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20805 end
+    ::L20::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 20806 end
+    ::L21::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 20807 end
+    ::L22::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 20808 end
+    ::L23::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 20809 end
+    ::L24::
+    do A = rd(57105, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20812 end
+    ::L25::
+    do A = band(A, B); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20813 end
+    ::L26::
+    do A = bor(A, C); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20814 end
+    ::L27::
+    do wr(65317, A, CY+4, 0) end
+    CY = CY + 12; if CY >= LIM then return 20816 end
+    ::L28::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
 K[3166519] = function(e) -- 30:5137
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 end end
     do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
@@ -42895,6 +47305,659 @@ K[3166519] = function(e) -- 30:5137
     do wr(65317, A, CY+4, 0) end
     CY = CY + 12; if CY >= LIM then return 20816 end
     ::L16::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3166554] = function(e) -- 30:515A LookupWaveRecord
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 end end
+    do do local v = band(23166,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20829 end
+    ::L1::
+    do E = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20830 end
+    ::L2::
+    do do local v = band((H*256+L)+1,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 8; if CY >= LIM then return 20831 end
+    ::L3::
+    do D = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20832 end
+    ::L4::
+    do do local v = band(23161,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20835 end
+    ::L5::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20836 end
+    ::L6::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 20838 end
+    ::L7::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20839 end
+    ::L8::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20841 end
+    ::L9::
+    do do local v = D; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; D = r end end
+    CY = CY + 8; if CY >= LIM then return 20843 end
+    ::L10::
+    do C = E end
+    CY = CY + 4; if CY >= LIM then return 20844 end
+    ::L11::
+    do B = D end
+    CY = CY + 4; if CY >= LIM then return 20845 end
+    ::L12::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20847 end
+    ::L13::
+    do do local v = D; local r; r = band(lshift(v,1),255) + (FC and 1 or 0); FC = v >= 128; FZ = r == 0; FN = false; FH = false; D = r end end
+    CY = CY + 8; if CY >= LIM then return 20849 end
+    ::L14::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20850 end
+    ::L15::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20851 end
+    ::L16::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20852 end
+    ::L17::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20853 end
+    ::L18::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20854 end
+    ::L19::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 20855 end
+    ::L20::
+    do do local v = (D*256+E); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 20856 end
+    ::L21::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20857 end
+    ::L22::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 20858 end
+    ::L23::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20859 end
+    ::L24::
+    do B = A end
+    CY = CY + 4; if CY >= LIM then return 20860 end
+    ::L25::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20861 end
+    ::L26::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20862 end
+    ::L27::
+    do A = rd(57088, CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 20865 end
+    ::L28::
+    do do local v = rd(H*256+L, CY+0, 0); local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 20866 end
+    ::L29::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 20867 end
+    ::L30::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3166596] = function(e) -- 30:5184 LookupWaveRecordEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 20869 end
+    ::L1::
+    do A = H end
+    CY = CY + 4; if CY >= LIM then return 20870 end
+    ::L2::
+    do FZ = band(A, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20872 end
+    ::L3::
+    if FZ then CY = CY + 12; return 20878 end
+    CY = CY + 8; return 20874
+end
+K[3166598] = function(e) -- 30:5186
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(A, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 20872 end
+    ::L1::
+    if FZ then CY = CY + 12; return 20878 end
+    CY = CY + 8; return 20874
+end
+K[3166606] = function(e) -- 30:518E
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = 84; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 8; if CY >= LIM then return 20880 end
+    ::L1::
+    if FC then CY = CY + 12; return 20886 end
+    CY = CY + 8; return 20882
+end
+K[3166610] = function(e) -- 30:5192
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = 84; local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 20884 end
+    ::L1::
+    CY = CY + 12; return 20878
+end
+K[3166614] = function(e) -- 30:5196
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 20888 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20889 end
+    ::L2::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 20890 end
+    ::L3::
+    do A = band(A, A); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 4; if CY >= LIM then return 20891 end
+    ::L4::
+    if not FZ then CY = CY + 12; return 20918 end
+    CY = CY + 8; return 20893
+end
+K[3166621] = function(e) -- 30:519D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 end end
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20895 end
+    ::L1::
+    do do local v = band(20952,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20898 end
+    ::L2::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20899 end
+    ::L3::
+    do E = C end
+    CY = CY + 4; if CY >= LIM then return 20900 end
+    ::L4::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20901 end
+    ::L5::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20902 end
+    ::L6::
+    do do local v = band(57106,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20905 end
+    ::L7::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20906 end
+    ::L8::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20907 end
+    ::L9::
+    do do local v = band(20947,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20910 end
+    ::L10::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20911 end
+    ::L11::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20912 end
+    ::L12::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20913 end
+    ::L13::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 20914 end
+    ::L14::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 20915 end
+    ::L15::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20916 end
+    ::L16::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 20917 end
+    ::L17::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3166630] = function(e) -- 30:51A6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 end end
+    do do local v = band(57106,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20905 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20906 end
+    ::L2::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20907 end
+    ::L3::
+    do do local v = band(20947,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20910 end
+    ::L4::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20911 end
+    ::L5::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20912 end
+    ::L6::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20913 end
+    ::L7::
+    do do local v = band(C+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; C = v end end
+    CY = CY + 4; if CY >= LIM then return 20914 end
+    ::L8::
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 20915 end
+    ::L9::
+    do wr(0xFF00+C, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20916 end
+    ::L10::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 20917 end
+    ::L11::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3166646] = function(e) -- 30:51B6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local v = band(21122,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20921 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20922 end
+    ::L2::
+    do D = C end
+    CY = CY + 4; if CY >= LIM then return 20923 end
+    ::L3::
+    do C = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20924 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 81, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 191, CY+20, 0); CY = CY + 24; return 16384
+end
+K[3166655] = function(e) -- 30:51BF
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 end end
+    do C = H end
+    CY = CY + 4; if CY >= LIM then return 20928 end
+    ::L1::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 20929 end
+    ::L2::
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 20931 end
+    ::L3::
+    do D = B end
+    CY = CY + 4; if CY >= LIM then return 20932 end
+    ::L4::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 20934 end
+    ::L5::
+    do do local v = band(20952,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 20937 end
+    ::L6::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20938 end
+    ::L7::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 20939 end
+    ::L8::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 20940 end
+    ::L9::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 20941 end
+    ::L10::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 20942 end
+    ::L11::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 20943 end
+    ::L12::
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 20944 end
+    ::L13::
+    do B = H end
+    CY = CY + 4; if CY >= LIM then return 20945 end
+    ::L14::
+    CY = CY + 12; return 20902
+end
+K[3167085] = function(e) -- 30:536D ArmChannelGlideEnd
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = B end
+    CY = CY + 4; if CY >= LIM then return 21358 end
+    ::L1::
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 21360 end
+    ::L2::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21362 end
+    ::L3::
+    do do local v = band(57152,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21365 end
+    ::L4::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21366 end
+    ::L5::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21367 end
+    ::L6::
+    do do local v = band(57146,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21370 end
+    ::L7::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21371 end
+    ::L8::
+    do do local v = A; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; A = r end end
+    CY = CY + 8; if CY >= LIM then return 21373 end
+    ::L9::
+    if not FZ then CY = CY + 12; return 21376 end
+    CY = CY + 8; return 21375
+end
+K[3167103] = function(e) -- 30:537F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 end end
+    do do local v = band(A+1,255); FH = band(v,15) == 0; FZ = v == 0; FN = false; A = v end end
+    CY = CY + 4; if CY >= LIM then return 21376 end
+    ::L1::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21377 end
+    ::L2::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21380 end
+    ::L3::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21381 end
+    ::L4::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21382 end
+    ::L5::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21383 end
+    ::L6::
+    do wr(H*256+L, D, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21384 end
+    ::L7::
+    do do local v = band(57158,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21387 end
+    ::L8::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21388 end
+    ::L9::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 21389 end
+    ::L10::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21390 end
+    ::L11::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21391 end
+    ::L12::
+    do do local v = C; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21393 end
+    ::L13::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21396 end
+    ::L14::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21397 end
+    ::L15::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21398 end
+    ::L16::
+    do A = band(A, 226); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21400 end
+    ::L17::
+    do A = bor(A, 1); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21402 end
+    ::L18::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21403 end
+    ::L19::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167104] = function(e) -- 30:5380
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21377 end
+    ::L1::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21380 end
+    ::L2::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21381 end
+    ::L3::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21382 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21383 end
+    ::L5::
+    do wr(H*256+L, D, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21384 end
+    ::L6::
+    do do local v = band(57158,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21387 end
+    ::L7::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21388 end
+    ::L8::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 21389 end
+    ::L9::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21390 end
+    ::L10::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21391 end
+    ::L11::
+    do do local v = C; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21393 end
+    ::L12::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21396 end
+    ::L13::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21397 end
+    ::L14::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21398 end
+    ::L15::
+    do A = band(A, 226); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21400 end
+    ::L16::
+    do A = bor(A, 1); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21402 end
+    ::L17::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21403 end
+    ::L18::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167132] = function(e) -- 30:539C ArmChannelRamp
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do FZ = band(A, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 21406 end
+    ::L1::
+    do A = band(A, 127) end
+    CY = CY + 8; if CY >= LIM then return 21408 end
+    ::L2::
+    do do local v = (A*256 + (FZ and 128 or 0) + (FN and 64 or 0) + (FH and 32 or 0) + (FC and 16 or 0)); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21409 end
+    ::L3::
+    do do local v = (D*256+E); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21410 end
+    ::L4::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21413 end
+    ::L5::
+    do D = 0 end
+    CY = CY + 8; if CY >= LIM then return 21415 end
+    ::L6::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21416 end
+    ::L7::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21417 end
+    ::L8::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21418 end
+    ::L9::
+    if not FZ then CY = CY + 12; return 21425 end
+    CY = CY + 8; return 21420
+end
+K[3167148] = function(e) -- 30:53AC
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = band(A, 242); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21422 end
+    ::L1::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21423 end
+    ::L2::
+    CY = CY + 12; return 21432
+end
+K[3167153] = function(e) -- 30:53B1
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 end end
+    do A = band(A, 234); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21427 end
+    ::L1::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21428 end
+    ::L2::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21429 end
+    ::L3::
+    do do local v = 3; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21431 end
+    ::L4::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21432 end
+    ::L5::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 21434 end
+    ::L6::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21437 end
+    ::L7::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21438 end
+    ::L8::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 21439 end
+    ::L9::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21440 end
+    ::L10::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21441 end
+    ::L11::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21442 end
+    ::L12::
+    do do local v = band(57152,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21445 end
+    ::L13::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21446 end
+    ::L14::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 21447 end
+    ::L15::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21448 end
+    ::L16::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21449 end
+    ::L17::
+    do do local v = band(57164,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21452 end
+    ::L18::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21453 end
+    ::L19::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 21454 end
+    ::L20::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21455 end
+    ::L21::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21456 end
+    ::L22::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = hi*256+band(lo,0xF0); A = rshift(v,8); FZ = band(v,128)~=0; FN = band(v,64)~=0; FH = band(v,32)~=0; FC = band(v,16)~=0 end end end
+    CY = CY + 12; if CY >= LIM then return 21457 end
+    ::L23::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21458 end
+    ::L24::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21461 end
+    ::L25::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21462 end
+    ::L26::
+    if not FZ then CY = CY + 12; return 21467 end
+    CY = CY + 8; return 21464
+end
+K[3167160] = function(e) -- 30:53B8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 21434 end
+    ::L1::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21437 end
+    ::L2::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21438 end
+    ::L3::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 21439 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21440 end
+    ::L5::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21441 end
+    ::L6::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21442 end
+    ::L7::
+    do do local v = band(57152,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21445 end
+    ::L8::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21446 end
+    ::L9::
+    do A = C end
+    CY = CY + 4; if CY >= LIM then return 21447 end
+    ::L10::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21448 end
+    ::L11::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21449 end
+    ::L12::
+    do do local v = band(57164,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21452 end
+    ::L13::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21453 end
+    ::L14::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 21454 end
+    ::L15::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21455 end
+    ::L16::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21456 end
+    ::L17::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = hi*256+band(lo,0xF0); A = rshift(v,8); FZ = band(v,128)~=0; FN = band(v,64)~=0; FH = band(v,32)~=0; FC = band(v,16)~=0 end end end
+    CY = CY + 12; if CY >= LIM then return 21457 end
+    ::L18::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21458 end
+    ::L19::
+    do do local v = band(57097,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21461 end
+    ::L20::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21462 end
+    ::L21::
+    if not FZ then CY = CY + 12; return 21467 end
+    CY = CY + 8; return 21464
+end
+K[3167192] = function(e) -- 30:53D8
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 8), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 21466 end
+    ::L1::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[3167198] = function(e) -- 30:53DE ArmChannelRampEnd
@@ -42955,6 +48018,437 @@ K[3167222] = function(e) -- 30:53F6
     CY = CY + 8; return 21498
 end
 K[3167226] = function(e) -- 30:53FA
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167288] = function(e) -- 30:5438
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 end end
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21561 end
+    ::L1::
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21562 end
+    ::L2::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 21564 end
+    ::L3::
+    do do local v = band(C-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; C = v end end
+    CY = CY + 4; if CY >= LIM then return 21565 end
+    ::L4::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21567 end
+    ::L5::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21570 end
+    ::L6::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21571 end
+    ::L7::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21572 end
+    ::L8::
+    do D = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21573 end
+    ::L9::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21574 end
+    ::L10::
+    do do local v = band(57158,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21577 end
+    ::L11::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21578 end
+    ::L12::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21579 end
+    ::L13::
+    do do local v = E; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21580 end
+    ::L14::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21581 end
+    ::L15::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21582 end
+    ::L16::
+    do do local v = D; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21583 end
+    ::L17::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21584 end
+    ::L18::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 21585 end
+    ::L19::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21586 end
+    ::L20::
+    do do local v = band(57117,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21589 end
+    ::L21::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21590 end
+    ::L22::
+    do do local v = rd(H*256+L, CY+0, 0); local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21591 end
+    ::L23::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21592 end
+    ::L24::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21593 end
+    ::L25::
+    do do local v = D; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21594 end
+    ::L26::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21595 end
+    ::L27::
+    do do local v = band(57146,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21598 end
+    ::L28::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21599 end
+    ::L29::
+    do do local v = band(rd(H*256+L, CY+0, 0)-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; wr(H*256+L, v, CY+4, 0) end end
+    CY = CY + 12; if CY >= LIM then return 21600 end
+    ::L30::
+    if not FZ then CY = CY + 12; return 21624 end
+    CY = CY + 8; return 21602
+end
+K[3167330] = function(e) -- 30:5462
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 end end
+    do E = L end
+    CY = CY + 4; if CY >= LIM then return 21603 end
+    ::L1::
+    do D = H end
+    CY = CY + 4; if CY >= LIM then return 21604 end
+    ::L2::
+    do do local v = band(57152,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21607 end
+    ::L3::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21608 end
+    ::L4::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21609 end
+    ::L5::
+    do wr((D*256+E), A, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21610 end
+    ::L6::
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21613 end
+    ::L7::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21614 end
+    ::L8::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21615 end
+    ::L9::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 21616 end
+    ::L10::
+    do do local v = 1; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21618 end
+    ::L11::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21619 end
+    ::L12::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21620 end
+    ::L13::
+    do A = bxor(A,255); FN = true; FH = true end
+    CY = CY + 4; if CY >= LIM then return 21621 end
+    ::L14::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21623 end
+    ::L15::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21624 end
+    ::L16::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21625 end
+    ::L17::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21626 end
+    ::L18::
+    CY = CY + 16; return 21494
+end
+K[3167352] = function(e) -- 30:5478
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21625 end
+    ::L1::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21626 end
+    ::L2::
+    CY = CY + 16; return 21494
+end
+K[3167357] = function(e) -- 30:547D
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local v = (B*256+C); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21630 end
+    ::L1::
+    do do local v = (H*256+L); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21631 end
+    ::L2::
+    do do local v = band(C-1,255); FH = band(v,15) == 15; FZ = v == 0; FN = true; C = v end end
+    CY = CY + 4; if CY >= LIM then return 21632 end
+    ::L3::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21634 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 84, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 133, CY+20, 0); CY = CY + 24; return 21686
+end
+K[3167365] = function(e) -- 30:5485
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 end end
+    do do local v = band(57117,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21640 end
+    ::L1::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21641 end
+    ::L2::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21642 end
+    ::L3::
+    do do local v = E; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21643 end
+    ::L4::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21644 end
+    ::L5::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21645 end
+    ::L6::
+    do do local v = D; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21646 end
+    ::L7::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21647 end
+    ::L8::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21648 end
+    ::L9::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); B = rshift(v,8); C = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21649 end
+    ::L10::
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 21651 end
+    ::L11::
+    CY = CY + 16; return 21489
+end
+K[3167414] = function(e) -- 30:54B6 FoldSlideStep
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 end end
+    do do local v = band(57140,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21689 end
+    ::L1::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21690 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21691 end
+    ::L3::
+    do D = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21692 end
+    ::L4::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21693 end
+    ::L5::
+    do do local v = band(57164,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21696 end
+    ::L6::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21697 end
+    ::L7::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21698 end
+    ::L8::
+    do do local v = E; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21699 end
+    ::L9::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21700 end
+    ::L10::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21701 end
+    ::L11::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21702 end
+    ::L12::
+    do do local v = D; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 4; if CY >= LIM then return 21703 end
+    ::L13::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21704 end
+    ::L14::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 21705 end
+    ::L15::
+    do do local v = band(57152,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21708 end
+    ::L16::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21709 end
+    ::L17::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21710 end
+    ::L18::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21711 end
+    ::L19::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 21712 end
+    ::L20::
+    do FZ = band(H, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 21714 end
+    ::L21::
+    if not FZ then CY = CY + 12; return 21732 end
+    CY = CY + 8; return 21716
+end
+K[3167444] = function(e) -- 30:54D4
+    SP = band(SP-1,0xFFFF); wr(SP, 84, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 215, CY+20, 0); CY = CY + 24; return 16792
+end
+K[3167447] = function(e) -- 30:54D7
+    if not FC then local lo = rd(SP, CY+8, 0); local hi = rd(band(SP+1,0xFFFF), CY+12, 0); SP = band(SP+2,0xFFFF); CY = CY + 20; return hi*256+lo end
+    CY = CY + 8; return 21720
+end
+K[3167448] = function(e) -- 30:54D8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21721 end
+    ::L1::
+    do do local v = L; local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 4; if CY >= LIM then return 21722 end
+    ::L2::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21723 end
+    ::L3::
+    do A = D end
+    CY = CY + 4; if CY >= LIM then return 21724 end
+    ::L4::
+    do do local v = H; local c = FC and 1 or 0; local r = A - v - c; FH = band(A,15) - band(v,15) - c < 0; FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 4; if CY >= LIM then return 21725 end
+    ::L5::
+    do do local v = band(57165,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21728 end
+    ::L6::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21729 end
+    ::L7::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl-1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21730 end
+    ::L8::
+    do wr(H*256+L, E, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21731 end
+    ::L9::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167468] = function(e) -- 30:54EC StartPhaseScript
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 elseif e == 31 then goto L31 end end
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21741 end
+    ::L1::
+    do E = A end
+    CY = CY + 4; if CY >= LIM then return 21742 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21743 end
+    ::L3::
+    do D = A end
+    CY = CY + 4; if CY >= LIM then return 21744 end
+    ::L4::
+    do do local v = (D*256+E); SP = band(SP-1,0xFFFF); wr(SP, rshift(v,8), CY+8, 0); SP = band(SP-1,0xFFFF); wr(SP, band(v,255), CY+12, 0) end end
+    CY = CY + 16; if CY >= LIM then return 21745 end
+    ::L5::
+    do E = L end
+    CY = CY + 4; if CY >= LIM then return 21746 end
+    ::L6::
+    do D = H end
+    CY = CY + 4; if CY >= LIM then return 21747 end
+    ::L7::
+    do B = 0 end
+    CY = CY + 8; if CY >= LIM then return 21749 end
+    ::L8::
+    do do local v = C; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21751 end
+    ::L9::
+    do do local v = band(57176,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21754 end
+    ::L10::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21755 end
+    ::L11::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21756 end
+    ::L12::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21757 end
+    ::L13::
+    do wr(H*256+L, D, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21758 end
+    ::L14::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); D = rshift(v,8); E = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21759 end
+    ::L15::
+    do do local v = band(57192,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21762 end
+    ::L16::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21763 end
+    ::L17::
+    do A = E end
+    CY = CY + 4; if CY >= LIM then return 21764 end
+    ::L18::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21765 end
+    ::L19::
+    do wr(H*256+L, D, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21766 end
+    ::L20::
+    do do local v = band(57184,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21769 end
+    ::L21::
+    do A = bxor(A, A); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 21770 end
+    ::L22::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21771 end
+    ::L23::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21772 end
+    ::L24::
+    do do local v = C; local r; r = rshift(v,1); FC = band(v,1) == 1; FZ = r == 0; FN = false; FH = false; C = r end end
+    CY = CY + 8; if CY >= LIM then return 21774 end
+    ::L25::
+    do do local v = band(57200,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21777 end
+    ::L26::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21778 end
+    ::L27::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21779 end
+    ::L28::
+    do do local v = band(57101,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21782 end
+    ::L29::
+    do do local hl = H*256+L; local v = (B*256+C); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21783 end
+    ::L30::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21784 end
+    ::L31::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21786 end
+    return 21786
+end
+K[3167514] = function(e) -- 30:551A
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do A = bor(A, 33); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21788 end
+    ::L1::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21789 end
+    ::L2::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
 end
 K[3167518] = function(e) -- 30:551E StartPhaseScriptEnd
@@ -43113,6 +48607,16 @@ K[3167583] = function(e) -- 30:555F
     ::L3::
     CY = CY + 12; return 21801
 end
+K[3167589] = function(e) -- 30:5565
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); D = rshift(v,8); E = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21862 end
+    ::L1::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21863 end
+    ::L2::
+    CY = CY + 12; return 21801
+end
 K[3167593] = function(e) -- 30:5569
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 end end
     do A = 15 end
@@ -43151,6 +48655,23 @@ K[3167593] = function(e) -- 30:5569
     if FZ then CY = CY + 12; return 21889 end
     CY = CY + 8; return 21887
 end
+K[3167615] = function(e) -- 30:557F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 21889 end
+    ::L1::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21890 end
+    ::L2::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21892 end
+    ::L3::
+    do FZ = band(A, 16) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 21894 end
+    ::L4::
+    if FZ then CY = CY + 12; return 21903 end
+    CY = CY + 8; return 21896
+end
 K[3167617] = function(e) -- 30:5581
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
     do A = rd(H*256+L, CY+0, 4) end
@@ -43180,6 +48701,177 @@ K[3167624] = function(e) -- 30:5588
     CY = CY + 12; if CY >= LIM then return 21901 end
     ::L4::
     CY = CY + 12; return 21801
+end
+K[3167631] = function(e) -- 30:558F
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 elseif e == 11 then goto L11 elseif e == 12 then goto L12 elseif e == 13 then goto L13 elseif e == 14 then goto L14 elseif e == 15 then goto L15 elseif e == 16 then goto L16 elseif e == 17 then goto L17 elseif e == 18 then goto L18 elseif e == 19 then goto L19 elseif e == 20 then goto L20 elseif e == 21 then goto L21 elseif e == 22 then goto L22 elseif e == 23 then goto L23 elseif e == 24 then goto L24 elseif e == 25 then goto L25 elseif e == 26 then goto L26 elseif e == 27 then goto L27 elseif e == 28 then goto L28 elseif e == 29 then goto L29 elseif e == 30 then goto L30 elseif e == 31 then goto L31 end end
+    do A = bor(A, 2); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21905 end
+    ::L1::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21906 end
+    ::L2::
+    do do local v = E; local r; r = band(lshift(v,1),255); FC = v >= 128; FZ = r == 0; FN = false; FH = false; E = r end end
+    CY = CY + 8; if CY >= LIM then return 21908 end
+    ::L3::
+    do do local v = band(57176,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21911 end
+    ::L4::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21912 end
+    ::L5::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21913 end
+    ::L6::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21914 end
+    ::L7::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 21915 end
+    ::L8::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21916 end
+    ::L9::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21917 end
+    ::L10::
+    do do local v = band(57192,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21920 end
+    ::L11::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21921 end
+    ::L12::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21922 end
+    ::L13::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21923 end
+    ::L14::
+    do do local v = band(57176,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21926 end
+    ::L15::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21927 end
+    ::L16::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21928 end
+    ::L17::
+    do do local v = 2; local r = A + v; FH = band(A,15)+band(v,15) > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21930 end
+    ::L18::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21931 end
+    ::L19::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21932 end
+    ::L20::
+    do do local v = 0; local c = FC and 1 or 0; local r = A + v + c; FH = band(A,15)+band(v,15)+c > 15; FC = r > 255; A = band(r,255); FZ = A == 0; FN = false end end
+    CY = CY + 8; if CY >= LIM then return 21934 end
+    ::L21::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21935 end
+    ::L22::
+    do do local v = band(57176,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21938 end
+    ::L23::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21939 end
+    ::L24::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21940 end
+    ::L25::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21941 end
+    ::L26::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 21942 end
+    ::L27::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21943 end
+    ::L28::
+    do do local v = band(57185,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21946 end
+    ::L29::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21947 end
+    ::L30::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21948 end
+    ::L31::
+    do FZ = band(B, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 21950 end
+    return 21950
+end
+K[3167663] = function(e) -- 30:55AF
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 elseif e == 10 then goto L10 end end
+    do do local v = band(57176,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21938 end
+    ::L1::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21939 end
+    ::L2::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 21940 end
+    ::L3::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21941 end
+    ::L4::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 21942 end
+    ::L5::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21943 end
+    ::L6::
+    do do local v = band(57185,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 21946 end
+    ::L7::
+    do do local hl = H*256+L; local v = (D*256+E); local r = hl + v; FH = band(hl,0xFFF)+band(v,0xFFF) > 0xFFF; FC = r > 0xFFFF; FN = false; r = band(r,0xFFFF); H = rshift(r,8); L = band(r,255) end end
+    CY = CY + 8; if CY >= LIM then return 21947 end
+    ::L8::
+    do B = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21948 end
+    ::L9::
+    do FZ = band(B, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 21950 end
+    ::L10::
+    if not FZ then CY = CY + 12; return 21955 end
+    CY = CY + 8; return 21952
+end
+K[3167678] = function(e) -- 30:55BE
+    if not FZ then CY = CY + 12; return 21955 end
+    CY = CY + 8; return 21952
+end
+K[3167680] = function(e) -- 30:55C0
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do do local v = B; FZ = A == v; FN = true; FH = band(A,15) < band(v,15); FC = A < v end end
+    CY = CY + 4; if CY >= LIM then return 21953 end
+    ::L1::
+    if FC then CY = CY + 12; return 21829 end
+    CY = CY + 8; return 21955
+end
+K[3167718] = function(e) -- 30:55E6
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 end end
+    do wr(H*256+L, bor(rd(H*256+L, CY+4, 0), 32), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 21992 end
+    ::L1::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 21993 end
+    ::L2::
+    do A = band(A, 240); FZ = A == 0; FN = false; FH = true; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21995 end
+    ::L3::
+    do A = bor(A, 4); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 8; if CY >= LIM then return 21997 end
+    ::L4::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 21998 end
+    ::L5::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); D = rshift(v,8); E = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 21999 end
+    ::L6::
+    do do local lo = rd(SP, CY+0, 0); local hi = rd(band(SP+1,0xFFFF), CY+4, 0); SP = band(SP+2,0xFFFF); do local v = band(hi*256+lo,0xFFFF); H = rshift(v,8); L = band(v,255) end end end
+    CY = CY + 12; if CY >= LIM then return 22000 end
+    ::L7::
+    CY = CY + 16; return 21801
 end
 K[3167726] = function(e) -- 30:55EE
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
@@ -43378,6 +49070,94 @@ K[3167814] = function(e) -- 30:5646
     CY = CY + 8; if CY >= LIM then return 22090 end
     ::L3::
     do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167947] = function(e) -- 30:56CB AdvanceWaveStream
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 elseif e == 6 then goto L6 elseif e == 7 then goto L7 elseif e == 8 then goto L8 elseif e == 9 then goto L9 end end
+    do do local v = band(57208,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 22222 end
+    ::L1::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 22223 end
+    ::L2::
+    do do local v = 1; local r = A - v; FH = band(A,15) < band(v,15); FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 22225 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 22226 end
+    ::L4::
+    do C = A end
+    CY = CY + 4; if CY >= LIM then return 22227 end
+    ::L5::
+    do A = rd(H*256+L, CY+0, 4) end
+    CY = CY + 8; if CY >= LIM then return 22228 end
+    ::L6::
+    do do local v = 0; local c = FC and 1 or 0; local r = A - v - c; FH = band(A,15) - band(v,15) - c < 0; FC = r < 0; A = band(r,255); FZ = A == 0; FN = true end end
+    CY = CY + 8; if CY >= LIM then return 22230 end
+    ::L7::
+    do wr(H*256+L, A, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 22231 end
+    ::L8::
+    do A = bor(A, C); FZ = A == 0; FN = false; FH = false; FC = false end
+    CY = CY + 4; if CY >= LIM then return 22232 end
+    ::L9::
+    if FZ then CY = CY + 12; return 22264 end
+    CY = CY + 8; return 22234
+end
+K[3167962] = function(e) -- 30:56DA
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 end end
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 22237 end
+    ::L1::
+    do do local hl = H*256+L; A = rd(hl, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 22238 end
+    ::L2::
+    do H = rd(H*256+L, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 22239 end
+    ::L3::
+    do L = A end
+    CY = CY + 4; if CY >= LIM then return 22240 end
+    ::L4::
+    SP = band(SP-1,0xFFFF); wr(SP, 86, CY+16, 0); SP = band(SP-1,0xFFFF); wr(SP, 227, CY+20, 0); CY = CY + 24; return 15343
+end
+K[3167971] = function(e) -- 30:56E3
+    if e ~= 0 then if e == 1 then goto L1 end end
+    do FZ = band(H, 128) == 0; FN = false; FH = true end
+    CY = CY + 8; if CY >= LIM then return 22245 end
+    ::L1::
+    if FZ then CY = CY + 12; return 22256 end
+    CY = CY + 8; return 22247
+end
+K[3167984] = function(e) -- 30:56F0
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 elseif e == 4 then goto L4 elseif e == 5 then goto L5 end end
+    do A = L end
+    CY = CY + 4; if CY >= LIM then return 22257 end
+    ::L1::
+    do B = H end
+    CY = CY + 4; if CY >= LIM then return 22258 end
+    ::L2::
+    do do local v = band(57206,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 22261 end
+    ::L3::
+    do do local hl = H*256+L; wr(hl, A, CY+0, 0); hl = band(hl+1,0xFFFF); H = rshift(hl,8); L = band(hl,255) end end
+    CY = CY + 8; if CY >= LIM then return 22262 end
+    ::L4::
+    do wr(H*256+L, B, CY+0, 0) end
+    CY = CY + 8; if CY >= LIM then return 22263 end
+    ::L5::
+    do local lo = rd(SP, CY+4, 0); local hi = rd(band(SP+1,0xFFFF), CY+8, 0); SP = band(SP+2,0xFFFF); CY = CY + 16; return hi*256+lo end
+end
+K[3167992] = function(e) -- 30:56F8
+    if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 elseif e == 3 then goto L3 end end
+    do do local v = band(57204,0xFFFF); H = rshift(v,8); L = band(v,255) end end
+    CY = CY + 12; if CY >= LIM then return 22267 end
+    ::L1::
+    do wr(H*256+L, band(rd(H*256+L, CY+4, 0), 127), CY+8, 0) end
+    CY = CY + 16; if CY >= LIM then return 22269 end
+    ::L2::
+    do C = 2 end
+    CY = CY + 8; if CY >= LIM then return 22271 end
+    ::L3::
+    CY = CY + 16; return 20572
 end
 K[3168252] = function(e) -- 30:57FC RestoreCountdownBlockEnd
     if e ~= 0 then if e == 1 then goto L1 elseif e == 2 then goto L2 end end
@@ -43661,6 +49441,11 @@ K[1810] = K[1805]; E[1810] = 2
 K[1812] = K[1805]; E[1812] = 3
 K[1817] = K[1815]; E[1817] = 1
 K[1820] = K[1815]; E[1820] = 2
+K[1824] = K[1821]; E[1824] = 1
+K[1826] = K[1821]; E[1826] = 2
+K[1828] = K[1821]; E[1828] = 3
+K[1833] = K[1831]; E[1833] = 1
+K[1836] = K[1831]; E[1836] = 2
 K[1910] = K[1907]; E[1910] = 1
 K[1911] = K[1907]; E[1911] = 2
 K[1912] = K[1907]; E[1912] = 3
@@ -43945,6 +49730,29 @@ K[2774] = K[2749]; E[2774] = 23
 K[2775] = K[2749]; E[2775] = 24
 K[2776] = K[2749]; E[2776] = 25
 K[2777] = K[2749]; E[2777] = 26
+K[2781] = K[2780]; E[2781] = 1
+K[2782] = K[2780]; E[2782] = 2
+K[2783] = K[2780]; E[2783] = 3
+K[2784] = K[2780]; E[2784] = 4
+K[2785] = K[2780]; E[2785] = 5
+K[2786] = K[2780]; E[2786] = 6
+K[2788] = K[2780]; E[2788] = 7
+K[2789] = K[2780]; E[2789] = 8
+K[2791] = K[2780]; E[2791] = 9
+K[2792] = K[2780]; E[2792] = 10
+K[2793] = K[2780]; E[2793] = 11
+K[2794] = K[2780]; E[2794] = 12
+K[3048] = K[3045]; E[3048] = 1
+K[3049] = K[3045]; E[3049] = 2
+K[3050] = K[3045]; E[3050] = 3
+K[3051] = K[3045]; E[3051] = 4
+K[3052] = K[3045]; E[3052] = 5
+K[3056] = K[3055]; E[3056] = 1
+K[3057] = K[3055]; E[3057] = 2
+K[3058] = K[3055]; E[3058] = 3
+K[3060] = K[3055]; E[3060] = 4
+K[3061] = K[3055]; E[3061] = 5
+K[3063] = K[3055]; E[3063] = 6
 K[3084] = K[3082]; E[3084] = 1
 K[3087] = K[3086]; E[3087] = 1
 K[3088] = K[3086]; E[3088] = 2
@@ -43955,6 +49763,15 @@ K[3103] = K[3100]; E[3103] = 1
 K[3106] = K[3100]; E[3106] = 2
 K[3110] = K[3109]; E[3110] = 1
 K[3112] = K[3109]; E[3112] = 2
+K[3120] = K[3118]; E[3120] = 1
+K[3121] = K[3118]; E[3121] = 2
+K[3124] = K[3118]; E[3124] = 3
+K[3125] = K[3118]; E[3125] = 4
+K[3128] = K[3118]; E[3128] = 5
+K[3130] = K[3118]; E[3130] = 6
+K[3133] = K[3118]; E[3133] = 7
+K[3135] = K[3118]; E[3135] = 8
+K[3138] = K[3118]; E[3138] = 9
 K[3580] = K[3579]; E[3580] = 1
 K[3581] = K[3579]; E[3581] = 2
 K[3582] = K[3579]; E[3582] = 3
@@ -43988,6 +49805,9 @@ K[3615] = K[3593]; E[3615] = 20
 K[3619] = K[3618]; E[3619] = 1
 K[3620] = K[3618]; E[3620] = 2
 K[3623] = K[3618]; E[3623] = 3
+K[3627] = K[3626]; E[3627] = 1
+K[3628] = K[3626]; E[3628] = 2
+K[3631] = K[3626]; E[3631] = 3
 K[3784] = K[3781]; E[3784] = 1
 K[3787] = K[3781]; E[3787] = 2
 K[3790] = K[3781]; E[3790] = 3
@@ -44069,6 +49889,12 @@ K[4158] = K[4146]; E[4158] = 7
 K[4160] = K[4146]; E[4160] = 8
 K[4162] = K[4146]; E[4162] = 9
 K[4165] = K[4146]; E[4165] = 10
+K[4171] = K[4169]; E[4171] = 1
+K[4174] = K[4169]; E[4174] = 2
+K[4176] = K[4169]; E[4176] = 3
+K[4179] = K[4169]; E[4179] = 4
+K[4181] = K[4169]; E[4181] = 5
+K[4184] = K[4169]; E[4184] = 6
 K[4366] = K[4364]; E[4366] = 1
 K[4368] = K[4364]; E[4368] = 2
 K[4369] = K[4364]; E[4369] = 3
@@ -44092,24 +49918,41 @@ K[4404] = K[4390]; E[4404] = 8
 K[4405] = K[4390]; E[4405] = 9
 K[4407] = K[4390]; E[4407] = 10
 K[4410] = K[4390]; E[4410] = 11
+K[4435] = K[4433]; E[4435] = 1
+K[4438] = K[4433]; E[4438] = 2
+K[4440] = K[4433]; E[4440] = 3
+K[4443] = K[4433]; E[4443] = 4
+K[4445] = K[4433]; E[4445] = 5
+K[4448] = K[4433]; E[4448] = 6
 K[4452] = K[4450]; E[4452] = 1
 K[4455] = K[4450]; E[4455] = 2
 K[4457] = K[4450]; E[4457] = 3
 K[4460] = K[4450]; E[4460] = 4
 K[4462] = K[4450]; E[4462] = 5
 K[4465] = K[4450]; E[4465] = 6
-K[4570] = K[4569]; E[4570] = 1
-K[4573] = K[4569]; E[4573] = 2
-K[4576] = K[4569]; E[4576] = 3
-K[4579] = K[4569]; E[4579] = 4
-K[4580] = K[4569]; E[4580] = 5
-K[4583] = K[4569]; E[4583] = 6
-K[4584] = K[4569]; E[4584] = 7
-K[4587] = K[4569]; E[4587] = 8
-K[4589] = K[4569]; E[4589] = 9
-K[4592] = K[4569]; E[4592] = 10
-K[4594] = K[4569]; E[4594] = 11
-K[4597] = K[4569]; E[4597] = 12
+K[4522] = K[4520]; E[4522] = 1
+K[4525] = K[4520]; E[4525] = 2
+K[4527] = K[4520]; E[4527] = 3
+K[4530] = K[4520]; E[4530] = 4
+K[4532] = K[4520]; E[4532] = 5
+K[4535] = K[4520]; E[4535] = 6
+K[4556] = K[4554]; E[4556] = 1
+K[4559] = K[4554]; E[4559] = 2
+K[4561] = K[4554]; E[4561] = 3
+K[4564] = K[4554]; E[4564] = 4
+K[4566] = K[4554]; E[4566] = 5
+K[4570] = K[4554]; E[4570] = 7
+K[4573] = K[4554]; E[4573] = 8
+K[4576] = K[4554]; E[4576] = 9
+K[4579] = K[4554]; E[4579] = 10
+K[4580] = K[4554]; E[4580] = 11
+K[4583] = K[4554]; E[4583] = 12
+K[4584] = K[4554]; E[4584] = 13
+K[4587] = K[4554]; E[4587] = 14
+K[4589] = K[4554]; E[4589] = 15
+K[4592] = K[4554]; E[4592] = 16
+K[4594] = K[4554]; E[4594] = 17
+K[4597] = K[4554]; E[4597] = 18
 K[5030] = K[5029]; E[5030] = 1
 K[5031] = K[5029]; E[5031] = 2
 K[5033] = K[5029]; E[5033] = 3
@@ -44134,12 +49977,32 @@ K[5137] = K[5122]; E[5137] = 7
 K[5139] = K[5122]; E[5139] = 8
 K[5141] = K[5122]; E[5141] = 9
 K[5143] = K[5122]; E[5143] = 10
+K[5222] = K[5221]; E[5222] = 1
+K[5223] = K[5221]; E[5223] = 2
+K[5226] = K[5221]; E[5226] = 3
+K[5227] = K[5221]; E[5227] = 4
+K[5228] = K[5221]; E[5228] = 5
+K[5229] = K[5221]; E[5229] = 6
+K[5230] = K[5221]; E[5230] = 7
+K[5231] = K[5221]; E[5231] = 8
+K[5232] = K[5221]; E[5232] = 9
+K[5233] = K[5221]; E[5233] = 10
+K[5234] = K[5221]; E[5234] = 11
+K[5237] = K[5221]; E[5237] = 12
 K[5244] = K[5243]; E[5244] = 1
 K[5245] = K[5243]; E[5245] = 2
 K[5246] = K[5243]; E[5246] = 3
 K[5247] = K[5243]; E[5247] = 4
 K[5248] = K[5243]; E[5248] = 5
 K[5249] = K[5243]; E[5249] = 6
+K[5279] = K[5278]; E[5279] = 1
+K[5281] = K[5278]; E[5281] = 2
+K[5282] = K[5278]; E[5282] = 3
+K[5284] = K[5278]; E[5284] = 4
+K[5286] = K[5278]; E[5286] = 5
+K[5288] = K[5278]; E[5288] = 6
+K[5290] = K[5278]; E[5290] = 7
+K[5292] = K[5278]; E[5292] = 8
 K[5473] = K[5472]; E[5473] = 1
 K[5474] = K[5472]; E[5474] = 2
 K[5475] = K[5472]; E[5475] = 3
@@ -44292,6 +50155,20 @@ K[5810] = K[5787]; E[5810] = 21
 K[5811] = K[5787]; E[5811] = 22
 K[5812] = K[5787]; E[5812] = 23
 K[5813] = K[5787]; E[5813] = 24
+K[5928] = K[5925]; E[5928] = 1
+K[6049] = K[6048]; E[6049] = 1
+K[6050] = K[6048]; E[6050] = 2
+K[6051] = K[6048]; E[6051] = 3
+K[6052] = K[6048]; E[6052] = 4
+K[6053] = K[6048]; E[6053] = 5
+K[6054] = K[6048]; E[6054] = 6
+K[6055] = K[6048]; E[6055] = 7
+K[6056] = K[6048]; E[6056] = 8
+K[6057] = K[6048]; E[6057] = 9
+K[6059] = K[6048]; E[6059] = 10
+K[6060] = K[6048]; E[6060] = 11
+K[6062] = K[6048]; E[6062] = 12
+K[6063] = K[6048]; E[6063] = 13
 K[6212] = K[6211]; E[6212] = 1
 K[6213] = K[6211]; E[6213] = 2
 K[6214] = K[6211]; E[6214] = 3
@@ -44309,6 +50186,45 @@ K[6232] = K[6228]; E[6232] = 4
 K[6236] = K[6235]; E[6236] = 1
 K[6237] = K[6235]; E[6237] = 2
 K[6240] = K[6235]; E[6240] = 3
+K[6471] = K[6470]; E[6471] = 1
+K[6472] = K[6470]; E[6472] = 2
+K[6474] = K[6470]; E[6474] = 3
+K[6475] = K[6470]; E[6475] = 4
+K[6478] = K[6470]; E[6478] = 5
+K[6479] = K[6470]; E[6479] = 6
+K[6480] = K[6470]; E[6480] = 7
+K[6483] = K[6470]; E[6483] = 8
+K[6484] = K[6470]; E[6484] = 9
+K[6485] = K[6470]; E[6485] = 10
+K[6488] = K[6470]; E[6488] = 11
+K[6489] = K[6470]; E[6489] = 12
+K[6490] = K[6470]; E[6490] = 13
+K[6493] = K[6470]; E[6493] = 14
+K[6494] = K[6470]; E[6494] = 15
+K[6495] = K[6470]; E[6495] = 16
+K[6498] = K[6470]; E[6498] = 17
+K[6499] = K[6470]; E[6499] = 18
+K[6500] = K[6470]; E[6500] = 19
+K[6503] = K[6470]; E[6503] = 20
+K[6504] = K[6470]; E[6504] = 21
+K[6505] = K[6470]; E[6505] = 22
+K[6508] = K[6470]; E[6508] = 23
+K[6509] = K[6470]; E[6509] = 24
+K[6512] = K[6470]; E[6512] = 25
+K[6514] = K[6470]; E[6514] = 26
+K[6517] = K[6470]; E[6517] = 27
+K[6519] = K[6470]; E[6519] = 28
+K[6522] = K[6470]; E[6522] = 29
+K[6524] = K[6470]; E[6524] = 30
+K[6527] = K[6470]; E[6527] = 31
+K[6532] = K[6529]; E[6532] = 1
+K[6534] = K[6529]; E[6534] = 2
+K[6535] = K[6529]; E[6535] = 3
+K[6539] = K[6537]; E[6539] = 1
+K[6542] = K[6540]; E[6542] = 1
+K[6545] = K[6540]; E[6545] = 2
+K[6547] = K[6540]; E[6547] = 3
+K[6550] = K[6540]; E[6550] = 4
 K[6552] = K[6551]; E[6552] = 1
 K[6555] = K[6551]; E[6555] = 2
 K[6556] = K[6551]; E[6556] = 3
@@ -44358,6 +50274,32 @@ K[6669] = K[6655]; E[6669] = 7
 K[6672] = K[6655]; E[6672] = 8
 K[6674] = K[6655]; E[6674] = 9
 K[6677] = K[6655]; E[6677] = 10
+K[6680] = K[6678]; E[6680] = 1
+K[6683] = K[6678]; E[6683] = 2
+K[6685] = K[6678]; E[6685] = 3
+K[6688] = K[6678]; E[6688] = 4
+K[6693] = K[6691]; E[6693] = 1
+K[6694] = K[6691]; E[6694] = 2
+K[6696] = K[6691]; E[6696] = 3
+K[6705] = K[6703]; E[6705] = 1
+K[6708] = K[6703]; E[6708] = 2
+K[6709] = K[6703]; E[6709] = 3
+K[6711] = K[6703]; E[6711] = 4
+K[6714] = K[6703]; E[6714] = 5
+K[6721] = K[6720]; E[6721] = 1
+K[6726] = K[6724]; E[6726] = 1
+K[6729] = K[6724]; E[6729] = 2
+K[6731] = K[6724]; E[6731] = 3
+K[6734] = K[6724]; E[6734] = 4
+K[6739] = K[6737]; E[6739] = 1
+K[6740] = K[6737]; E[6740] = 2
+K[6742] = K[6737]; E[6742] = 3
+K[6748] = K[6746]; E[6748] = 1
+K[6751] = K[6746]; E[6751] = 2
+K[6752] = K[6746]; E[6752] = 3
+K[6754] = K[6746]; E[6754] = 4
+K[6757] = K[6746]; E[6757] = 5
+K[6764] = K[6763]; E[6764] = 1
 K[6797] = K[6795]; E[6797] = 1
 K[6800] = K[6795]; E[6800] = 2
 K[6808] = K[6806]; E[6808] = 1
@@ -44384,6 +50326,41 @@ K[6860] = K[6854]; E[6860] = 4
 K[6862] = K[6854]; E[6862] = 5
 K[6865] = K[6854]; E[6865] = 6
 K[6872] = K[6871]; E[6872] = 1
+K[6877] = K[6875]; E[6877] = 1
+K[6880] = K[6875]; E[6880] = 2
+K[6882] = K[6875]; E[6882] = 3
+K[6885] = K[6875]; E[6885] = 4
+K[6890] = K[6888]; E[6890] = 1
+K[6891] = K[6888]; E[6891] = 2
+K[6893] = K[6888]; E[6893] = 3
+K[6901] = K[6900]; E[6901] = 1
+K[6902] = K[6900]; E[6902] = 2
+K[6905] = K[6900]; E[6905] = 3
+K[6907] = K[6900]; E[6907] = 4
+K[6910] = K[6900]; E[6910] = 5
+K[6911] = K[6900]; E[6911] = 6
+K[6913] = K[6900]; E[6913] = 7
+K[6916] = K[6900]; E[6916] = 8
+K[6923] = K[6922]; E[6923] = 1
+K[7073] = K[7072]; E[7073] = 1
+K[7076] = K[7072]; E[7076] = 2
+K[7077] = K[7072]; E[7077] = 3
+K[7078] = K[7072]; E[7078] = 4
+K[7081] = K[7072]; E[7081] = 5
+K[7082] = K[7072]; E[7082] = 6
+K[7085] = K[7072]; E[7085] = 7
+K[7087] = K[7072]; E[7087] = 8
+K[7090] = K[7072]; E[7090] = 9
+K[7098] = K[7096]; E[7098] = 1
+K[7101] = K[7096]; E[7101] = 2
+K[7103] = K[7096]; E[7103] = 3
+K[7106] = K[7096]; E[7106] = 4
+K[7108] = K[7096]; E[7108] = 5
+K[7111] = K[7096]; E[7111] = 6
+K[7113] = K[7096]; E[7113] = 7
+K[7116] = K[7096]; E[7116] = 8
+K[7118] = K[7096]; E[7118] = 9
+K[7121] = K[7096]; E[7121] = 10
 K[7175] = K[7173]; E[7175] = 1
 K[7178] = K[7173]; E[7178] = 2
 K[7180] = K[7173]; E[7180] = 3
@@ -44399,6 +50376,41 @@ K[7209] = K[7203]; E[7209] = 3
 K[7211] = K[7203]; E[7211] = 4
 K[7214] = K[7203]; E[7214] = 5
 K[7221] = K[7220]; E[7221] = 1
+K[7279] = K[7278]; E[7279] = 1
+K[7280] = K[7278]; E[7280] = 2
+K[7283] = K[7278]; E[7283] = 3
+K[7284] = K[7278]; E[7284] = 4
+K[7285] = K[7278]; E[7285] = 5
+K[7288] = K[7278]; E[7288] = 6
+K[7289] = K[7278]; E[7289] = 7
+K[7290] = K[7278]; E[7290] = 8
+K[7293] = K[7278]; E[7293] = 9
+K[7297] = K[7296]; E[7297] = 1
+K[7300] = K[7296]; E[7300] = 2
+K[7301] = K[7296]; E[7301] = 3
+K[7304] = K[7296]; E[7304] = 4
+K[7306] = K[7296]; E[7306] = 5
+K[7309] = K[7296]; E[7309] = 6
+K[7318] = K[7315]; E[7318] = 1
+K[7319] = K[7315]; E[7319] = 2
+K[7322] = K[7315]; E[7322] = 3
+K[7325] = K[7315]; E[7325] = 4
+K[7331] = K[7328]; E[7331] = 1
+K[7332] = K[7328]; E[7332] = 2
+K[7335] = K[7328]; E[7335] = 3
+K[7336] = K[7328]; E[7336] = 4
+K[7339] = K[7328]; E[7339] = 5
+K[7340] = K[7328]; E[7340] = 6
+K[7343] = K[7328]; E[7343] = 7
+K[7344] = K[7328]; E[7344] = 8
+K[7346] = K[7328]; E[7346] = 9
+K[7349] = K[7328]; E[7349] = 10
+K[7353] = K[7352]; E[7353] = 1
+K[7356] = K[7352]; E[7356] = 2
+K[7361] = K[7359]; E[7361] = 1
+K[7364] = K[7359]; E[7364] = 2
+K[7366] = K[7359]; E[7366] = 3
+K[7369] = K[7359]; E[7369] = 4
 K[7374] = K[7373]; E[7374] = 1
 K[7377] = K[7373]; E[7377] = 2
 K[7378] = K[7373]; E[7378] = 3
@@ -45872,6 +51884,83 @@ K[14709] = K[14694]; E[14709] = 7
 K[14712] = K[14694]; E[14712] = 8
 K[14714] = K[14694]; E[14714] = 9
 K[14717] = K[14694]; E[14717] = 10
+K[15025] = K[15024]; E[15025] = 1
+K[15028] = K[15024]; E[15028] = 2
+K[15029] = K[15024]; E[15029] = 3
+K[15030] = K[15024]; E[15030] = 4
+K[15031] = K[15024]; E[15031] = 5
+K[15284] = K[15283]; E[15284] = 1
+K[15287] = K[15283]; E[15287] = 2
+K[15291] = K[15290]; E[15291] = 1
+K[15293] = K[15290]; E[15293] = 2
+K[15295] = K[15290]; E[15295] = 3
+K[15329] = K[15328]; E[15329] = 1
+K[15332] = K[15328]; E[15332] = 2
+K[15338] = K[15335]; E[15338] = 1
+K[15342] = K[15341]; E[15342] = 1
+K[15344] = K[15343]; E[15344] = 1
+K[15347] = K[15343]; E[15347] = 2
+K[15351] = K[15350]; E[15351] = 1
+K[15353] = K[15350]; E[15353] = 2
+K[15355] = K[15350]; E[15355] = 3
+K[15394] = K[15391]; E[15394] = 1
+K[15396] = K[15391]; E[15396] = 2
+K[15398] = K[15391]; E[15398] = 3
+K[15400] = K[15391]; E[15400] = 4
+K[15402] = K[15391]; E[15402] = 5
+K[15405] = K[15391]; E[15405] = 6
+K[15409] = K[15408]; E[15409] = 1
+K[15412] = K[15410]; E[15412] = 1
+K[15413] = K[15410]; E[15413] = 2
+K[15415] = K[15410]; E[15415] = 3
+K[15416] = K[15410]; E[15416] = 4
+K[15417] = K[15410]; E[15417] = 5
+K[15418] = K[15410]; E[15418] = 6
+K[15419] = K[15410]; E[15419] = 7
+K[15420] = K[15410]; E[15420] = 8
+K[15421] = K[15410]; E[15421] = 9
+K[15422] = K[15410]; E[15422] = 10
+K[15423] = K[15410]; E[15423] = 11
+K[15424] = K[15410]; E[15424] = 12
+K[15425] = K[15410]; E[15425] = 13
+K[15426] = K[15410]; E[15426] = 14
+K[15427] = K[15410]; E[15427] = 15
+K[15428] = K[15410]; E[15428] = 16
+K[15429] = K[15410]; E[15429] = 17
+K[15430] = K[15410]; E[15430] = 18
+K[15431] = K[15410]; E[15431] = 19
+K[15432] = K[15410]; E[15432] = 20
+K[15433] = K[15410]; E[15433] = 21
+K[15434] = K[15410]; E[15434] = 22
+K[15435] = K[15410]; E[15435] = 23
+K[15436] = K[15410]; E[15436] = 24
+K[15437] = K[15410]; E[15437] = 25
+K[15438] = K[15410]; E[15438] = 26
+K[15439] = K[15410]; E[15439] = 27
+K[15440] = K[15410]; E[15440] = 28
+K[15441] = K[15410]; E[15441] = 29
+K[15442] = K[15410]; E[15442] = 30
+K[15443] = K[15410]; E[15443] = 31
+K[15445] = K[15444]; E[15445] = 1
+K[15446] = K[15444]; E[15446] = 2
+K[15447] = K[15444]; E[15447] = 3
+K[15448] = K[15444]; E[15448] = 4
+K[15449] = K[15444]; E[15449] = 5
+K[15450] = K[15444]; E[15450] = 6
+K[15451] = K[15444]; E[15451] = 7
+K[15452] = K[15444]; E[15452] = 8
+K[15453] = K[15444]; E[15453] = 9
+K[15454] = K[15444]; E[15454] = 10
+K[15455] = K[15444]; E[15455] = 11
+K[15456] = K[15444]; E[15456] = 12
+K[15457] = K[15444]; E[15457] = 13
+K[15458] = K[15444]; E[15458] = 14
+K[15459] = K[15444]; E[15459] = 15
+K[15460] = K[15444]; E[15460] = 16
+K[15461] = K[15444]; E[15461] = 17
+K[15462] = K[15444]; E[15462] = 18
+K[15464] = K[15444]; E[15464] = 19
+K[15466] = K[15444]; E[15466] = 20
 K[81923] = K[81920]; E[81923] = 1
 K[81925] = K[81920]; E[81925] = 2
 K[81982] = K[81981]; E[81982] = 1
@@ -45897,6 +51986,24 @@ K[82010] = K[81997]; E[82010] = 12
 K[82013] = K[81997]; E[82013] = 13
 K[82014] = K[81997]; E[82014] = 14
 K[82017] = K[81997]; E[82017] = 15
+K[82021] = K[82018]; E[82021] = 1
+K[82022] = K[82018]; E[82022] = 2
+K[82025] = K[82018]; E[82025] = 3
+K[82026] = K[82018]; E[82026] = 4
+K[82027] = K[82018]; E[82027] = 5
+K[82028] = K[82018]; E[82028] = 6
+K[82029] = K[82018]; E[82029] = 7
+K[82030] = K[82018]; E[82030] = 8
+K[82031] = K[82018]; E[82031] = 9
+K[82032] = K[82018]; E[82032] = 10
+K[82033] = K[82018]; E[82033] = 11
+K[82036] = K[82018]; E[82036] = 12
+K[82037] = K[82018]; E[82037] = 13
+K[82040] = K[82018]; E[82040] = 14
+K[82041] = K[82018]; E[82041] = 15
+K[82042] = K[82018]; E[82042] = 16
+K[82043] = K[82018]; E[82043] = 17
+K[82044] = K[82018]; E[82044] = 18
 K[82047] = K[82045]; E[82047] = 1
 K[82049] = K[82045]; E[82049] = 2
 K[82051] = K[82045]; E[82051] = 3
@@ -45937,6 +52044,11 @@ K[82102] = K[82090]; E[82102] = 12
 K[82103] = K[82090]; E[82103] = 13
 K[82104] = K[82090]; E[82104] = 14
 K[82105] = K[82090]; E[82105] = 15
+K[82109] = K[82107]; E[82109] = 1
+K[82110] = K[82107]; E[82110] = 2
+K[82111] = K[82107]; E[82111] = 3
+K[82112] = K[82107]; E[82112] = 4
+K[82113] = K[82107]; E[82113] = 5
 K[82119] = K[82118]; E[82119] = 1
 K[82121] = K[82118]; E[82121] = 3
 K[82122] = K[82118]; E[82122] = 4
@@ -49471,16 +55583,28 @@ K[291023] = K[290998]; E[291023] = 16
 K[291024] = K[290998]; E[291024] = 17
 K[291027] = K[291026]; E[291027] = 1
 K[291030] = K[291029]; E[291030] = 1
+K[291035] = K[291032]; E[291035] = 1
+K[291036] = K[291032]; E[291036] = 2
+K[291039] = K[291038]; E[291039] = 1
+K[291042] = K[291038]; E[291042] = 2
+K[291043] = K[291038]; E[291043] = 3
+K[291046] = K[291038]; E[291046] = 4
+K[291050] = K[291047]; E[291050] = 1
+K[291051] = K[291047]; E[291051] = 2
+K[291054] = K[291047]; E[291054] = 3
+K[291055] = K[291047]; E[291055] = 4
+K[291058] = K[291057]; E[291058] = 1
+K[291061] = K[291057]; E[291061] = 2
 K[291074] = K[291071]; E[291074] = 1
 K[291075] = K[291071]; E[291075] = 2
 K[291078] = K[291071]; E[291078] = 3
 K[291081] = K[291071]; E[291081] = 4
 K[291082] = K[291071]; E[291082] = 5
 K[291084] = K[291071]; E[291084] = 6
-K[291091] = K[291088]; E[291091] = 1
-K[291094] = K[291088]; E[291094] = 2
-K[291096] = K[291088]; E[291096] = 3
-K[291099] = K[291088]; E[291099] = 4
+K[291091] = K[291086]; E[291091] = 2
+K[291094] = K[291086]; E[291094] = 3
+K[291096] = K[291086]; E[291096] = 4
+K[291099] = K[291086]; E[291099] = 5
 K[291103] = K[291100]; E[291103] = 1
 K[291104] = K[291100]; E[291104] = 2
 K[291105] = K[291100]; E[291105] = 3
@@ -51789,6 +57913,58 @@ K[475570] = K[475565]; E[475570] = 2
 K[475572] = K[475565]; E[475572] = 3
 K[475577] = K[475575]; E[475577] = 1
 K[475580] = K[475575]; E[475580] = 2
+K[475596] = K[475595]; E[475596] = 1
+K[475599] = K[475595]; E[475599] = 2
+K[475602] = K[475595]; E[475602] = 3
+K[475605] = K[475595]; E[475605] = 4
+K[475608] = K[475595]; E[475608] = 5
+K[475609] = K[475595]; E[475609] = 6
+K[475612] = K[475595]; E[475612] = 7
+K[475613] = K[475595]; E[475613] = 8
+K[475616] = K[475595]; E[475616] = 9
+K[475617] = K[475595]; E[475617] = 10
+K[475684] = K[475681]; E[475684] = 1
+K[475687] = K[475681]; E[475687] = 2
+K[475693] = K[475690]; E[475693] = 1
+K[475696] = K[475690]; E[475696] = 2
+K[475702] = K[475699]; E[475702] = 1
+K[475705] = K[475699]; E[475705] = 2
+K[475711] = K[475708]; E[475711] = 1
+K[475712] = K[475708]; E[475712] = 2
+K[475716] = K[475714]; E[475716] = 1
+K[475719] = K[475714]; E[475719] = 2
+K[475723] = K[475720]; E[475723] = 1
+K[475724] = K[475720]; E[475724] = 2
+K[475727] = K[475720]; E[475727] = 3
+K[475728] = K[475720]; E[475728] = 4
+K[475731] = K[475720]; E[475731] = 5
+K[475734] = K[475720]; E[475734] = 6
+K[475739] = K[475737]; E[475739] = 1
+K[475742] = K[475737]; E[475742] = 2
+K[475956] = K[475955]; E[475956] = 1
+K[475959] = K[475955]; E[475959] = 2
+K[475962] = K[475955]; E[475962] = 3
+K[475963] = K[475955]; E[475963] = 4
+K[475966] = K[475955]; E[475966] = 5
+K[475967] = K[475955]; E[475967] = 6
+K[476034] = K[476031]; E[476034] = 1
+K[476037] = K[476031]; E[476037] = 2
+K[476043] = K[476040]; E[476043] = 1
+K[476046] = K[476040]; E[476046] = 2
+K[476052] = K[476049]; E[476052] = 1
+K[476055] = K[476049]; E[476055] = 2
+K[476061] = K[476058]; E[476061] = 1
+K[476062] = K[476058]; E[476062] = 2
+K[476066] = K[476064]; E[476066] = 1
+K[476069] = K[476064]; E[476069] = 2
+K[476073] = K[476070]; E[476073] = 1
+K[476074] = K[476070]; E[476074] = 2
+K[476077] = K[476070]; E[476077] = 3
+K[476078] = K[476070]; E[476078] = 4
+K[476081] = K[476070]; E[476081] = 5
+K[476084] = K[476070]; E[476084] = 6
+K[476089] = K[476087]; E[476089] = 1
+K[476092] = K[476087]; E[476092] = 2
 K[476258] = K[476255]; E[476258] = 1
 K[476260] = K[476255]; E[476260] = 2
 K[476263] = K[476255]; E[476263] = 3
@@ -52119,12 +58295,18 @@ K[476736] = K[476723]; E[476736] = 7
 K[476737] = K[476723]; E[476737] = 8
 K[476738] = K[476723]; E[476738] = 9
 K[476739] = K[476723]; E[476739] = 10
+K[476745] = K[476743]; E[476745] = 1
+K[476746] = K[476743]; E[476746] = 2
 K[476749] = K[476748]; E[476749] = 1
 K[476751] = K[476748]; E[476751] = 3
 K[476752] = K[476748]; E[476752] = 4
+K[476758] = K[476756]; E[476758] = 1
+K[476759] = K[476756]; E[476759] = 2
 K[476762] = K[476761]; E[476762] = 1
 K[476764] = K[476761]; E[476764] = 3
 K[476765] = K[476761]; E[476765] = 4
+K[476771] = K[476769]; E[476771] = 1
+K[476772] = K[476769]; E[476772] = 2
 K[476775] = K[476774]; E[476775] = 1
 K[476779] = K[476774]; E[476779] = 3
 K[476780] = K[476774]; E[476780] = 4
@@ -52238,6 +58420,15 @@ K[477057] = K[477044]; E[477057] = 9
 K[477058] = K[477044]; E[477058] = 10
 K[477059] = K[477044]; E[477059] = 11
 K[477060] = K[477044]; E[477060] = 12
+K[477138] = K[477137]; E[477138] = 1
+K[477139] = K[477137]; E[477139] = 2
+K[477140] = K[477137]; E[477140] = 3
+K[477141] = K[477137]; E[477141] = 4
+K[477142] = K[477137]; E[477142] = 5
+K[477143] = K[477137]; E[477143] = 6
+K[477144] = K[477137]; E[477144] = 7
+K[477145] = K[477137]; E[477145] = 8
+K[477146] = K[477137]; E[477146] = 9
 K[477152] = K[477149]; E[477152] = 1
 K[477155] = K[477149]; E[477155] = 2
 K[477157] = K[477149]; E[477157] = 3
@@ -52262,6 +58453,11 @@ K[477191] = K[477176]; E[477191] = 8
 K[477193] = K[477176]; E[477193] = 9
 K[477194] = K[477176]; E[477194] = 10
 K[477195] = K[477176]; E[477195] = 11
+K[477200] = K[477199]; E[477200] = 1
+K[477203] = K[477199]; E[477203] = 2
+K[477204] = K[477199]; E[477204] = 3
+K[477207] = K[477199]; E[477207] = 4
+K[477213] = K[477210]; E[477213] = 1
 K[477215] = K[477214]; E[477215] = 1
 K[477218] = K[477214]; E[477218] = 2
 K[477222] = K[477221]; E[477222] = 1
@@ -52320,6 +58516,18 @@ K[477390] = K[477380]; E[477390] = 8
 K[477395] = K[477392]; E[477395] = 1
 K[477399] = K[477397]; E[477399] = 1
 K[477402] = K[477397]; E[477402] = 2
+K[477438] = K[477437]; E[477438] = 1
+K[477441] = K[477437]; E[477441] = 2
+K[477447] = K[477444]; E[477447] = 1
+K[477448] = K[477444]; E[477448] = 2
+K[477453] = K[477451]; E[477453] = 1
+K[477454] = K[477451]; E[477454] = 2
+K[477457] = K[477451]; E[477457] = 3
+K[477458] = K[477451]; E[477458] = 4
+K[477461] = K[477451]; E[477461] = 5
+K[477462] = K[477451]; E[477462] = 6
+K[477467] = K[477465]; E[477467] = 1
+K[477470] = K[477465]; E[477470] = 2
 K[477984] = K[477981]; E[477984] = 1
 K[477986] = K[477981]; E[477986] = 2
 K[477989] = K[477981]; E[477989] = 3
@@ -52395,6 +58603,10 @@ K[481554] = K[481547]; E[481554] = 3
 K[481557] = K[481547]; E[481557] = 4
 K[481561] = K[481558]; E[481561] = 1
 K[481563] = K[481558]; E[481563] = 2
+K[481567] = K[481565]; E[481567] = 1
+K[481570] = K[481565]; E[481570] = 2
+K[481572] = K[481565]; E[481572] = 3
+K[481575] = K[481565]; E[481575] = 4
 K[481579] = K[481576]; E[481579] = 1
 K[481580] = K[481576]; E[481580] = 2
 K[481621] = K[481618]; E[481621] = 1
@@ -52462,6 +58674,38 @@ K[481969] = K[481961]; E[481969] = 4
 K[481970] = K[481961]; E[481970] = 5
 K[481971] = K[481961]; E[481971] = 6
 K[481972] = K[481961]; E[481972] = 7
+K[482305] = K[482304]; E[482305] = 1
+K[482308] = K[482304]; E[482308] = 2
+K[482311] = K[482304]; E[482311] = 3
+K[482314] = K[482304]; E[482314] = 4
+K[482316] = K[482304]; E[482316] = 5
+K[482319] = K[482304]; E[482319] = 6
+K[482325] = K[482322]; E[482325] = 1
+K[482326] = K[482322]; E[482326] = 2
+K[482327] = K[482322]; E[482327] = 3
+K[482328] = K[482322]; E[482328] = 4
+K[482329] = K[482322]; E[482329] = 5
+K[482332] = K[482322]; E[482332] = 6
+K[482333] = K[482322]; E[482333] = 7
+K[482336] = K[482322]; E[482336] = 8
+K[482341] = K[482339]; E[482341] = 1
+K[482344] = K[482339]; E[482344] = 2
+K[482346] = K[482345]; E[482346] = 1
+K[482349] = K[482345]; E[482349] = 2
+K[482352] = K[482345]; E[482352] = 3
+K[482355] = K[482345]; E[482355] = 4
+K[482357] = K[482345]; E[482357] = 5
+K[482360] = K[482345]; E[482360] = 6
+K[482366] = K[482363]; E[482366] = 1
+K[482367] = K[482363]; E[482367] = 2
+K[482368] = K[482363]; E[482368] = 3
+K[482369] = K[482363]; E[482369] = 4
+K[482370] = K[482363]; E[482370] = 5
+K[482373] = K[482363]; E[482373] = 6
+K[482374] = K[482363]; E[482374] = 7
+K[482377] = K[482363]; E[482377] = 8
+K[482382] = K[482380]; E[482382] = 1
+K[482385] = K[482380]; E[482385] = 2
 K[482387] = K[482386]; E[482387] = 1
 K[482390] = K[482386]; E[482390] = 2
 K[482393] = K[482386]; E[482393] = 3
@@ -52503,6 +58747,30 @@ K[482519] = K[482511]; E[482519] = 3
 K[482521] = K[482511]; E[482521] = 4
 K[482526] = K[482524]; E[482526] = 1
 K[482529] = K[482524]; E[482529] = 2
+K[482531] = K[482530]; E[482531] = 1
+K[482534] = K[482530]; E[482534] = 2
+K[482537] = K[482530]; E[482537] = 3
+K[482538] = K[482530]; E[482538] = 4
+K[482541] = K[482530]; E[482541] = 5
+K[482542] = K[482530]; E[482542] = 6
+K[482545] = K[482530]; E[482545] = 7
+K[482547] = K[482530]; E[482547] = 8
+K[482549] = K[482530]; E[482549] = 9
+K[482555] = K[482552]; E[482555] = 1
+K[482557] = K[482552]; E[482557] = 2
+K[482559] = K[482552]; E[482559] = 3
+K[482565] = K[482562]; E[482565] = 1
+K[482567] = K[482562]; E[482567] = 2
+K[482569] = K[482562]; E[482569] = 3
+K[482575] = K[482572]; E[482575] = 1
+K[482576] = K[482572]; E[482576] = 2
+K[482591] = K[482588]; E[482591] = 1
+K[482592] = K[482588]; E[482592] = 2
+K[482597] = K[482594]; E[482597] = 1
+K[482599] = K[482594]; E[482599] = 2
+K[482601] = K[482594]; E[482601] = 3
+K[482606] = K[482604]; E[482606] = 1
+K[482609] = K[482604]; E[482609] = 2
 K[482611] = K[482610]; E[482611] = 1
 K[482612] = K[482610]; E[482612] = 2
 K[482613] = K[482610]; E[482613] = 3
@@ -52544,6 +58812,40 @@ K[482677] = K[482671]; E[482677] = 4
 K[482680] = K[482671]; E[482680] = 5
 K[482685] = K[482684]; E[482685] = 1
 K[482686] = K[482684]; E[482686] = 2
+K[3162117] = K[3162112]; E[3162117] = 2
+K[3162118] = K[3162112]; E[3162118] = 3
+K[3162123] = K[3162120]; E[3162123] = 2
+K[3162125] = K[3162120]; E[3162125] = 3
+K[3162126] = K[3162120]; E[3162126] = 4
+K[3162131] = K[3162128]; E[3162131] = 2
+K[3162133] = K[3162128]; E[3162133] = 3
+K[3162134] = K[3162128]; E[3162134] = 4
+K[3162139] = K[3162136]; E[3162139] = 2
+K[3162141] = K[3162136]; E[3162141] = 3
+K[3162142] = K[3162136]; E[3162142] = 4
+K[3162147] = K[3162144]; E[3162147] = 2
+K[3162149] = K[3162144]; E[3162149] = 3
+K[3162150] = K[3162144]; E[3162150] = 4
+K[3162155] = K[3162152]; E[3162155] = 2
+K[3162157] = K[3162152]; E[3162157] = 3
+K[3162158] = K[3162152]; E[3162158] = 4
+K[3162163] = K[3162160]; E[3162163] = 2
+K[3162165] = K[3162160]; E[3162165] = 3
+K[3162166] = K[3162160]; E[3162166] = 4
+K[3162171] = K[3162168]; E[3162171] = 2
+K[3162173] = K[3162168]; E[3162173] = 3
+K[3162174] = K[3162168]; E[3162174] = 4
+K[3162176] = K[3162175]; E[3162176] = 1
+K[3162510] = K[3162509]; E[3162510] = 1
+K[3162511] = K[3162509]; E[3162511] = 2
+K[3162515] = K[3162514]; E[3162515] = 1
+K[3162516] = K[3162514]; E[3162516] = 2
+K[3162518] = K[3162517]; E[3162518] = 1
+K[3162519] = K[3162517]; E[3162519] = 2
+K[3162521] = K[3162520]; E[3162521] = 1
+K[3162522] = K[3162520]; E[3162522] = 2
+K[3162526] = K[3162525]; E[3162526] = 1
+K[3162527] = K[3162525]; E[3162527] = 2
 K[3162888] = K[3162887]; E[3162888] = 1
 K[3162889] = K[3162887]; E[3162889] = 2
 K[3162891] = K[3162887]; E[3162891] = 3
@@ -52604,6 +58906,32 @@ K[3163010] = K[3163007]; E[3163010] = 1
 K[3163015] = K[3163012]; E[3163015] = 1
 K[3163016] = K[3163012]; E[3163016] = 2
 K[3163018] = K[3163012]; E[3163018] = 3
+K[3163022] = K[3163020]; E[3163022] = 1
+K[3163024] = K[3163020]; E[3163024] = 2
+K[3163025] = K[3163020]; E[3163025] = 3
+K[3163027] = K[3163020]; E[3163027] = 4
+K[3163029] = K[3163020]; E[3163029] = 5
+K[3163030] = K[3163020]; E[3163030] = 6
+K[3163033] = K[3163020]; E[3163033] = 7
+K[3163034] = K[3163020]; E[3163034] = 8
+K[3163035] = K[3163020]; E[3163035] = 9
+K[3163036] = K[3163020]; E[3163036] = 10
+K[3163037] = K[3163020]; E[3163037] = 11
+K[3163040] = K[3163020]; E[3163040] = 12
+K[3163041] = K[3163020]; E[3163041] = 13
+K[3163042] = K[3163020]; E[3163042] = 14
+K[3163043] = K[3163020]; E[3163043] = 15
+K[3163044] = K[3163020]; E[3163044] = 16
+K[3163045] = K[3163020]; E[3163045] = 17
+K[3163046] = K[3163020]; E[3163046] = 18
+K[3163047] = K[3163020]; E[3163047] = 19
+K[3163050] = K[3163020]; E[3163050] = 20
+K[3163051] = K[3163020]; E[3163051] = 21
+K[3163052] = K[3163020]; E[3163052] = 22
+K[3163053] = K[3163020]; E[3163053] = 23
+K[3163054] = K[3163020]; E[3163054] = 24
+K[3163055] = K[3163020]; E[3163055] = 25
+K[3163056] = K[3163020]; E[3163056] = 26
 K[3163062] = K[3163059]; E[3163062] = 1
 K[3163063] = K[3163059]; E[3163063] = 2
 K[3163065] = K[3163059]; E[3163065] = 3
@@ -52619,6 +58947,106 @@ K[3163088] = K[3163086]; E[3163088] = 2
 K[3163090] = K[3163086]; E[3163090] = 3
 K[3163095] = K[3163092]; E[3163095] = 1
 K[3163097] = K[3163092]; E[3163097] = 2
+K[3163107] = K[3163104]; E[3163107] = 1
+K[3163108] = K[3163104]; E[3163108] = 2
+K[3163109] = K[3163104]; E[3163109] = 3
+K[3163110] = K[3163104]; E[3163110] = 4
+K[3163113] = K[3163104]; E[3163113] = 5
+K[3163114] = K[3163104]; E[3163114] = 6
+K[3163115] = K[3163104]; E[3163115] = 7
+K[3163116] = K[3163104]; E[3163116] = 8
+K[3163117] = K[3163104]; E[3163117] = 9
+K[3163118] = K[3163104]; E[3163118] = 10
+K[3163119] = K[3163104]; E[3163119] = 11
+K[3163121] = K[3163104]; E[3163121] = 12
+K[3163126] = K[3163123]; E[3163126] = 1
+K[3163127] = K[3163123]; E[3163127] = 2
+K[3163129] = K[3163123]; E[3163129] = 3
+K[3163135] = K[3163134]; E[3163135] = 1
+K[3163136] = K[3163134]; E[3163136] = 2
+K[3163138] = K[3163134]; E[3163138] = 3
+K[3163139] = K[3163134]; E[3163139] = 4
+K[3163140] = K[3163134]; E[3163140] = 5
+K[3163141] = K[3163134]; E[3163141] = 6
+K[3163143] = K[3163134]; E[3163143] = 7
+K[3163144] = K[3163134]; E[3163144] = 8
+K[3163146] = K[3163134]; E[3163146] = 9
+K[3163147] = K[3163134]; E[3163147] = 10
+K[3163148] = K[3163134]; E[3163148] = 11
+K[3163149] = K[3163134]; E[3163149] = 12
+K[3163150] = K[3163134]; E[3163150] = 13
+K[3163151] = K[3163134]; E[3163151] = 14
+K[3163153] = K[3163134]; E[3163153] = 15
+K[3163154] = K[3163134]; E[3163154] = 16
+K[3163155] = K[3163134]; E[3163155] = 17
+K[3163156] = K[3163134]; E[3163156] = 18
+K[3163158] = K[3163134]; E[3163158] = 19
+K[3163159] = K[3163134]; E[3163159] = 20
+K[3163162] = K[3163134]; E[3163162] = 21
+K[3163163] = K[3163134]; E[3163163] = 22
+K[3163164] = K[3163134]; E[3163164] = 23
+K[3163168] = K[3163134]; E[3163168] = 25
+K[3163169] = K[3163134]; E[3163169] = 26
+K[3163170] = K[3163134]; E[3163170] = 27
+K[3163171] = K[3163134]; E[3163171] = 28
+K[3163176] = K[3163173]; E[3163176] = 1
+K[3163177] = K[3163173]; E[3163177] = 2
+K[3163179] = K[3163173]; E[3163179] = 3
+K[3163182] = K[3163181]; E[3163182] = 1
+K[3163183] = K[3163181]; E[3163183] = 2
+K[3163186] = K[3163185]; E[3163186] = 1
+K[3163188] = K[3163185]; E[3163188] = 2
+K[3163193] = K[3163190]; E[3163193] = 1
+K[3163194] = K[3163190]; E[3163194] = 2
+K[3163195] = K[3163190]; E[3163195] = 3
+K[3163199] = K[3163190]; E[3163199] = 5
+K[3163200] = K[3163190]; E[3163200] = 6
+K[3163205] = K[3163202]; E[3163205] = 1
+K[3163206] = K[3163202]; E[3163206] = 2
+K[3163209] = K[3163202]; E[3163209] = 3
+K[3163210] = K[3163202]; E[3163210] = 4
+K[3163212] = K[3163211]; E[3163212] = 1
+K[3163215] = K[3163211]; E[3163215] = 2
+K[3163216] = K[3163211]; E[3163216] = 3
+K[3163218] = K[3163211]; E[3163218] = 4
+K[3163220] = K[3163211]; E[3163220] = 5
+K[3163221] = K[3163211]; E[3163221] = 6
+K[3163223] = K[3163211]; E[3163223] = 7
+K[3163224] = K[3163211]; E[3163224] = 8
+K[3163225] = K[3163211]; E[3163225] = 9
+K[3163228] = K[3163211]; E[3163228] = 10
+K[3163229] = K[3163211]; E[3163229] = 11
+K[3163230] = K[3163211]; E[3163230] = 12
+K[3163231] = K[3163211]; E[3163231] = 13
+K[3163233] = K[3163211]; E[3163233] = 14
+K[3163236] = K[3163211]; E[3163236] = 15
+K[3163239] = K[3163211]; E[3163239] = 16
+K[3163242] = K[3163211]; E[3163242] = 17
+K[3163243] = K[3163211]; E[3163243] = 18
+K[3163244] = K[3163211]; E[3163244] = 19
+K[3163246] = K[3163211]; E[3163246] = 20
+K[3163247] = K[3163211]; E[3163247] = 21
+K[3163257] = K[3163248]; E[3163257] = 8
+K[3163261] = K[3163259]; E[3163261] = 1
+K[3163263] = K[3163259]; E[3163263] = 3
+K[3163264] = K[3163259]; E[3163264] = 4
+K[3163265] = K[3163259]; E[3163265] = 5
+K[3163266] = K[3163259]; E[3163266] = 6
+K[3163267] = K[3163259]; E[3163267] = 7
+K[3163268] = K[3163259]; E[3163268] = 8
+K[3163269] = K[3163259]; E[3163269] = 9
+K[3163270] = K[3163259]; E[3163270] = 10
+K[3163272] = K[3163259]; E[3163272] = 11
+K[3163274] = K[3163259]; E[3163274] = 12
+K[3163275] = K[3163259]; E[3163275] = 13
+K[3163277] = K[3163259]; E[3163277] = 14
+K[3163279] = K[3163259]; E[3163279] = 15
+K[3163281] = K[3163259]; E[3163281] = 16
+K[3163284] = K[3163259]; E[3163284] = 17
+K[3163286] = K[3163259]; E[3163286] = 18
+K[3163288] = K[3163259]; E[3163288] = 19
+K[3163290] = K[3163259]; E[3163290] = 20
+K[3163292] = K[3163259]; E[3163292] = 21
 K[3163294] = K[3163293]; E[3163294] = 1
 K[3163297] = K[3163293]; E[3163297] = 2
 K[3163298] = K[3163293]; E[3163298] = 3
@@ -52731,13 +59159,22 @@ K[3163561] = K[3163557]; E[3163561] = 4
 K[3163562] = K[3163557]; E[3163562] = 5
 K[3163564] = K[3163557]; E[3163564] = 7
 K[3163565] = K[3163557]; E[3163565] = 8
-K[3163589] = K[3163586]; E[3163589] = 1
-K[3163590] = K[3163586]; E[3163590] = 2
-K[3163592] = K[3163586]; E[3163592] = 3
-K[3163593] = K[3163586]; E[3163593] = 4
-K[3163594] = K[3163586]; E[3163594] = 5
-K[3163596] = K[3163586]; E[3163596] = 6
-K[3163597] = K[3163586]; E[3163597] = 7
+K[3163570] = K[3163567]; E[3163570] = 1
+K[3163572] = K[3163567]; E[3163572] = 2
+K[3163573] = K[3163567]; E[3163573] = 3
+K[3163575] = K[3163567]; E[3163575] = 4
+K[3163577] = K[3163567]; E[3163577] = 5
+K[3163582] = K[3163579]; E[3163582] = 1
+K[3163583] = K[3163579]; E[3163583] = 2
+K[3163584] = K[3163579]; E[3163584] = 3
+K[3163585] = K[3163579]; E[3163585] = 4
+K[3163589] = K[3163579]; E[3163589] = 6
+K[3163590] = K[3163579]; E[3163590] = 7
+K[3163592] = K[3163579]; E[3163592] = 8
+K[3163593] = K[3163579]; E[3163593] = 9
+K[3163594] = K[3163579]; E[3163594] = 10
+K[3163596] = K[3163579]; E[3163596] = 11
+K[3163597] = K[3163579]; E[3163597] = 12
 K[3163601] = K[3163598]; E[3163601] = 1
 K[3163602] = K[3163598]; E[3163602] = 2
 K[3163603] = K[3163598]; E[3163603] = 3
@@ -52757,6 +59194,29 @@ K[3163624] = K[3163620]; E[3163624] = 2
 K[3163625] = K[3163620]; E[3163625] = 3
 K[3163626] = K[3163620]; E[3163626] = 4
 K[3163627] = K[3163620]; E[3163627] = 5
+K[3163694] = K[3163691]; E[3163694] = 1
+K[3163695] = K[3163691]; E[3163695] = 2
+K[3163696] = K[3163691]; E[3163696] = 3
+K[3163697] = K[3163691]; E[3163697] = 4
+K[3163698] = K[3163691]; E[3163698] = 5
+K[3163699] = K[3163691]; E[3163699] = 6
+K[3163700] = K[3163691]; E[3163700] = 7
+K[3163701] = K[3163691]; E[3163701] = 8
+K[3163702] = K[3163691]; E[3163702] = 9
+K[3163703] = K[3163691]; E[3163703] = 10
+K[3163705] = K[3163691]; E[3163705] = 11
+K[3163707] = K[3163691]; E[3163707] = 12
+K[3163709] = K[3163691]; E[3163709] = 13
+K[3163710] = K[3163691]; E[3163710] = 14
+K[3163711] = K[3163691]; E[3163711] = 15
+K[3163712] = K[3163691]; E[3163712] = 16
+K[3163713] = K[3163691]; E[3163713] = 17
+K[3163714] = K[3163691]; E[3163714] = 18
+K[3163715] = K[3163691]; E[3163715] = 19
+K[3163718] = K[3163691]; E[3163718] = 20
+K[3163719] = K[3163691]; E[3163719] = 21
+K[3163725] = K[3163722]; E[3163725] = 1
+K[3163726] = K[3163722]; E[3163726] = 2
 K[3163731] = K[3163730]; E[3163731] = 1
 K[3163732] = K[3163730]; E[3163732] = 2
 K[3163733] = K[3163730]; E[3163733] = 3
@@ -52832,6 +59292,74 @@ K[3163894] = K[3163882]; E[3163894] = 8
 K[3163896] = K[3163882]; E[3163896] = 9
 K[3163897] = K[3163882]; E[3163897] = 10
 K[3163898] = K[3163882]; E[3163898] = 11
+K[3163903] = K[3163901]; E[3163903] = 1
+K[3163923] = K[3163920]; E[3163923] = 1
+K[3163924] = K[3163920]; E[3163924] = 2
+K[3164219] = K[3164218]; E[3164219] = 1
+K[3164220] = K[3164218]; E[3164220] = 2
+K[3164221] = K[3164218]; E[3164221] = 3
+K[3164222] = K[3164218]; E[3164222] = 4
+K[3164223] = K[3164218]; E[3164223] = 5
+K[3164224] = K[3164218]; E[3164224] = 6
+K[3164227] = K[3164218]; E[3164227] = 7
+K[3164228] = K[3164218]; E[3164228] = 8
+K[3164229] = K[3164218]; E[3164229] = 9
+K[3164230] = K[3164218]; E[3164230] = 10
+K[3164233] = K[3164218]; E[3164233] = 11
+K[3164235] = K[3164218]; E[3164235] = 12
+K[3164237] = K[3164236]; E[3164237] = 1
+K[3164239] = K[3164236]; E[3164239] = 2
+K[3164242] = K[3164236]; E[3164242] = 3
+K[3164243] = K[3164236]; E[3164243] = 4
+K[3164245] = K[3164236]; E[3164245] = 5
+K[3164247] = K[3164236]; E[3164247] = 6
+K[3164250] = K[3164236]; E[3164250] = 7
+K[3164251] = K[3164236]; E[3164251] = 8
+K[3164252] = K[3164236]; E[3164252] = 9
+K[3164253] = K[3164236]; E[3164253] = 10
+K[3164254] = K[3164236]; E[3164254] = 11
+K[3164255] = K[3164236]; E[3164255] = 12
+K[3164256] = K[3164236]; E[3164256] = 13
+K[3164257] = K[3164236]; E[3164257] = 14
+K[3164260] = K[3164236]; E[3164260] = 15
+K[3164261] = K[3164236]; E[3164261] = 16
+K[3164262] = K[3164236]; E[3164262] = 17
+K[3164263] = K[3164236]; E[3164263] = 18
+K[3164298] = K[3164297]; E[3164298] = 1
+K[3164299] = K[3164297]; E[3164299] = 2
+K[3164300] = K[3164297]; E[3164300] = 3
+K[3164301] = K[3164297]; E[3164301] = 4
+K[3164302] = K[3164297]; E[3164302] = 5
+K[3164303] = K[3164297]; E[3164303] = 6
+K[3164304] = K[3164297]; E[3164304] = 7
+K[3164305] = K[3164297]; E[3164305] = 8
+K[3164306] = K[3164297]; E[3164306] = 9
+K[3164309] = K[3164297]; E[3164309] = 10
+K[3164310] = K[3164297]; E[3164310] = 11
+K[3164313] = K[3164297]; E[3164313] = 12
+K[3164316] = K[3164297]; E[3164316] = 13
+K[3164317] = K[3164297]; E[3164317] = 14
+K[3164319] = K[3164297]; E[3164319] = 15
+K[3164324] = K[3164323]; E[3164324] = 1
+K[3164325] = K[3164323]; E[3164325] = 2
+K[3164326] = K[3164323]; E[3164326] = 3
+K[3164327] = K[3164323]; E[3164327] = 4
+K[3164328] = K[3164323]; E[3164328] = 5
+K[3164329] = K[3164323]; E[3164329] = 6
+K[3164330] = K[3164323]; E[3164330] = 7
+K[3164331] = K[3164323]; E[3164331] = 8
+K[3164332] = K[3164323]; E[3164332] = 9
+K[3164333] = K[3164323]; E[3164333] = 10
+K[3164336] = K[3164323]; E[3164336] = 11
+K[3164338] = K[3164323]; E[3164338] = 12
+K[3164341] = K[3164340]; E[3164341] = 1
+K[3164347] = K[3164344]; E[3164347] = 1
+K[3164348] = K[3164344]; E[3164348] = 2
+K[3164350] = K[3164344]; E[3164350] = 3
+K[3164351] = K[3164344]; E[3164351] = 4
+K[3164352] = K[3164344]; E[3164352] = 5
+K[3164354] = K[3164344]; E[3164354] = 6
+K[3164355] = K[3164344]; E[3164355] = 7
 K[3164357] = K[3164356]; E[3164357] = 1
 K[3164358] = K[3164356]; E[3164358] = 2
 K[3164359] = K[3164356]; E[3164359] = 3
@@ -52873,6 +59401,92 @@ K[3164525] = K[3164477]; E[3164525] = 29
 K[3164526] = K[3164477]; E[3164526] = 30
 K[3164527] = K[3164477]; E[3164527] = 31
 K[3164530] = K[3164529]; E[3164530] = 1
+K[3164532] = K[3164531]; E[3164532] = 1
+K[3164533] = K[3164531]; E[3164533] = 2
+K[3164534] = K[3164531]; E[3164534] = 3
+K[3164537] = K[3164531]; E[3164537] = 4
+K[3164538] = K[3164531]; E[3164538] = 5
+K[3164539] = K[3164531]; E[3164539] = 6
+K[3164540] = K[3164531]; E[3164540] = 7
+K[3164543] = K[3164531]; E[3164543] = 8
+K[3164545] = K[3164531]; E[3164545] = 9
+K[3164547] = K[3164546]; E[3164547] = 1
+K[3164548] = K[3164546]; E[3164548] = 2
+K[3164550] = K[3164546]; E[3164550] = 3
+K[3164553] = K[3164546]; E[3164553] = 4
+K[3164554] = K[3164546]; E[3164554] = 5
+K[3164555] = K[3164546]; E[3164555] = 6
+K[3164557] = K[3164546]; E[3164557] = 7
+K[3164559] = K[3164546]; E[3164559] = 8
+K[3164560] = K[3164546]; E[3164560] = 9
+K[3164563] = K[3164546]; E[3164563] = 10
+K[3164564] = K[3164546]; E[3164564] = 11
+K[3164565] = K[3164546]; E[3164565] = 12
+K[3164567] = K[3164546]; E[3164567] = 13
+K[3164568] = K[3164546]; E[3164568] = 14
+K[3164570] = K[3164546]; E[3164570] = 15
+K[3164575] = K[3164572]; E[3164575] = 1
+K[3164576] = K[3164572]; E[3164576] = 2
+K[3164581] = K[3164572]; E[3164581] = 4
+K[3164582] = K[3164572]; E[3164582] = 5
+K[3164583] = K[3164572]; E[3164583] = 6
+K[3164584] = K[3164572]; E[3164584] = 7
+K[3164590] = K[3164589]; E[3164590] = 1
+K[3164591] = K[3164589]; E[3164591] = 2
+K[3164592] = K[3164589]; E[3164592] = 3
+K[3164595] = K[3164589]; E[3164595] = 4
+K[3164598] = K[3164589]; E[3164598] = 5
+K[3164599] = K[3164589]; E[3164599] = 6
+K[3164602] = K[3164589]; E[3164602] = 7
+K[3164603] = K[3164589]; E[3164603] = 8
+K[3164606] = K[3164589]; E[3164606] = 9
+K[3164607] = K[3164589]; E[3164607] = 10
+K[3164610] = K[3164589]; E[3164610] = 11
+K[3164611] = K[3164589]; E[3164611] = 12
+K[3164614] = K[3164589]; E[3164614] = 13
+K[3164615] = K[3164589]; E[3164615] = 14
+K[3164618] = K[3164589]; E[3164618] = 15
+K[3164619] = K[3164589]; E[3164619] = 16
+K[3164622] = K[3164589]; E[3164622] = 17
+K[3164624] = K[3164589]; E[3164624] = 18
+K[3164627] = K[3164589]; E[3164627] = 19
+K[3164630] = K[3164589]; E[3164630] = 20
+K[3164635] = K[3164633]; E[3164635] = 1
+K[3164638] = K[3164633]; E[3164638] = 2
+K[3164643] = K[3164641]; E[3164643] = 1
+K[3164645] = K[3164641]; E[3164645] = 2
+K[3164649] = K[3164648]; E[3164649] = 1
+K[3164651] = K[3164648]; E[3164651] = 2
+K[3164654] = K[3164648]; E[3164654] = 3
+K[3164655] = K[3164648]; E[3164655] = 4
+K[3164656] = K[3164648]; E[3164656] = 5
+K[3164657] = K[3164648]; E[3164657] = 6
+K[3164658] = K[3164648]; E[3164658] = 7
+K[3164659] = K[3164648]; E[3164659] = 8
+K[3164660] = K[3164648]; E[3164660] = 9
+K[3164661] = K[3164648]; E[3164661] = 10
+K[3164663] = K[3164648]; E[3164663] = 11
+K[3164665] = K[3164648]; E[3164665] = 12
+K[3164831] = K[3164828]; E[3164831] = 1
+K[3164832] = K[3164828]; E[3164832] = 2
+K[3164834] = K[3164828]; E[3164834] = 3
+K[3164836] = K[3164828]; E[3164836] = 4
+K[3164841] = K[3164838]; E[3164841] = 1
+K[3164843] = K[3164838]; E[3164843] = 2
+K[3164849] = K[3164838]; E[3164849] = 4
+K[3164850] = K[3164838]; E[3164850] = 5
+K[3164851] = K[3164838]; E[3164851] = 6
+K[3164853] = K[3164838]; E[3164853] = 7
+K[3164855] = K[3164838]; E[3164855] = 8
+K[3164856] = K[3164838]; E[3164856] = 9
+K[3164861] = K[3164860]; E[3164861] = 1
+K[3164863] = K[3164860]; E[3164863] = 2
+K[3164866] = K[3164864]; E[3164866] = 1
+K[3164867] = K[3164864]; E[3164867] = 2
+K[3164870] = K[3164864]; E[3164870] = 3
+K[3164871] = K[3164864]; E[3164871] = 4
+K[3164872] = K[3164864]; E[3164872] = 5
+K[3164873] = K[3164864]; E[3164873] = 6
 K[3164875] = K[3164874]; E[3164875] = 1
 K[3164876] = K[3164874]; E[3164876] = 2
 K[3164877] = K[3164874]; E[3164877] = 3
@@ -52886,6 +59500,55 @@ K[3164893] = K[3164874]; E[3164893] = 10
 K[3164894] = K[3164874]; E[3164894] = 11
 K[3164895] = K[3164874]; E[3164895] = 12
 K[3164896] = K[3164874]; E[3164896] = 13
+K[3164995] = K[3164992]; E[3164995] = 1
+K[3164997] = K[3164992]; E[3164997] = 2
+K[3165000] = K[3164999]; E[3165000] = 1
+K[3165003] = K[3164999]; E[3165003] = 2
+K[3165004] = K[3164999]; E[3165004] = 3
+K[3165009] = K[3165007]; E[3165009] = 1
+K[3165020] = K[3165017]; E[3165020] = 1
+K[3165022] = K[3165017]; E[3165022] = 2
+K[3165025] = K[3165017]; E[3165025] = 3
+K[3165026] = K[3165017]; E[3165026] = 4
+K[3165028] = K[3165017]; E[3165028] = 5
+K[3165029] = K[3165017]; E[3165029] = 6
+K[3165030] = K[3165017]; E[3165030] = 7
+K[3165032] = K[3165017]; E[3165032] = 8
+K[3165033] = K[3165017]; E[3165033] = 9
+K[3165057] = K[3165054]; E[3165057] = 1
+K[3165062] = K[3165060]; E[3165062] = 1
+K[3165066] = K[3165064]; E[3165066] = 1
+K[3165069] = K[3165064]; E[3165069] = 2
+K[3165070] = K[3165064]; E[3165070] = 3
+K[3165074] = K[3165064]; E[3165074] = 5
+K[3165077] = K[3165064]; E[3165077] = 6
+K[3165078] = K[3165064]; E[3165078] = 7
+K[3165079] = K[3165064]; E[3165079] = 8
+K[3165080] = K[3165064]; E[3165080] = 9
+K[3165081] = K[3165064]; E[3165081] = 10
+K[3165083] = K[3165064]; E[3165083] = 11
+K[3165086] = K[3165064]; E[3165086] = 12
+K[3165087] = K[3165064]; E[3165087] = 13
+K[3165088] = K[3165064]; E[3165088] = 14
+K[3165089] = K[3165064]; E[3165089] = 15
+K[3165090] = K[3165064]; E[3165090] = 16
+K[3165092] = K[3165064]; E[3165092] = 17
+K[3165094] = K[3165064]; E[3165094] = 18
+K[3165100] = K[3165097]; E[3165100] = 1
+K[3165102] = K[3165097]; E[3165102] = 2
+K[3165105] = K[3165097]; E[3165105] = 3
+K[3165108] = K[3165097]; E[3165108] = 4
+K[3165110] = K[3165097]; E[3165110] = 5
+K[3165126] = K[3165123]; E[3165126] = 1
+K[3165127] = K[3165123]; E[3165127] = 2
+K[3165128] = K[3165123]; E[3165128] = 3
+K[3165129] = K[3165123]; E[3165129] = 4
+K[3165130] = K[3165123]; E[3165130] = 5
+K[3165131] = K[3165123]; E[3165131] = 6
+K[3165132] = K[3165123]; E[3165132] = 7
+K[3165135] = K[3165123]; E[3165135] = 8
+K[3165136] = K[3165123]; E[3165136] = 9
+K[3165137] = K[3165123]; E[3165137] = 10
 K[3165510] = K[3165507]; E[3165510] = 1
 K[3165511] = K[3165507]; E[3165511] = 2
 K[3165513] = K[3165507]; E[3165513] = 3
@@ -52937,11 +59600,37 @@ K[3165716] = K[3165690]; E[3165716] = 16
 K[3165719] = K[3165718]; E[3165719] = 1
 K[3165720] = K[3165718]; E[3165720] = 2
 K[3165722] = K[3165718]; E[3165722] = 3
+K[3165726] = K[3165724]; E[3165726] = 1
+K[3165727] = K[3165724]; E[3165727] = 2
+K[3165730] = K[3165724]; E[3165730] = 3
+K[3165732] = K[3165724]; E[3165732] = 4
+K[3165736] = K[3165734]; E[3165736] = 1
+K[3165737] = K[3165734]; E[3165737] = 2
+K[3165738] = K[3165734]; E[3165738] = 3
+K[3165740] = K[3165734]; E[3165740] = 4
+K[3165742] = K[3165734]; E[3165742] = 5
+K[3165744] = K[3165734]; E[3165744] = 6
+K[3165745] = K[3165734]; E[3165745] = 7
+K[3165749] = K[3165734]; E[3165749] = 9
+K[3165751] = K[3165734]; E[3165751] = 10
+K[3165753] = K[3165734]; E[3165753] = 11
+K[3165755] = K[3165734]; E[3165755] = 12
+K[3165756] = K[3165734]; E[3165756] = 13
+K[3165757] = K[3165734]; E[3165757] = 14
+K[3165758] = K[3165734]; E[3165758] = 15
+K[3165760] = K[3165734]; E[3165760] = 16
+K[3165763] = K[3165734]; E[3165763] = 17
 K[3165767] = K[3165765]; E[3165767] = 1
-K[3165773] = K[3165772]; E[3165773] = 1
 K[3165775] = K[3165772]; E[3165775] = 2
 K[3165779] = K[3165778]; E[3165779] = 1
 K[3165781] = K[3165778]; E[3165781] = 2
+K[3165786] = K[3165783]; E[3165786] = 1
+K[3165787] = K[3165783]; E[3165787] = 2
+K[3165788] = K[3165783]; E[3165788] = 3
+K[3165789] = K[3165783]; E[3165789] = 4
+K[3165794] = K[3165791]; E[3165794] = 1
+K[3165796] = K[3165791]; E[3165796] = 2
+K[3165814] = K[3165813]; E[3165814] = 1
 K[3165824] = K[3165821]; E[3165824] = 1
 K[3165825] = K[3165821]; E[3165825] = 2
 K[3165827] = K[3165821]; E[3165827] = 3
@@ -52954,6 +59643,8 @@ K[3165837] = K[3165821]; E[3165837] = 9
 K[3165839] = K[3165821]; E[3165839] = 10
 K[3165840] = K[3165821]; E[3165840] = 11
 K[3165842] = K[3165821]; E[3165842] = 12
+K[3165847] = K[3165844]; E[3165847] = 1
+K[3165848] = K[3165844]; E[3165848] = 2
 K[3165875] = K[3165874]; E[3165875] = 1
 K[3165878] = K[3165874]; E[3165878] = 2
 K[3165879] = K[3165874]; E[3165879] = 3
@@ -53167,13 +59858,57 @@ K[3166367] = K[3166355]; E[3166367] = 7
 K[3166368] = K[3166355]; E[3166368] = 8
 K[3166369] = K[3166355]; E[3166369] = 9
 K[3166371] = K[3166355]; E[3166371] = 10
+K[3166375] = K[3166373]; E[3166375] = 1
+K[3166376] = K[3166373]; E[3166376] = 2
+K[3166377] = K[3166373]; E[3166377] = 3
 K[3166380] = K[3166378]; E[3166380] = 1
 K[3166381] = K[3166378]; E[3166381] = 2
+K[3166384] = K[3166382]; E[3166384] = 1
+K[3166385] = K[3166382]; E[3166385] = 2
+K[3166388] = K[3166382]; E[3166388] = 3
+K[3166390] = K[3166382]; E[3166390] = 4
+K[3166391] = K[3166382]; E[3166391] = 5
+K[3166392] = K[3166382]; E[3166392] = 6
+K[3166395] = K[3166382]; E[3166395] = 7
+K[3166397] = K[3166396]; E[3166397] = 1
+K[3166398] = K[3166396]; E[3166398] = 2
+K[3166400] = K[3166396]; E[3166400] = 3
+K[3166403] = K[3166396]; E[3166403] = 4
+K[3166405] = K[3166396]; E[3166405] = 5
+K[3166408] = K[3166406]; E[3166408] = 1
+K[3166410] = K[3166406]; E[3166410] = 2
+K[3166412] = K[3166406]; E[3166412] = 3
+K[3166415] = K[3166406]; E[3166415] = 4
+K[3166416] = K[3166406]; E[3166416] = 5
+K[3166417] = K[3166406]; E[3166417] = 6
+K[3166419] = K[3166406]; E[3166419] = 7
+K[3166421] = K[3166406]; E[3166421] = 8
+K[3166422] = K[3166406]; E[3166422] = 9
+K[3166424] = K[3166406]; E[3166424] = 10
 K[3166439] = K[3166438]; E[3166439] = 1
 K[3166441] = K[3166438]; E[3166441] = 2
 K[3166442] = K[3166438]; E[3166442] = 3
 K[3166444] = K[3166438]; E[3166444] = 4
-K[3166501] = K[3166500]; E[3166501] = 1
+K[3166449] = K[3166447]; E[3166449] = 1
+K[3166452] = K[3166451]; E[3166452] = 1
+K[3166454] = K[3166451]; E[3166454] = 2
+K[3166459] = K[3166456]; E[3166459] = 1
+K[3166460] = K[3166456]; E[3166460] = 2
+K[3166461] = K[3166456]; E[3166461] = 3
+K[3166463] = K[3166456]; E[3166463] = 4
+K[3166465] = K[3166456]; E[3166465] = 5
+K[3166467] = K[3166456]; E[3166467] = 6
+K[3166471] = K[3166456]; E[3166471] = 8
+K[3166472] = K[3166456]; E[3166472] = 9
+K[3166473] = K[3166456]; E[3166473] = 10
+K[3166476] = K[3166456]; E[3166476] = 11
+K[3166477] = K[3166456]; E[3166477] = 12
+K[3166478] = K[3166456]; E[3166478] = 13
+K[3166480] = K[3166456]; E[3166480] = 14
+K[3166482] = K[3166456]; E[3166482] = 15
+K[3166483] = K[3166456]; E[3166483] = 16
+K[3166486] = K[3166485]; E[3166486] = 1
+K[3166488] = K[3166485]; E[3166488] = 2
 K[3166502] = K[3166500]; E[3166502] = 2
 K[3166505] = K[3166500]; E[3166505] = 3
 K[3166506] = K[3166500]; E[3166506] = 4
@@ -53201,6 +59936,142 @@ K[3166540] = K[3166500]; E[3166540] = 26
 K[3166541] = K[3166500]; E[3166541] = 27
 K[3166542] = K[3166500]; E[3166542] = 28
 K[3166544] = K[3166500]; E[3166544] = 29
+K[3166557] = K[3166554]; E[3166557] = 1
+K[3166558] = K[3166554]; E[3166558] = 2
+K[3166559] = K[3166554]; E[3166559] = 3
+K[3166560] = K[3166554]; E[3166560] = 4
+K[3166563] = K[3166554]; E[3166563] = 5
+K[3166564] = K[3166554]; E[3166564] = 6
+K[3166566] = K[3166554]; E[3166566] = 7
+K[3166567] = K[3166554]; E[3166567] = 8
+K[3166569] = K[3166554]; E[3166569] = 9
+K[3166571] = K[3166554]; E[3166571] = 10
+K[3166572] = K[3166554]; E[3166572] = 11
+K[3166573] = K[3166554]; E[3166573] = 12
+K[3166575] = K[3166554]; E[3166575] = 13
+K[3166577] = K[3166554]; E[3166577] = 14
+K[3166578] = K[3166554]; E[3166578] = 15
+K[3166579] = K[3166554]; E[3166579] = 16
+K[3166580] = K[3166554]; E[3166580] = 17
+K[3166581] = K[3166554]; E[3166581] = 18
+K[3166582] = K[3166554]; E[3166582] = 19
+K[3166583] = K[3166554]; E[3166583] = 20
+K[3166584] = K[3166554]; E[3166584] = 21
+K[3166585] = K[3166554]; E[3166585] = 22
+K[3166586] = K[3166554]; E[3166586] = 23
+K[3166587] = K[3166554]; E[3166587] = 24
+K[3166588] = K[3166554]; E[3166588] = 25
+K[3166589] = K[3166554]; E[3166589] = 26
+K[3166590] = K[3166554]; E[3166590] = 27
+K[3166593] = K[3166554]; E[3166593] = 28
+K[3166594] = K[3166554]; E[3166594] = 29
+K[3166595] = K[3166554]; E[3166595] = 30
+K[3166597] = K[3166596]; E[3166597] = 1
+K[3166600] = K[3166596]; E[3166600] = 3
+K[3166608] = K[3166606]; E[3166608] = 1
+K[3166612] = K[3166610]; E[3166612] = 1
+K[3166616] = K[3166614]; E[3166616] = 1
+K[3166617] = K[3166614]; E[3166617] = 2
+K[3166618] = K[3166614]; E[3166618] = 3
+K[3166619] = K[3166614]; E[3166619] = 4
+K[3166623] = K[3166621]; E[3166623] = 1
+K[3166626] = K[3166621]; E[3166626] = 2
+K[3166627] = K[3166621]; E[3166627] = 3
+K[3166628] = K[3166621]; E[3166628] = 4
+K[3166629] = K[3166621]; E[3166629] = 5
+K[3166633] = K[3166621]; E[3166633] = 7
+K[3166634] = K[3166621]; E[3166634] = 8
+K[3166635] = K[3166621]; E[3166635] = 9
+K[3166638] = K[3166621]; E[3166638] = 10
+K[3166639] = K[3166621]; E[3166639] = 11
+K[3166640] = K[3166621]; E[3166640] = 12
+K[3166641] = K[3166621]; E[3166641] = 13
+K[3166642] = K[3166621]; E[3166642] = 14
+K[3166643] = K[3166621]; E[3166643] = 15
+K[3166644] = K[3166621]; E[3166644] = 16
+K[3166645] = K[3166621]; E[3166645] = 17
+K[3166649] = K[3166646]; E[3166649] = 1
+K[3166650] = K[3166646]; E[3166650] = 2
+K[3166651] = K[3166646]; E[3166651] = 3
+K[3166652] = K[3166646]; E[3166652] = 4
+K[3166656] = K[3166655]; E[3166656] = 1
+K[3166657] = K[3166655]; E[3166657] = 2
+K[3166659] = K[3166655]; E[3166659] = 3
+K[3166660] = K[3166655]; E[3166660] = 4
+K[3166662] = K[3166655]; E[3166662] = 5
+K[3166665] = K[3166655]; E[3166665] = 6
+K[3166666] = K[3166655]; E[3166666] = 7
+K[3166667] = K[3166655]; E[3166667] = 8
+K[3166668] = K[3166655]; E[3166668] = 9
+K[3166669] = K[3166655]; E[3166669] = 10
+K[3166670] = K[3166655]; E[3166670] = 11
+K[3166671] = K[3166655]; E[3166671] = 12
+K[3166672] = K[3166655]; E[3166672] = 13
+K[3166673] = K[3166655]; E[3166673] = 14
+K[3167086] = K[3167085]; E[3167086] = 1
+K[3167088] = K[3167085]; E[3167088] = 2
+K[3167090] = K[3167085]; E[3167090] = 3
+K[3167093] = K[3167085]; E[3167093] = 4
+K[3167094] = K[3167085]; E[3167094] = 5
+K[3167095] = K[3167085]; E[3167095] = 6
+K[3167098] = K[3167085]; E[3167098] = 7
+K[3167099] = K[3167085]; E[3167099] = 8
+K[3167101] = K[3167085]; E[3167101] = 9
+K[3167105] = K[3167103]; E[3167105] = 2
+K[3167108] = K[3167103]; E[3167108] = 3
+K[3167109] = K[3167103]; E[3167109] = 4
+K[3167110] = K[3167103]; E[3167110] = 5
+K[3167111] = K[3167103]; E[3167111] = 6
+K[3167112] = K[3167103]; E[3167112] = 7
+K[3167115] = K[3167103]; E[3167115] = 8
+K[3167116] = K[3167103]; E[3167116] = 9
+K[3167117] = K[3167103]; E[3167117] = 10
+K[3167118] = K[3167103]; E[3167118] = 11
+K[3167119] = K[3167103]; E[3167119] = 12
+K[3167121] = K[3167103]; E[3167121] = 13
+K[3167124] = K[3167103]; E[3167124] = 14
+K[3167125] = K[3167103]; E[3167125] = 15
+K[3167126] = K[3167103]; E[3167126] = 16
+K[3167128] = K[3167103]; E[3167128] = 17
+K[3167130] = K[3167103]; E[3167130] = 18
+K[3167131] = K[3167103]; E[3167131] = 19
+K[3167134] = K[3167132]; E[3167134] = 1
+K[3167136] = K[3167132]; E[3167136] = 2
+K[3167137] = K[3167132]; E[3167137] = 3
+K[3167138] = K[3167132]; E[3167138] = 4
+K[3167141] = K[3167132]; E[3167141] = 5
+K[3167143] = K[3167132]; E[3167143] = 6
+K[3167144] = K[3167132]; E[3167144] = 7
+K[3167145] = K[3167132]; E[3167145] = 8
+K[3167146] = K[3167132]; E[3167146] = 9
+K[3167150] = K[3167148]; E[3167150] = 1
+K[3167151] = K[3167148]; E[3167151] = 2
+K[3167155] = K[3167153]; E[3167155] = 1
+K[3167156] = K[3167153]; E[3167156] = 2
+K[3167157] = K[3167153]; E[3167157] = 3
+K[3167159] = K[3167153]; E[3167159] = 4
+K[3167162] = K[3167153]; E[3167162] = 6
+K[3167165] = K[3167153]; E[3167165] = 7
+K[3167166] = K[3167153]; E[3167166] = 8
+K[3167167] = K[3167153]; E[3167167] = 9
+K[3167168] = K[3167153]; E[3167168] = 10
+K[3167169] = K[3167153]; E[3167169] = 11
+K[3167170] = K[3167153]; E[3167170] = 12
+K[3167173] = K[3167153]; E[3167173] = 13
+K[3167174] = K[3167153]; E[3167174] = 14
+K[3167175] = K[3167153]; E[3167175] = 15
+K[3167176] = K[3167153]; E[3167176] = 16
+K[3167177] = K[3167153]; E[3167177] = 17
+K[3167180] = K[3167153]; E[3167180] = 18
+K[3167181] = K[3167153]; E[3167181] = 19
+K[3167182] = K[3167153]; E[3167182] = 20
+K[3167183] = K[3167153]; E[3167183] = 21
+K[3167184] = K[3167153]; E[3167184] = 22
+K[3167185] = K[3167153]; E[3167185] = 23
+K[3167186] = K[3167153]; E[3167186] = 24
+K[3167189] = K[3167153]; E[3167189] = 25
+K[3167190] = K[3167153]; E[3167190] = 26
+K[3167194] = K[3167192]; E[3167194] = 1
 K[3167201] = K[3167198]; E[3167201] = 1
 K[3167206] = K[3167198]; E[3167206] = 3
 K[3167210] = K[3167208]; E[3167210] = 1
@@ -53208,6 +60079,131 @@ K[3167214] = K[3167212]; E[3167214] = 1
 K[3167219] = K[3167217]; E[3167219] = 1
 K[3167223] = K[3167222]; E[3167223] = 1
 K[3167224] = K[3167222]; E[3167224] = 2
+K[3167289] = K[3167288]; E[3167289] = 1
+K[3167290] = K[3167288]; E[3167290] = 2
+K[3167292] = K[3167288]; E[3167292] = 3
+K[3167293] = K[3167288]; E[3167293] = 4
+K[3167295] = K[3167288]; E[3167295] = 5
+K[3167298] = K[3167288]; E[3167298] = 6
+K[3167299] = K[3167288]; E[3167299] = 7
+K[3167300] = K[3167288]; E[3167300] = 8
+K[3167301] = K[3167288]; E[3167301] = 9
+K[3167302] = K[3167288]; E[3167302] = 10
+K[3167305] = K[3167288]; E[3167305] = 11
+K[3167306] = K[3167288]; E[3167306] = 12
+K[3167307] = K[3167288]; E[3167307] = 13
+K[3167308] = K[3167288]; E[3167308] = 14
+K[3167309] = K[3167288]; E[3167309] = 15
+K[3167310] = K[3167288]; E[3167310] = 16
+K[3167311] = K[3167288]; E[3167311] = 17
+K[3167312] = K[3167288]; E[3167312] = 18
+K[3167313] = K[3167288]; E[3167313] = 19
+K[3167314] = K[3167288]; E[3167314] = 20
+K[3167317] = K[3167288]; E[3167317] = 21
+K[3167318] = K[3167288]; E[3167318] = 22
+K[3167319] = K[3167288]; E[3167319] = 23
+K[3167320] = K[3167288]; E[3167320] = 24
+K[3167321] = K[3167288]; E[3167321] = 25
+K[3167322] = K[3167288]; E[3167322] = 26
+K[3167323] = K[3167288]; E[3167323] = 27
+K[3167326] = K[3167288]; E[3167326] = 28
+K[3167327] = K[3167288]; E[3167327] = 29
+K[3167328] = K[3167288]; E[3167328] = 30
+K[3167331] = K[3167330]; E[3167331] = 1
+K[3167332] = K[3167330]; E[3167332] = 2
+K[3167335] = K[3167330]; E[3167335] = 3
+K[3167336] = K[3167330]; E[3167336] = 4
+K[3167337] = K[3167330]; E[3167337] = 5
+K[3167338] = K[3167330]; E[3167338] = 6
+K[3167341] = K[3167330]; E[3167341] = 7
+K[3167342] = K[3167330]; E[3167342] = 8
+K[3167343] = K[3167330]; E[3167343] = 9
+K[3167344] = K[3167330]; E[3167344] = 10
+K[3167346] = K[3167330]; E[3167346] = 11
+K[3167347] = K[3167330]; E[3167347] = 12
+K[3167348] = K[3167330]; E[3167348] = 13
+K[3167349] = K[3167330]; E[3167349] = 14
+K[3167351] = K[3167330]; E[3167351] = 15
+K[3167353] = K[3167330]; E[3167353] = 17
+K[3167354] = K[3167330]; E[3167354] = 18
+K[3167358] = K[3167357]; E[3167358] = 1
+K[3167359] = K[3167357]; E[3167359] = 2
+K[3167360] = K[3167357]; E[3167360] = 3
+K[3167362] = K[3167357]; E[3167362] = 4
+K[3167368] = K[3167365]; E[3167368] = 1
+K[3167369] = K[3167365]; E[3167369] = 2
+K[3167370] = K[3167365]; E[3167370] = 3
+K[3167371] = K[3167365]; E[3167371] = 4
+K[3167372] = K[3167365]; E[3167372] = 5
+K[3167373] = K[3167365]; E[3167373] = 6
+K[3167374] = K[3167365]; E[3167374] = 7
+K[3167375] = K[3167365]; E[3167375] = 8
+K[3167376] = K[3167365]; E[3167376] = 9
+K[3167377] = K[3167365]; E[3167377] = 10
+K[3167379] = K[3167365]; E[3167379] = 11
+K[3167417] = K[3167414]; E[3167417] = 1
+K[3167418] = K[3167414]; E[3167418] = 2
+K[3167419] = K[3167414]; E[3167419] = 3
+K[3167420] = K[3167414]; E[3167420] = 4
+K[3167421] = K[3167414]; E[3167421] = 5
+K[3167424] = K[3167414]; E[3167424] = 6
+K[3167425] = K[3167414]; E[3167425] = 7
+K[3167426] = K[3167414]; E[3167426] = 8
+K[3167427] = K[3167414]; E[3167427] = 9
+K[3167428] = K[3167414]; E[3167428] = 10
+K[3167429] = K[3167414]; E[3167429] = 11
+K[3167430] = K[3167414]; E[3167430] = 12
+K[3167431] = K[3167414]; E[3167431] = 13
+K[3167432] = K[3167414]; E[3167432] = 14
+K[3167433] = K[3167414]; E[3167433] = 15
+K[3167436] = K[3167414]; E[3167436] = 16
+K[3167437] = K[3167414]; E[3167437] = 17
+K[3167438] = K[3167414]; E[3167438] = 18
+K[3167439] = K[3167414]; E[3167439] = 19
+K[3167440] = K[3167414]; E[3167440] = 20
+K[3167442] = K[3167414]; E[3167442] = 21
+K[3167449] = K[3167448]; E[3167449] = 1
+K[3167450] = K[3167448]; E[3167450] = 2
+K[3167451] = K[3167448]; E[3167451] = 3
+K[3167452] = K[3167448]; E[3167452] = 4
+K[3167453] = K[3167448]; E[3167453] = 5
+K[3167456] = K[3167448]; E[3167456] = 6
+K[3167457] = K[3167448]; E[3167457] = 7
+K[3167458] = K[3167448]; E[3167458] = 8
+K[3167459] = K[3167448]; E[3167459] = 9
+K[3167469] = K[3167468]; E[3167469] = 1
+K[3167470] = K[3167468]; E[3167470] = 2
+K[3167471] = K[3167468]; E[3167471] = 3
+K[3167472] = K[3167468]; E[3167472] = 4
+K[3167473] = K[3167468]; E[3167473] = 5
+K[3167474] = K[3167468]; E[3167474] = 6
+K[3167475] = K[3167468]; E[3167475] = 7
+K[3167477] = K[3167468]; E[3167477] = 8
+K[3167479] = K[3167468]; E[3167479] = 9
+K[3167482] = K[3167468]; E[3167482] = 10
+K[3167483] = K[3167468]; E[3167483] = 11
+K[3167484] = K[3167468]; E[3167484] = 12
+K[3167485] = K[3167468]; E[3167485] = 13
+K[3167486] = K[3167468]; E[3167486] = 14
+K[3167487] = K[3167468]; E[3167487] = 15
+K[3167490] = K[3167468]; E[3167490] = 16
+K[3167491] = K[3167468]; E[3167491] = 17
+K[3167492] = K[3167468]; E[3167492] = 18
+K[3167493] = K[3167468]; E[3167493] = 19
+K[3167494] = K[3167468]; E[3167494] = 20
+K[3167497] = K[3167468]; E[3167497] = 21
+K[3167498] = K[3167468]; E[3167498] = 22
+K[3167499] = K[3167468]; E[3167499] = 23
+K[3167500] = K[3167468]; E[3167500] = 24
+K[3167502] = K[3167468]; E[3167502] = 25
+K[3167505] = K[3167468]; E[3167505] = 26
+K[3167506] = K[3167468]; E[3167506] = 27
+K[3167507] = K[3167468]; E[3167507] = 28
+K[3167510] = K[3167468]; E[3167510] = 29
+K[3167511] = K[3167468]; E[3167511] = 30
+K[3167512] = K[3167468]; E[3167512] = 31
+K[3167516] = K[3167514]; E[3167516] = 1
+K[3167517] = K[3167514]; E[3167517] = 2
 K[3167521] = K[3167518]; E[3167521] = 1
 K[3167525] = K[3167518]; E[3167525] = 3
 K[3167527] = K[3167518]; E[3167527] = 4
@@ -53243,6 +60239,8 @@ K[3167581] = K[3167557]; E[3167581] = 17
 K[3167584] = K[3167583]; E[3167584] = 1
 K[3167585] = K[3167583]; E[3167585] = 2
 K[3167587] = K[3167583]; E[3167587] = 3
+K[3167590] = K[3167589]; E[3167590] = 1
+K[3167591] = K[3167589]; E[3167591] = 2
 K[3167595] = K[3167593]; E[3167595] = 1
 K[3167596] = K[3167593]; E[3167596] = 2
 K[3167598] = K[3167593]; E[3167598] = 3
@@ -53254,15 +60252,50 @@ K[3167607] = K[3167593]; E[3167607] = 8
 K[3167610] = K[3167593]; E[3167610] = 9
 K[3167611] = K[3167593]; E[3167611] = 10
 K[3167613] = K[3167593]; E[3167613] = 11
-K[3167618] = K[3167617]; E[3167618] = 1
-K[3167620] = K[3167617]; E[3167620] = 2
-K[3167622] = K[3167617]; E[3167622] = 3
+K[3167618] = K[3167615]; E[3167618] = 2
+K[3167620] = K[3167615]; E[3167620] = 3
+K[3167622] = K[3167615]; E[3167622] = 4
 K[3167626] = K[3167624]; E[3167626] = 1
 K[3167627] = K[3167624]; E[3167627] = 2
 K[3167628] = K[3167624]; E[3167628] = 3
 K[3167629] = K[3167624]; E[3167629] = 4
-K[3167727] = K[3167726]; E[3167727] = 1
-K[3167728] = K[3167726]; E[3167728] = 2
+K[3167633] = K[3167631]; E[3167633] = 1
+K[3167634] = K[3167631]; E[3167634] = 2
+K[3167636] = K[3167631]; E[3167636] = 3
+K[3167639] = K[3167631]; E[3167639] = 4
+K[3167640] = K[3167631]; E[3167640] = 5
+K[3167641] = K[3167631]; E[3167641] = 6
+K[3167642] = K[3167631]; E[3167642] = 7
+K[3167643] = K[3167631]; E[3167643] = 8
+K[3167644] = K[3167631]; E[3167644] = 9
+K[3167645] = K[3167631]; E[3167645] = 10
+K[3167648] = K[3167631]; E[3167648] = 11
+K[3167649] = K[3167631]; E[3167649] = 12
+K[3167650] = K[3167631]; E[3167650] = 13
+K[3167651] = K[3167631]; E[3167651] = 14
+K[3167654] = K[3167631]; E[3167654] = 15
+K[3167655] = K[3167631]; E[3167655] = 16
+K[3167656] = K[3167631]; E[3167656] = 17
+K[3167658] = K[3167631]; E[3167658] = 18
+K[3167659] = K[3167631]; E[3167659] = 19
+K[3167660] = K[3167631]; E[3167660] = 20
+K[3167662] = K[3167631]; E[3167662] = 21
+K[3167666] = K[3167631]; E[3167666] = 23
+K[3167667] = K[3167631]; E[3167667] = 24
+K[3167668] = K[3167631]; E[3167668] = 25
+K[3167669] = K[3167631]; E[3167669] = 26
+K[3167670] = K[3167631]; E[3167670] = 27
+K[3167671] = K[3167631]; E[3167671] = 28
+K[3167674] = K[3167631]; E[3167674] = 29
+K[3167675] = K[3167631]; E[3167675] = 30
+K[3167676] = K[3167631]; E[3167676] = 31
+K[3167681] = K[3167680]; E[3167681] = 1
+K[3167720] = K[3167718]; E[3167720] = 1
+K[3167721] = K[3167718]; E[3167721] = 2
+K[3167723] = K[3167718]; E[3167723] = 3
+K[3167725] = K[3167718]; E[3167725] = 4
+K[3167727] = K[3167718]; E[3167727] = 6
+K[3167728] = K[3167718]; E[3167728] = 7
 K[3167734] = K[3167731]; E[3167734] = 1
 K[3167735] = K[3167731]; E[3167735] = 2
 K[3167736] = K[3167731]; E[3167736] = 3
@@ -53312,6 +60345,28 @@ K[3167813] = K[3167807]; E[3167813] = 4
 K[3167815] = K[3167814]; E[3167815] = 1
 K[3167816] = K[3167814]; E[3167816] = 2
 K[3167818] = K[3167814]; E[3167818] = 3
+K[3167950] = K[3167947]; E[3167950] = 1
+K[3167951] = K[3167947]; E[3167951] = 2
+K[3167953] = K[3167947]; E[3167953] = 3
+K[3167954] = K[3167947]; E[3167954] = 4
+K[3167955] = K[3167947]; E[3167955] = 5
+K[3167956] = K[3167947]; E[3167956] = 6
+K[3167958] = K[3167947]; E[3167958] = 7
+K[3167959] = K[3167947]; E[3167959] = 8
+K[3167960] = K[3167947]; E[3167960] = 9
+K[3167965] = K[3167962]; E[3167965] = 1
+K[3167966] = K[3167962]; E[3167966] = 2
+K[3167967] = K[3167962]; E[3167967] = 3
+K[3167968] = K[3167962]; E[3167968] = 4
+K[3167973] = K[3167971]; E[3167973] = 1
+K[3167985] = K[3167984]; E[3167985] = 1
+K[3167986] = K[3167984]; E[3167986] = 2
+K[3167989] = K[3167984]; E[3167989] = 3
+K[3167990] = K[3167984]; E[3167990] = 4
+K[3167991] = K[3167984]; E[3167991] = 5
+K[3167995] = K[3167992]; E[3167995] = 1
+K[3167997] = K[3167992]; E[3167997] = 2
+K[3167999] = K[3167992]; E[3167999] = 3
 K[3168255] = K[3168252]; E[3168255] = 1
 K[3168257] = K[3168252]; E[3168257] = 2
 env.entry = E

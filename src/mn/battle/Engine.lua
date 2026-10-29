@@ -59,10 +59,10 @@ local function say(s, script, extra)
   ev.text = Data.render(s.data, script, ev.subs)
   return emit(s, ev)
 end
-local function anim(s, script)
+local function anim(s, script, bank)
   -- StagePointerUnlessD0B6Matches: the move animation is skipped on self-targets
   if rd(s, 0xD0B6) == rd(s, 0xD103) then return end
-  emit(s, { t = "anim", script = script, actor = rd(s, 0xD0DB), target = rd(s, 0xD112),
+  return emit(s, { t = "anim", bank = bank or 0x4C, script = script, actor = rd(s, 0xD0DB), target = rd(s, 0xD112),
     actorSlot = rd(s, 0xD0B6), targetSlot = rd(s, 0xD103) })
 end
 -- ApplyIndexedIdRecord (5:$57BA) parameters: which portrait shows which face.
@@ -1057,9 +1057,11 @@ end
 SPECIAL[0x5207] = function(s) -- Spell: CopyD107GroupThenScript4A40
   local g = s.data.groups[rp(s, 0xD107)]
   say(s, 0x4A40, { nameOf(s, rd(s, 0xD0DB)), g and g.name or "?" })
-  -- the record's +$1F..+$21 animation is staged unless the caster targets itself (UI only)
-  if g and rd(s, 0xD0B6) ~= rd(s, 0xD103) then
-    emit(s, { t = "anim", script = g.raw[0x20] + g.raw[0x21] * 256, group = g.ptr })
+  -- the record's animation (bank +$1F, pointer +$20/+$21, copied to $CDB0..$CDB2) is staged
+  -- unless the caster targets itself (UI only)
+  if g then
+    local ev = anim(s, g.raw[0x20] + g.raw[0x21] * 256, g.raw[0x1F])
+    if ev then ev.group = g.ptr end
   end
   E.groupEffect(s, g)
 end

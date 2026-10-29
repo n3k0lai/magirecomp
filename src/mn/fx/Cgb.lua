@@ -81,6 +81,21 @@ function M.new(rom, blocksfactory)
 end
 
 function M:dobail() self.bail = true; self.env.lim(-1) end
+
+-- a copy of the machine (memories, CPU/PPU/timer state, registers) that runs on independently; the
+-- battle animations start each run from one machine stopped at the game's own call site
+local SHARED = { rom = true, env = true, K = true, E = true, hook = true, watch = true }
+local function deep(v)
+  if type(v) ~= "table" then return v end
+  local t = {} for k, x in pairs(v) do t[k] = deep(x) end return t
+end
+function M:clone(blocksfactory)
+  local m = M.new(self.rom, blocksfactory)
+  for k, v in pairs(self) do if not SHARED[k] then m[k] = deep(v) end end
+  local e = self.env
+  m.env.setregs(e.regs()); m.env.cy(e.cy()); m.env.lim(e.lim())
+  return m
+end
 function M:write(a, v) self:W(a, v, self.env.cy(), 0) end
 
 -- ------------------------------------------------------------------ timer
