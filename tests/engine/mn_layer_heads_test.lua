@@ -1,6 +1,6 @@
 -- mn.LayerHeads: the $02 layer heads (4F0D/4FB7/5061/510B), the $01 layer
 -- heads (56DC idle, 5798/5818/58A7/5936), the 5DB5 head-word run and the
--- bank-$20 script frames ($4C/$4D/$46/$10). Made-up script bytes and cells only.
+-- bank-$20 script frames ($4C/$4D/$46/$10). Made-up script bytes and cells; MN_ROM adds the real 20:5C7A.
 --   luajit tests/engine/mn_layer_heads_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
 
@@ -166,6 +166,28 @@ do
   ok(px(lw) == "16,18", "5798 walks down by the script")
   io.held = 0xA0; LH.tick(lw, io)
   ok(lw.head == 0x5818 and lw.hb == 1, "down with left held plants 57F9")
+end
+
+-- With MN_ROM set (the user's own ROM; nothing from it is committed): the real 4ED4 entry
+-- script 20:5C7A. $4C records (00:1560) step one per frame, the zero count dispatches the
+-- $4D (00:15E8) in the same pass; 23 frames net +29 px, then the slide at +4 a frame.
+do
+  local romPath = os.getenv("MN_ROM")
+  local f = romPath and io.open(romPath, "rb")
+  if f then
+    local rom = f:read("*a"); f:close()
+    local function rrd(a) return rom:byte(0x20 * 0x4000 + (a - 0x4000) + 1) end
+    local lw = LH.new(rrd, 0, 0, 8); LH.plant(lw, 0x5C7A)
+    local function s8(v) return v >= 128 and v - 256 or v end
+    local sum, seq = 0, {}
+    for i = 1, 23 do LH.frame(lw); sum = sum + s8(lw.st.sy); seq[i] = s8(lw.st.sy) end
+    ok(sum == 29 and seq[1] == -2 and seq[23] == 1, "5C7A: $4C rise and fall, 23 frames net +29 px")
+    local slide = true
+    for _ = 1, 4 do LH.frame(lw); if s8(lw.st.sy) ~= 4 then slide = false end end
+    ok(slide, "5C7A: then the $4D slide at 4 px a frame")
+  else
+    print("mn_layer_heads: MN_ROM not set, 20:5C7A check skipped")
+  end
 end
 
 print(("mn_layer_heads: %d checks, %d failures"):format(checks, failures))
