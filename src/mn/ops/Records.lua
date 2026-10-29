@@ -310,6 +310,46 @@ M.handlers[0x68] = function(vm, o, n)
   return o + n
 end
 
+-- $67 CallScriptUnpackHeaderAndBlock (call_script_unpack_header_and_block.asm):
+-- (ptr, bank) twice, then on to the next op ($0A66 with BC past the six bytes).
+-- The first stream goes through UnpackMapHeaderIntoWRAMBank3 ($2F37): byte 0
+-- is the row stride ($C847), bytes 1-2 the word at $C849, byte 3 the camera
+-- column limit, byte 4 the camera row limit, two bytes skipped, then the
+-- packed metatile plane at WRAM 3 $D000. The map column/row, fine scroll,
+-- load latches and countdowns are cleared and $C842 = $44 (no step left or up
+-- past the origin). The second stream is UnpackBlockIntoWRAMBank5 ($2DDC):
+-- byte 0 to $C6CF, two skipped, the packed collision plane at WRAM 5 $D000.
+-- No decoded script uses $67; the host swaps both planes of the live map.
+M.handlers[0x67] = function(vm, o, n)
+  local r = vm.rom
+  for _, a in ipairs({ 0xC85F, 0xC860, 0xC85D, 0xC85E, 0xC86A, 0xC892, 0xC869, 0xC891, 0xC843, 0xC844 }) do vm:wr8(a, 0) end
+  vm:wr8(0xC842, 0x44)
+  if vm.host and vm.host.unpackMap then
+    local hdr = vm.host.unpackMap(r:u16(o + 1), r:u8(o + 3), r:u16(o + 4), r:u8(o + 6))
+    if hdr then
+      vm:wr8(0xC847, hdr.stride); vm:wr8(0xC849, hdr.word % 256); vm:wr8(0xC84A, rshift(hdr.word, 8))
+      vm:wr8(0xC845, hdr.camCol); vm:wr8(0xC846, hdr.camRow); vm:wr8(0xC848, (hdr.camRow + 0x0A) % 256)
+      vm:wr8(0xC6CF, hdr.c6cf)
+      local stride, acc = hdr.stride, 0
+      vm:wr8(0xC84B, 0); vm:wr8(0xC84C, 0)
+      for k = 0, 7 do acc = acc + stride; vm:wr8(0xC84D + 2 * k, acc % 256); vm:wr8(0xC84E + 2 * k, rshift(acc, 8) % 256) end
+    end
+  end
+  return o + n
+end
+
+-- Split out so tests can feed made-up streams: the $2F37 header and the
+-- $2DDC block, read from R (an MnRom) at their file offsets.
+function M.readMapPlanes(R, hdrOff, blkOff)
+  local stride = R:u8(hdrOff)
+  local cells = R:unpack(hdrOff + 7)
+  return {
+    stride = stride, word = R:u16(hdrOff + 1),
+    camCol = R:u8(hdrOff + 3), camRow = R:u8(hdrOff + 4),
+    cells = cells, c6cf = R:u8(blkOff), block = R:unpack(blkOff + 3),
+  }
+end
+
 -- Record bases are $C189 + slot * $1B (record_slot_bases.asm). Spawned objects
 -- already hold cell X/Y (.x/.y) and the tile base (.base). Fine X/Y and the
 -- cell pointer are the bytes opcode $05 writes as $08,$08 and the address word;
@@ -367,6 +407,26 @@ function M.host(ow, h)
     local mt = R:unpack(MnRom.off(mtPtr, mtBank) + 7)
     local col = R:unpack(MnRom.off(colPtr, colBank) + 3)
     ow._ovDef, ow.ovMt, ow.ovCol = ow.def, mt, col
+  end
+
+  -- $67: both planes of the live map, from the full ROM. Every new cell is
+  -- patched over the drawn map, so the old image never shows through.
+  h.unpackMap = function(hPtr, hBank, bPtr, bBank)
+    local R = h.fullRom and h.fullRom()
+    if not R or not ow.def then return end
+    local MnRom = require("mn.MnRom")
+    local p = M.readMapPlanes(R, MnRom.off(hPtr, hBank), MnRom.off(bPtr, bBank))
+    local d = {}
+    for k, v in pairs(ow.def) do d[k] = v end
+    local w = p.stride > 0 and p.stride or 1
+    d.w, d.h = w, math.floor(#p.cells / w)
+    d.cells, d.block, d.camCol, d.camRow = p.cells, p.block, p.camCol, p.camRow
+    ow.def, ow.patches = d, {}
+    for i = 1, #p.cells do
+      ow.patches[i] = { x = (i - 1) % w, y = math.floor((i - 1) / w), mt = p.cells[i] }
+    end
+    ow.camOff, ow.camFix = nil, nil
+    return p
   end
 
   h.setOverlayCell = function(addr, col, mt)
