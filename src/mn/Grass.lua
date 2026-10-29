@@ -127,13 +127,31 @@ function M.walk(ow)
   if not M.advance(vm, cellOf(ow)) then return false end
   local bank = vm:rd8(M.RECORD)
   local ptr = vm:rd8(M.RECORD + 1) + lshift(vm:rd8(M.RECORD + 2), 8)
-  -- the planted record runs through the field script handler, then is
-  -- consumed (as the start-menu save path does); a stale $C716 would block
-  -- the next countdown and the start menu
-  for a = M.RECORD, M.RECORD + 4 do vm:wr8(a, 0) end
-  if os.getenv("MN_NOENC") == "1" then return false end
+  -- The record stays planted while its script runs: $C716 is nonzero, so
+  -- AdvanceCell82Countdown is gated off until the battle's return path
+  -- (M.afterBattle) leaves 00 00 00 02 14 there.
+  if os.getenv("MN_NOENC") == "1" then
+    -- harness only: the script never runs, so drop the record now
+    M.afterBattle(vm)
+    return false
+  end
   if ow.runScript then ow:runScript(bank, ptr, "grass") end
   return true
+end
+
+-- Return path after a battle. Every encounter script (13:5F7C picks one of
+-- eight) runs Opcode25 (opcode_25.asm, $0EC5): it stores the third record
+-- back with hScriptHandler $0F59 and the pointer past its operands, so $C716
+-- stays nonzero. HaltClearD3C2 ($0F39) then parks it on itself. Bank 4's
+-- $6416 runs FinishFrame until $C708 is zero, calls bank 2 $5E6D and jumps
+-- to Reset's `ld sp, wStackTop` ($015B). Reset clears WRAM $C000-$CDD7, so
+-- $C714 reads 0; finish_startup.asm then stores 00 00 02 14 at $C715-$C718.
+-- The port keeps the field through the battle, so only the record bytes are
+-- rewritten when it ends.
+function M.afterBattle(vm)
+  vm:wr8(M.RECORD, 0)
+  vm:wr8(M.RECORD + 1, 0x00); vm:wr8(M.RECORD + 2, 0x00)
+  vm:wr8(M.RECORD + 3, 0x02); vm:wr8(M.RECORD + 4, 0x14)
 end
 
 return M

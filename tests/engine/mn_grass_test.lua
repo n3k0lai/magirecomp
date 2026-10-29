@@ -82,8 +82,15 @@ do
   ok(ow.why == "grass", "the walk reports a grass script")
   ok(ow.vm:rd8(MARK) == 0x5A, "the armed script stored its byte")
   ok(ow.vm:rd8(Grass.COUNT) == 0xFF, "staging reloads the count sentinel")
-  ok(ow.vm:rd8(Grass.RECORD + 2) == 0 and ow.vm:rd8(Grass.RECORD) == 0, "the record is consumed when the script starts")
+  ok(ow.vm:rd8(Grass.RECORD + 2) ~= 0, "the record stays planted while its script runs ($C716 nonzero)")
   ow.vm:wr8(MARK, 0)
+  for _ = 1, FIRE do pass(ow) end
+  ok(ow.vm:rd8(MARK) == 0 and ow.vm:rd8(Grass.COUNT) == 0xFF, "a planted record gates the countdown off")
+  -- battle return: Reset's WRAM clear, then finish_startup's $C715 quad
+  Grass.afterBattle(ow.vm)
+  local rb = {}
+  for i = 0, 4 do rb[#rb + 1] = ow.vm:rd8(Grass.RECORD + i) end
+  ok(table.concat(rb, ",") == "0,0,0,2,20", "after the battle the record reads 00 00 00 02 14")
   ok(pass(ow) == false and ow.vm:rd8(MARK) == 0, "the next pass only reloads the countdown")
   for _ = 1, FIRE do pass(ow) end
   ok(ow.vm:rd8(MARK) == 0x5A, "a second countdown fires again")

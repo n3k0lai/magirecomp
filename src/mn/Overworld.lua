@@ -672,7 +672,10 @@ function M:update()
   end
   if self.battle then
     local done = self.battle:update()
-    if done then self.log[#self.log + 1] = ("battle end: %s"):format(tostring(done)); self.battle = nil; self.battleResult = done end
+    if done then
+      self.log[#self.log + 1] = ("battle end: %s"):format(tostring(done)); self.battle = nil; self.battleResult = done
+      Grass.afterBattle(self.vm) -- Reset's WRAM clear + finish_startup's $C715 quad
+    end
     self.vm:tickThreads(false)
     return
   end
