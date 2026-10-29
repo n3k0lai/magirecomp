@@ -15,6 +15,8 @@ local Kick = require("mn.Kick")
 local Push = require("mn.Push")
 local Grass = require("mn.Grass")
 local Travel = require("mn.ops.Travel")
+local Panels = require("mn.ops.Panels")
+local LivePalette = require("mn.LivePalette")
 local Viewport = require("mn.Viewport")
 local EdgeFill = require("mn.EdgeFill")
 local EdgeFillMaps = require("mn.EdgeFillMaps")
@@ -34,6 +36,14 @@ function M.new(mapIndex, x, y, input)
   for i = 1, s.player.frames do s.quads[i] = love.graphics.newQuad((i - 1) * 32, 0, 32, 32, s.sheet:getDimensions()) end
   s.font = love.graphics.newFont(8); s.font:setFilter("nearest", "nearest")
   s.vm = VM.new(rom, s:host())
+  -- OBJ palettes: sprites are baked with the $21:$5CC0 block (the one 691 of
+  -- the 693 reachable $66 ops load). Until a $66 runs, the live OBJ block
+  -- starts as that block rather than all black.
+  s.objBase = s:paletteBlock(0x21, 0x5CC0)
+  local blank = true
+  for a = 0xC7EB, 0xC82A do if s.vm:rd8(a) ~= 0 then blank = false end end
+  if blank then Panels.loadPalettes(s.vm, s.objBase, true) end
+  if love.graphics.newShader then s.livePal = LivePalette.new(s.objBase) end
   -- default_state: $FFAA/$FFAB start at 3 (bit 1 lets HandleStartPress open the menu)
   if s.vm:rd8(0xFFAA) == 0 and s.vm:rd8(0xFFAB) == 0 then s.vm:wr8(0xFFAA, 3); s.vm:wr8(0xFFAB, 3) end
   -- WriteC12APatternBank5 (05:6C08), before the map script's opcode $85
@@ -57,7 +67,6 @@ function M:host()
       s:scriptSnapshot(i)
       s:enterMap(i, s.x, s.y); s.rebased = false
       if keepThreads then s.vm.threads = keepThreads end
-      if s.sfade and s.sfade.to == 1 then s.sfade = { c = s.sfade.c, from = 1, to = 0, t = 0, dur = 16 } end
       if keep then for k, ob in pairs(keep) do s.objects[k] = ob end end
     end,
     freshScene = function() -- records and their threads start over (the running script survives)
@@ -87,11 +96,6 @@ function M:host()
     -- WRAM 3, and collision plane, WRAM 5) from src to dst. PyBoy map 222 cave-in:
     -- src $D012 (hidden rubble template, row 0) -> dst $D061, one cell per frame.
     mapWidth = function() return s.def.w end,
-    fade = function(word, toColor)
-      local c = { bit.band(word, 31) / 31, bit.band(bit.rshift(word, 5), 31) / 31, bit.band(bit.rshift(word, 10), 31) / 31 }
-      if toColor then s.sfade = { c = c, from = s.sfade and s.sfade.to or 0, to = 1, t = 0, dur = 16 }
-      elseif s.sfade then s.sfade = { c = s.sfade.c, from = 1, to = 0, t = 0, dur = 16 } end
-    end,
     copyCell = function(si, di)
       local d = s.def
       local mt = d.cells[si + 1]
@@ -112,7 +116,9 @@ function M:host()
     end,
     got = function(cat, id, cnt) s.log[#s.log + 1] = ("got %d:%d x%d"):format(cat, id, cnt) end,
     sound = function() end,
-    objPalette = function() end,
+    -- $66 -> FillC76BFromBCThenOBJPalettes ($2EE9): 32 words to $C76B, then
+    -- the target block is copied live and uploaded.
+    objPalette = function(bank, ptr) Panels.loadPalettes(s.vm, s:paletteBlock(bank, ptr), true) end,
     playerCell = function() return s.x, s.y end,
     cellOpen = function(x, y) return World.walkable(World.cell(s.def, x, y)) end,
     placePlayer = function(x, y) s.x, s.y = x, y; s:snap(); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end,
@@ -317,11 +323,27 @@ end
 
 function M:snap() self.px, self.py = self.x * 16, self.y * 16 end
 
+-- 32 RGB555 words at bank:ptr in the cached script banks (0-based)
+function M:paletteBlock(bank, ptr)
+  local r, o, w = self.vm.rom, bank * 0x4000 + ptr - 0x4000, {}
+  for k = 0, 31 do w[k] = r:u16(o + 2 * k) end
+  return w
+end
+
 function M:enterMap(i, x, y)
   self.def = Importer.loadMap(i); self.map = i; self.objects = {}
+  -- $65 LoadFiveBankedMapSources -> FillC72BFromBCThenBank7 ($2EC3): slot 0's
+  -- 32 words land in $C72B, are copied to $C7AB and uploaded the same frame
+  if self.def.bgWords then
+    local w = {}; for k = 0, 31 do w[k] = self.def.bgWords[k + 1] end
+    Panels.loadPalettes(self.vm, w, false)
+  end
   self.x, self.y = x, y; self:snap(); self.moving = nil; self.facing = self.facing or "down"
   self:settleAList(); self.camOff = nil; self.camFix = nil; self.patches = {}
   self.atlas = love.graphics.newImage(("%s/maps/%03d_meta.png"):format(Importer.CACHE, i)); self.atlas:setFilter("nearest", "nearest")
+  local ai = ("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, i)
+  self.atlasIndex = self.def.index and love.filesystem.getInfo(ai) and love.graphics.newImage(ai) or nil
+  if self.atlasIndex then self.atlasIndex:setFilter("nearest", "nearest") end
   local ov = love.filesystem.read(("%s/maps/%03d.obj"):format(Importer.CACHE, i))
   self.obj = {}; for k = 1, #ov do self.obj[k - 1] = ov:byte(k) end
   self.log[#self.log + 1] = ("enter map %d at %d,%d"):format(i, x, y)
@@ -853,10 +875,15 @@ function M:drawField(vw, vh, ux, uy)
     self:classicFrame(wide, ux, uy, function() self.picture:draw() end)
   else
   if wide then self:drawEdgeFill(L, T, vw, vh) end
-  love.graphics.draw(self.def.image, -L, -T)
+  -- the field shows the live palette block $C7AB (mn.LivePalette): fades and
+  -- color cycling are the palette ops walking those words
+  local lp = self.livePal and self.def.index and self.atlasIndex and self.livePal
+  if lp then lp:update(self.vm); love.graphics.setShader(lp.bg) end
+  love.graphics.draw(lp and self.def.index or self.def.image, -L, -T)
   for _, p in ipairs(self.patches) do
-    love.graphics.draw(self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - L, p.y * 16 - T)
+    love.graphics.draw(lp and self.atlasIndex or self.atlas, love.graphics.newQuad((p.mt % 16) * 16, math.floor(p.mt / 16) * 16, 16, 16, 256, 256), p.x * 16 - L, p.y * 16 - T)
   end
+  if lp then love.graphics.setShader(lp.obj) end
   for _, o in pairs(self.objects) do
     if o.dirty then Sprites.build(self, o); o.dirty = false end
     if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.panv and table.concat(self.panv, ",") or "-")) end
@@ -879,25 +906,7 @@ function M:drawField(vw, vh, ux, uy)
     if img then love.graphics.draw(img, self.px - L - 24, self.py - T - 24)
     else love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - L - 8, self.py - T - 8) end
   end
-  end
-  -- title-card fade: while [$C6F3] == 0 the scene sits at palette black
-  -- ((0,16,0) in PyBoy); when the director sets it to 1 it fades in over $40
-  -- frames (the $6F $87,$0040 stage before FinishStartup).
-  local f3 = self.vm.mem[0xC6F3]
-  if f3 == 0 then self.fadeT = 0 elseif f3 == 1 and self.fadeT then self.fadeT = self.fadeT + 1; if self.fadeT > 64 then self.fadeT = nil end end
-  if self.fadeT and not self.picture then -- the field's startup fade; cards use the $6E/$6F fades
-    love.graphics.setColor(0, 16 / 255, 0, 1 - self.fadeT / 64)
-    love.graphics.rectangle("fill", 0, 0, vw, vh)
-    love.graphics.setColor(1, 1, 1, 1)
-  end
-  -- script fades ($6E to a colour, $6F back from it): BGR555 colour over the scene
-  local sf = self.sfade
-  if sf then
-    sf.t = math.min(sf.dur, sf.t + 1)
-    local a = sf.from + (sf.to - sf.from) * sf.t / sf.dur
-    if a > 0 then
-      love.graphics.setColor(sf.c[1], sf.c[2], sf.c[3], a); love.graphics.rectangle("fill", 0, 0, vw, vh); love.graphics.setColor(1, 1, 1, 1)
-    elseif sf.t >= sf.dur then self.sfade = nil end
+  if lp then love.graphics.setShader() end
   end
   if self.textBox then self:classicFrame(wide, ux, uy, function() Font.drawTyped(self.textBox, self.def.pal7, self.vm.rom) end) end
 end

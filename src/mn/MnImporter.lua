@@ -6,7 +6,7 @@ local M = {}
 
 M.SHA1 = "9972a7bca43210b4b6c0b3f6ee5d1957a865e12d" -- Magi-Nation (USA) GBC
 M.CACHE = "mn_cache"
-M.VERSION = 14
+M.VERSION = 15
 
 local function ser(v, ind)
   ind = ind or ""
@@ -145,6 +145,16 @@ function M.import(bytes, log)
     for k = 0, 255 do fake.map.cells[k + 1] = k end
     MnRom.render(fake, function(x, y, r, g, b) at:setPixel(x, y, r, g, b, 1) end)
     love.filesystem.write(("%s/maps/%03d_meta.png"):format(M.CACHE, i), at:encode("png"))
+    -- palette-index twins of both images: red = (palette * 4 + color) * 8 + 4.
+    -- The field draws them through the live palette block at $C7AB
+    -- (mn.LivePalette), so script fades and color cycling show.
+    local ipal = MnRom.indexPalettes()
+    local ii = love.image.newImageData(W * 16, H * 16)
+    MnRom.render({ map = m.map, meta = m.meta, palettes = ipal, vram = m.vram }, function(x, y, r, g, b) ii:setPixel(x, y, r, g, b, 1) end)
+    love.filesystem.write(("%s/maps/%03d_idx.png"):format(M.CACHE, i), ii:encode("png"))
+    local ai = love.image.newImageData(256, 256)
+    MnRom.render({ map = fake.map, meta = m.meta, palettes = ipal, vram = m.vram }, function(x, y, r, g, b) ai:setPixel(x, y, r, g, b, 1) end)
+    love.filesystem.write(("%s/maps/%03d_meta_idx.png"):format(M.CACHE, i), ai:encode("png"))
     -- trigger list: first entry script for this map whose $64 list parses
     -- as real records (some entries match the 65 xx xx 4F scan by accident
     -- and point at graphics: maps 40, 73, 198)
@@ -163,6 +173,9 @@ function M.import(bytes, log)
     end
     local def = { index = i, w = W, h = H, pal7 = m.palettes[7], camCol = m.map.cameraCols, camRow = m.map.cameraRows, cells = m.map.cells, block = m.block.cells,
       triggerList = listPtr, triggers = triggers, entries = byMap[i] or {} }
+    -- slot 0 as raw RGB555 (1-based): $65 loads these into $C72B/$C7AB
+    local bw = rom:paletteWords(m.sources[0]); def.bgWords = {}
+    for k = 0, 31 do def.bgWords[k + 1] = bw[k] end
     love.filesystem.write(("%s/maps/%03d.lua"):format(M.CACHE, i), "return " .. ser(def))
     index[#index + 1] = { i = i, w = W, h = H, n = #triggers }
   end
@@ -221,6 +234,10 @@ function M.loadMap(i)
   def.image = love.graphics and love.graphics.newImage and
     love.graphics.newImage(("%s/maps/%03d.png"):format(M.CACHE, i)) or nil
   if def.image then def.image:setFilter("nearest", "nearest") end
+  local ip = ("%s/maps/%03d_idx.png"):format(M.CACHE, i)
+  if def.image and love.filesystem.getInfo and love.filesystem.getInfo(ip) then
+    def.index = love.graphics.newImage(ip); def.index:setFilter("nearest", "nearest")
+  end
   return def
 end
 

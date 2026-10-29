@@ -69,6 +69,24 @@ function M:palettes(src)
   return pals
 end
 
+-- 32 RGB555 words of slot 0 (the map's BG palettes), 0-based.
+function M:paletteWords(src)
+  local o, w = M.off(src.ptr, src.bank), {}
+  for k = 0, 31 do w[k] = self:u16(o + 2 * k) end
+  return w
+end
+
+-- Stand-in palettes for MnRom.render that encode (palette, color) in red:
+-- (p * 4 + c) * 8 + 4, decoded as floor(red * 255 / 8).
+function M.indexPalettes()
+  local pals = {}
+  for p = 0, 7 do
+    pals[p] = {}
+    for c = 0, 3 do pals[p][c] = { ((p * 4 + c) * 8 + 4) / 255, 0, 0 } end
+  end
+  return pals
+end
+
 -- slot 1: CopyMapRecords. Two counted lists (VRAM bank 0, bank 1) of 7-byte
 -- records: dw dest, dw src, db tiles (bit4 => src stride $100), db rows, db bank.
 -- Returns vram[0..1] as Lua arrays indexed by (addr-$8000).

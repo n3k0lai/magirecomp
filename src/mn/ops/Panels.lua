@@ -18,9 +18,10 @@
 -- the same shape as a $20/$40 countdown except it does not stall the
 -- caller. $C9C3/$C9C4 are panel-scroll bytes; nothing here moves a camera.
 --
--- $6C/$6D stage BG palette words in $C72B/$C7AB. Overworld.sfade is the
--- full-screen $6E/$6F fade, not this block, so there is no host callback.
--- visual: palette upload, not drawn yet.
+-- $6C/$6D and the screen palette ops ($6E/$6F/$76/$77/$79/$7A/$7B) all
+-- work on the palette blocks at $C72B (target) and $C7AB (live). The
+-- overworld draws through the live block (mn.LivePalette), so these
+-- are the field's fades; nothing else fades the screen.
 local bit = require("bit")
 local band, rshift, lshift = bit.band, bit.rshift, bit.lshift
 
@@ -588,6 +589,260 @@ M.handlers[0x6D] = function(vm, o, n, cur)
     vm:wr8(0xC9DC, 1)
     vm:wr8(0xC938, 7)
     applyPanelColor(vm)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+---------------------------------------------------------------------------
+-- Screen palette ops. $C72B is the target block (8 BG then 8 OBJ
+-- palettes, 4 words each). $C7AB, $80 past it, is the live block that
+-- RefreshSavedPalettes (bank 7 $4575, the planted callback) copies to
+-- the hardware: BG at $C7AB, OBJ at $C7EB. The index byte at $C9D8 picks
+-- the rows: $07 is the eight BG palettes, $0F all sixteen, $87 the OBJ
+-- eight, $F0 the last OBJ palette. There is no fixed fade length. A fade
+-- is a split-byte countdown ($76/$77/$7A) that moves every 5-bit channel
+-- one step per tick, so N ticks of P frames (see splitCountdown).
+---------------------------------------------------------------------------
+
+-- FillPanelWordsFromC9DA ($07:4850) and FillPanelWordsEightyPastRow
+-- ($07:4837): every word of the rows becomes the word at $C9DA.
+local function fillRows(vm, eighty)
+  vm:wr8(0xC831, 0)
+  local row, words = panelGeom(vm)
+  if eighty then row = row + 0x80 end
+  local w = rd16(vm, 0xC9DA)
+  for i = 0, words - 1 do wr16(vm, row + 2 * i, w) end
+  vm:wr8(0xC831, 1)
+end
+
+-- RunPanelIndexThrough2EB6 ($07:481E): CopyWordPairs from the target
+-- rows into the live rows.
+local function copyRowsLive(vm)
+  vm:wr8(0xC831, 0)
+  local row, words = panelGeom(vm)
+  for i = 0, words - 1 do wr16(vm, row + 0x80 + 2 * i, rd16(vm, row + 2 * i)) end
+  vm:wr8(0xC831, 1)
+end
+M.copyRowsLive = copyRowsLive
+
+-- RotatePaletteColors ($07:45B2). A=4 rotates all four colors up one
+-- (c0 c1 c2 c3 -> c3 c0 c1 c2). A=3 rotates colors 1-3 the same way.
+-- Anything else swaps colors 2 and 3.
+local function rotatePalette(vm, base, mode)
+  local c = {}
+  for i = 0, 3 do c[i] = rd16(vm, base + 2 * i) end
+  local n
+  if mode == 4 then n = { [0] = c[3], c[0], c[1], c[2] }
+  elseif mode == 3 then n = { [0] = c[0], c[3], c[1], c[2] }
+  else n = { [0] = c[0], c[1], c[3], c[2] } end
+  for i = 0, 3 do wr16(vm, base + 2 * i, n[i]) end
+end
+M.rotatePalette = rotatePalette
+
+-- RotatePalettesEightyPastRow ($07:4870): low nibble + 1 palettes of the
+-- live rows, last palette first, mode from $C9D9.
+local function rotateRows(vm)
+  vm:wr8(0xC831, 0)
+  local idx = vm:rd8(0xC9D8)
+  local row = C72B + lshift(rshift(idx, 4), 3) + 0x80
+  local count = band(idx, 0x0F) + 1
+  for e = count - 1, 0, -1 do
+    vm:wr8(0xC9DA, e)
+    rotatePalette(vm, row + 8 * e, vm:rd8(0xC9D9))
+  end
+  vm:wr8(0xC9DA, 0)
+  vm:wr8(0xC831, 1)
+end
+
+-- StageScriptByteWordThenCall4850 ($1A6F): target rows only, no callback.
+M.handlers[0x6E] = function(vm, o, n, cur)
+  vm:wr8(0xC9D8, vm.rom:u8(o + 1))
+  takeColorWord(vm, vm.rom:u8(o + 2), vm.rom:u8(o + 3))
+  savePtr(vm, cur.ptr + n)
+  vm:wr8(0xC938, 7)
+  fillRows(vm, false)
+  plantDispatch(vm)
+  frames(vm, 1)
+  return o + n
+end
+
+-- StageScriptByteWordThenCall4837 ($1A88): live rows, then the callback
+-- uploads them. An instant palette set.
+M.handlers[0x6F] = function(vm, o, n, cur)
+  vm:wr8(0xC9D8, vm.rom:u8(o + 1))
+  takeColorWord(vm, vm.rom:u8(o + 2), vm.rom:u8(o + 3))
+  savePtr(vm, cur.ptr + n)
+  vm:wr8(0xC938, 7)
+  fillRows(vm, true)
+  plantCallback(vm)
+  plantDispatch(vm)
+  frames(vm, 1)
+  return o + n
+end
+
+-- SetCCA6Countdown1C17 ($1C05): each tick, $C9D8 from the second byte,
+-- $C9DC = 1, ApplyPanelRowWords: live rows step toward the target rows.
+M.handlers[0x76] = function(vm, o, n, cur)
+  vm:wr8(0xCCA6, 1)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    vm:wr8(0xC9DC, 1)
+    vm:wr8(0xC938, 7)
+    applyPanelRowWords(vm)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- SetCCA6Countdown1C4A ($1C38): each tick, $C9D8 and the color word, then
+-- StepStagedColorEightyPastRow ($07:48FD): live rows step toward that one
+-- word. $C830 is not reloaded first; the stepper carries it.
+M.handlers[0x77] = function(vm, o, n, cur)
+  vm:wr8(0xCCA6, 1)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    takeColorWord(vm, vm.rom:u8(o + 3), vm.rom:u8(o + 4))
+    vm:wr8(0xC9DC, 1)
+    vm:wr8(0xC938, 7)
+    vm:wr8(0xC831, 0)
+    local row, words = panelGeom(vm)
+    stepColorWords(vm, row + 0x80, rd16(vm, 0xC9DA), words)
+    vm:wr8(0xC831, 1)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- SetCCA6Countdown1BE4 ($1BD2): each tick, $C9D8 and $C9D9, then
+-- RotatePalettesEightyPastRow.
+M.handlers[0x7A] = function(vm, o, n, cur)
+  vm:wr8(0xCCA6, 1)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    vm:wr8(0xC9D9, vm.rom:u8(o + 3))
+    vm:wr8(0xC938, 7)
+    rotateRows(vm)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- StoreScriptByteCall481E ($1CCA): target rows copied live, then uploaded.
+M.handlers[0x79] = function(vm, o, n, cur)
+  vm:wr8(0xC9D8, vm.rom:u8(o + 1))
+  savePtr(vm, cur.ptr + n)
+  vm:wr8(0xC938, 7)
+  copyRowsLive(vm)
+  plantCallback(vm)
+  plantDispatch(vm)
+  frames(vm, 1)
+  return o + n
+end
+
+-- FillC72BFromBCThenBank7 ($2EC3) / FillC76BFromBCThenOBJPalettes
+-- ($2EE9): 32 words into the BG ($07) or OBJ ($87) target rows, then
+-- copied live and uploaded. `words` is a 0-based array of 32 RGB555 words.
+function M.loadPalettes(vm, words, obj)
+  local base = obj and C72B + 0x40 or C72B
+  for i = 0, 31 do wr16(vm, base + 2 * i, words[i]) end
+  vm:wr8(0xC9D8, obj and 0x87 or 0x07)
+  copyRowsLive(vm)
+end
+
+-- Slot palettes: $C9D9 zero picks BG palettes 0-2, nonzero 3-5. These are
+-- the map's animated colors (water, lava, glow): the field scripts run
+-- $70 in a loop.
+
+-- CyclePanelSlotPaletteColors ($07:416B): colors 1-3 of each of the three
+-- live palettes rotate (mode 3).
+local function cycleSlot(vm)
+  vm:wr8(0xC831, 0)
+  local first = vm:rd8(0xC9D9) == 0 and 0 or 3
+  for p = first, first + 2 do rotatePalette(vm, C7AB + PAL * p, 3) end
+  vm:wr8(0xC831, 1)
+end
+M.cycleSlot = cycleSlot
+
+-- StepSlotPalettes ($07:41CB): colors 1-3 of the three live palettes step
+-- toward the word at $C9DA. Color 0 of the last one steps too unless
+-- $C9E2 (low) or $C9E3 (high) is set.
+local function stepSlot(vm)
+  vm:wr8(0xC831, 0)
+  vm:wr8(0xC830, vm:rd8(0xC9DC))
+  local de = rd16(vm, 0xC9DA)
+  local high = vm:rd8(0xC9D9) ~= 0
+  local first = high and 3 or 0
+  for p = first, first + 2 do stepColorWords(vm, C7AB + PAL * p + 2, de, 3) end
+  if vm:rd8(high and 0xC9E3 or 0xC9E2) == 0 then
+    stepColorWords(vm, C7AB + PAL * (first + 2), rd16(vm, 0xC9DA), 1)
+  end
+  vm:wr8(0xC831, 1)
+end
+
+-- PermuteColorChannels ($07:4787) on one word, mode in E ($C9D8).
+-- 1 swaps red and blue, 2 green and blue. 3 swaps red and green and then
+-- falls through into the red/blue swap ($47B8 has no jump), so it is
+-- (r,g,b) -> (b,r,g). Anything else is (r,g,b) -> (g,b,r).
+local function permuteWord(w, mode)
+  local r, g, b = splitRgb(w)
+  if mode == 1 then r, b = b, r
+  elseif mode == 2 then g, b = b, g
+  elseif mode == 3 then
+    r, g = g, r
+    w = packRgb(r, g, b)
+    r, g, b = splitRgb(w)
+    r, b = b, r
+  else r, g, b = g, b, r end
+  return packRgb(r, g, b)
+end
+M.permuteWord = permuteWord
+
+-- PermutePanelPaletteChannels ($07:42E3): colors 1-3 of the three live palettes.
+local function permuteSlot(vm)
+  vm:wr8(0xC831, 0)
+  local mode = vm:rd8(0xC9D8)
+  local first = vm:rd8(0xC9D9) == 0 and 0 or 3
+  for p = first, first + 2 do
+    for c = 1, 3 do
+      local a = C7AB + PAL * p + 2 * c
+      wr16(vm, a, permuteWord(rd16(vm, a), mode))
+    end
+  end
+  vm:wr8(0xC831, 1)
+end
+
+-- StorePanelSlotThenCall416B ($1AB0): split byte, slot.
+M.handlers[0x70] = function(vm, o, n, cur)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    vm:wr8(0xC9D9, vm.rom:u8(o + 2))
+    vm:wr8(0xC938, 7)
+    cycleSlot(vm)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- ArmCountdown1AE8AndDecFFA6 ($1ADB): split byte, color word, slot.
+M.handlers[0x71] = function(vm, o, n, cur)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    takeColorWord(vm, vm.rom:u8(o + 2), vm.rom:u8(o + 3))
+    vm:wr8(0xC9D9, vm.rom:u8(o + 4))
+    vm:wr8(0xC9DC, 1)
+    vm:wr8(0xC938, 7)
+    stepSlot(vm)
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- SetCountdownHandler1B7D ($1B70): split byte, mode ($C9D8), slot ($C9D9).
+M.handlers[0x74] = function(vm, o, n, cur)
+  splitCountdown(vm, vm.rom:u8(o + 1), function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    vm:wr8(0xC9D9, vm.rom:u8(o + 3))
+    vm:wr8(0xC938, 7)
+    permuteSlot(vm)
   end)
   savePtr(vm, cur.ptr + n)
   return o + n

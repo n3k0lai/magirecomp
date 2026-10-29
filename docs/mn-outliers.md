@@ -42,6 +42,29 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
    which made the 11:7532 rock fall 10x too long. `$4F` is in the same commit. Test:
    tests/engine/mn_op4e_test.lua.
 
+8. **Fades and palette ops (was "fade length").** There is no fixed fade length. Disassembled from the ROM
+   at runtime (bank 7 is INCBIN in the decomp): `$C72B` is the target block (8 BG then 8 OBJ palettes),
+   `$C7AB` the live block that the planted callback 07:4575 uploads. `$C9D8` picks rows (`$07` BG, `$0F` all,
+   `$87` OBJ, `$F0` last OBJ palette).
+   - `$6E` (07:4850) fills the target rows with one word and uploads nothing; `$6F` (07:4837) fills the live
+     rows and uploads: an instant set. `$79` (07:481E) copies target to live.
+   - A fade is `$76` (live steps toward the target rows, 07:489D), `$77` (live steps toward one word,
+     07:48FD, which does not reload the `$C830` step count) or `$7A` (07:4870 RotatePaletteColors, modes
+     4/3/other). Each runs the split-byte countdown: N ticks (`& $3F`, 0 = 256) of P frames (top two bits + 1),
+     one 5-bit step per channel per tick. `$76 $20` from black is 32 ticks of 1 frame.
+   - `$70` (07:416B) rotates colors 1-3 of BG palettes 0-2 (slot 0) or 3-5: the water/lava cycling, 131 uses.
+     `$71` (07:41CB) steps those toward a word (color 0 of the slot's last palette too unless `$C9E2`/`$C9E3`).
+     `$74` (07:42E3 / 4787) permutes channels: 1 r<->b, 2 g<->b, 3 r<->g then falls into r<->b (so b,r,g),
+     other g,b,r.
+   - `$65` (2EC3) puts the map's 32 BG words in both blocks at once; `$66` (2EE9) does the same for OBJ.
+   Port: src/mn/ops/Panels.lua runs these on VM RAM; the field draws through `$C7AB` (src/mn/LivePalette.lua,
+   palette-index map images from the importer). The old 16-frame overlay fade and the `$C6F3` 64-frame
+   startup fade are gone: `$C6F3` is only ever written (00:08AD, 00:21A9). What the screen shows at startup is
+   whatever the scripts' own ops set (most often `$6F $0F $7FFF`, all white, in the 60 bytes before a `$93`;
+   `$6F $87 $0040` appears once). OBJ colors go through a base-to-live map of the `$21:$5CC0` block; where two
+   OBJ palettes share a base color the lower one wins, which only differs from the hardware when an op
+   touches some OBJ palettes and not others. Test: tests/engine/mn_palette_ops_test.lua.
+
 ## Still open (the code can't answer yet)
 
 1. **`$8E` resume when `$CD49 != 0`.** CallBank4_5494ThenEnterScript does `ret nz` with the saved BC. The
@@ -54,18 +77,16 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
    choreography scripts 25:7211, 731F, 739D, 746C, 747F, 74DE, 751E (maps 236, 237, 240, 368) or 25:68D8,
    all of which hold flow and story ops. None of these are in stories `$01`-`$0F` or the 186 area. Fixing it
    means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
-5. **Fade length.** `$6E`/`$6F` stage `$C9D8`/`$C9DA` and call bank 7 `$4837`/`$4850` with callback `$4575`,
-   and all three are INCBIN. The port's 16-frame fade isn't derived from code.
-6. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
+5. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
    last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
    that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
    then 40 at +4) that means the rock shows while it's lifted.
-7. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
+6. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
    story `$01`-`$0F` or 186 script reaches them in the static graph.
-8. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
+7. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
    produces those values. They look like dead data, but that isn't proven.
-9. **5C7A entry-anim timing** is still INCBIN.
-10. **The route planner doesn't plan layer walks.** The engine now walks layers, but the planner doesn't
+8. **5C7A entry-anim timing** is still INCBIN.
+9. **The route planner doesn't plan layer walks.** The engine now walks layers, but the planner doesn't
     route through them.
 
 ## Secrets and engines (fix/mn-secrets)

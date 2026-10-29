@@ -54,7 +54,9 @@ function VM:spawnThread(slot, bank, ptr, carry)
 end
 
 -- $C71B record planted by a cutscene actor: run it as the dialogue thread,
--- held while the title card owns the screen ([$C6F3] == 0).
+-- held until FinishStartup ($93) hands control to the main loop at $02E6,
+-- which is what runs the C71B record (the port keys that on [$C6F3] = 1;
+-- the ROM itself only writes $C6F3: 00:08AD clears it, 00:21A9 sets it).
 function VM:spawnTalk(bank, ptr)
   self.threads = self.threads or {}
   local co = coroutine.create(function()
@@ -435,13 +437,6 @@ function VM:run(bank, ptr)
       end
       o = o + n
     elseif op == 0x0C then if h.slotSleep then h.slotSleep(r:u8(o + 1)) end; o = o + n -- Opcode0C: set record bit 7
-    elseif op == 0x6E or op == 0x6F then -- fade to (4850) / back from (4837) a BGR555 colour
-      local w = r:u16(o + 2)
-      if h.fade and not self.init then h.fade(w, op == 0x6E) end
-      o = o + n
-    elseif op == 0x76 or op == 0x77 or op == 0x7A then -- SetCCA6Countdown*: wait (second byte) frames
-      o = o + n
-      if not self.init then coroutine.yield("wait", math.max(1, r:u8(o - 1))) end
     elseif op == 0x1B then self:wr8(0xC921, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(1, r:u8(o + 1)) end; o = o + n -- wSoundSlotA
     elseif op == 0x1C then self:wr8(0xC922, r:u8(o + 1)); if h.sfxSlot then h.sfxSlot(2, r:u8(o + 1)) end; o = o + n -- wSoundSlotB
     elseif op == 0x21 then self:wr8(0xC91F, 1); if h.sfx then h.sfx(1) end; o = o + n -- wSoundRequest = 1 (opcode_21.asm)
@@ -488,12 +483,6 @@ function VM:run(bank, ptr)
       local want, g = r:u8(o + 1), 0
       while h.cellByte and self:rd16(0xFF93) >= 0xD000 and h.cellByte(self:rd16(0xFF93)) ~= want and g < 600 and not self.init do g = g + 1; coroutine.yield("wait", 1) end
       o = o + n
-    elseif op == 0x70 or op == 0x71 or op == 0x74 then -- split-byte countdowns ($FFA7 low 6 bits x $FFA6 high 2 + 1)
-      local b = r:u8(o + 1)
-      if op == 0x70 then self:wr8(0xC9D9, r:u8(o + 2)) end
-      o = o + n
-      if not self.init then coroutine.yield("wait", math.max(1, (bit.rshift(b, 6) + 1) * math.max(1, band(b, 0x3F)))) end
-    elseif op == 0x79 then self:wr8(0xC9D8, r:u8(o + 1)); o = o + n -- StoreScriptByteCall481E (bank 7 UI call: INCBIN)
     elseif op == 0x96 then -- SaveScriptTripleToSRAM: bank, ptr -> sSavedScriptBank/Ptr ($A012-$A014); pair -> $A015
       self:wr8(0xA012, r:u8(o + 1)); self:wr8(0xA013, r:u8(o + 2)); self:wr8(0xA014, r:u8(o + 3)); o = o + n
     elseif op == 0x89 or op == 0x8A then -- (bank-7 $4087 call for $8A: INCBIN) LoadSRAMScriptAndDispatch
