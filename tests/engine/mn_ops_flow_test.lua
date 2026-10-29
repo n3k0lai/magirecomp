@@ -35,8 +35,9 @@ local function run(bytes, opt)
   return vm, cells, battles, resets
 end
 
--- $9D stays free: mn_vm_ext_test.lua uses it as the probe opcode.
-ok(Ext.handlers[0x9D] == nil, "$9D is not claimed")
+-- $9D (opcode_9d.asm, wait for $C6EE == 2) lives here; mn_vm_ext_test.lua swaps it out
+-- for its probe and restores it. Behaviour: mn_op9d_test.lua.
+ok(type(Ext.handlers[0x9D]) == "function", "$9D is handled by ops/Flow.lua")
 
 local claimed = {
   0x32, 0xA2, 0xA0, 0xA1, 0x2F, 0x59, 0x95, 0x85, 0x4A, 0x97, 0x22, 0x23, 0x2A, 0x1E,

@@ -28,9 +28,11 @@ end
 -- a handler registered for an opcode ScriptVM leaves alone is reached with (vm, o, n, cur)
 -- and its return value is the next offset; nil ends the record
 do
-  -- $9D: a 0-operand opcode no retail script uses and ScriptVM does not handle
+  -- $9D: a 0-operand opcode ScriptVM itself does not handle (ops/Flow.lua owns it; the
+  -- probe swaps its handler out and puts it back)
   local op = 0x9D
-  ok(Op.LEN[op] == 0 and not Op.END[op] and not Ext.handlers[op], "$9D is free for the probe")
+  local saved = Ext.handlers[op]
+  ok(Op.LEN[op] == 0 and not Op.END[op], "$9D is a 0-operand probe")
   if op then
     local seen = {}
     Ext.handlers[op] = function(vm, o, n, cur)
@@ -47,7 +49,7 @@ do
     ok(seen[2] and seen[2].ptr == 0x4001, "returned offset continues the script")
     ok(vm.mem[0xC000] == 2, "handler writes VM memory")
     ok(VM.off(0x4000, 0x12) == 0x12 * 0x4000, "ScriptVM.off maps (ptr, bank) to a flat offset")
-    Ext.handlers[op] = nil
+    Ext.handlers[op] = saved
   end
 end
 

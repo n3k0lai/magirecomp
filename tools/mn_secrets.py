@@ -29,7 +29,7 @@ import mn_story_graph as G  # noqa: E402
 # Hyren species ids (bank 6 $5AA6 name table index, the `2E` species byte)
 HYRENS = (9, 13, 16, 18, 21, 27, 45, 46, 48, 71, 72)
 # ops the port's ScriptVM still only logs (VM:note); see docs/mn-engines.md
-WEAK = (0x11, 0x29, 0x38, 0x39, 0x67, 0x9D)
+WEAK = (0x11, 0x29, 0x38, 0x39, 0x67)
 
 
 def far(t):

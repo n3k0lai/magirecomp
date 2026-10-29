@@ -250,6 +250,17 @@ local function copyD392Focus(vm, o, n)
   return o + n
 end
 
+-- opcode_9d.asm: plants bank-1 continuation $4972 (INCBIN), which the decomp documents as
+-- resuming dispatch once wUnknownC6EE ($C6EE) is 2 (SC_WaitC6EETwo).
+local function waitC6EETwo(vm, o, n)
+  if not vm.init then
+    local guard = 0
+    while vm:rd8(0xC6EE) ~= 2 and guard < 3600 do guard = guard + 1; coroutine.yield("wait", 1) end
+  end
+  return o + n
+end
+
+M.handlers[0x9D] = waitC6EETwo
 M.handlers[0xA0] = branchWhenLCDOff
 M.handlers[0xA1] = plantParkedWhenLCDOff
 M.handlers[0xA2] = branchParkedWhenLCDOff
