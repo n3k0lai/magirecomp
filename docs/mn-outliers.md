@@ -213,3 +213,10 @@ post-game (story `$19`/`$1A`).
 6. **Forge `$CD50`**: on the `$8E` path SpendNewEntryMeasures runs `[$CD50]` - 1 passes with
    whatever `$CD50` holds; the port reproduces that, and which value the game has there at
    each forge is not traced.
+7. **Startup-loop spins**: FinishStartup's RunScriptLoop ends only on wScriptDone (`$C705`,
+   set by `$94`; MarkScriptDone `$1141` has no caller). A main record that parks there
+   (`$42`, `$12`, LCD-off `$A1`/`$A2`), or reaches `$41` off phase 3 with the counter frozen,
+   would spin forever with IdleCallback. The port runs those passes up to a guard
+   (VM.PARK_GUARD / VM.SPIN41_GUARD, 4096), logs `[vm] ... the asm spins here (outlier)`, and
+   then ends startup (park) or keeps the field wait (`$41`). Whether a non-idle callback in
+   such a loop ever sets `$C705` is not traced.
