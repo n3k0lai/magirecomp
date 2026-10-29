@@ -22,9 +22,11 @@ local function plant(vm, handler, bank, ptr)
 end
 
 -- install_parked_script.asm: wFlagC6F4 = 1, script pointer 0, handler stays parked.
-local function parkNow(vm)
+-- In FinishStartup's loop the park leaves wScriptDone alone (VM:startupPark).
+local function parkNow(vm, op)
   vm:wr8(0xC6F4, 1)
   plant(vm, PARKED, nil, 0)
+  if vm.startupPark then vm:startupPark(op) end
 end
 
 -- store_e_through_word.asm: E through the little-endian word, WRAM bank 3.
@@ -82,6 +84,7 @@ local function plantParkedWhenLCDOff(vm, o, n, cur)
   local tileSet, tileClr, cell = r:u8(o + 7), r:u8(o + 8), r:u16(o + 9)
   plant(vm, PARKED, nil, masked(vm, addr, mask) and ptrOf(o + 10) or ptrOf(o + n))
   storeCell(vm, cell, masked(vm, addr, mask) and tileSet or tileClr)
+  if vm.startupPark then vm:startupPark(0xA1) end -- the next pass is InstallParkedScript
   return nil
 end
 
@@ -97,7 +100,7 @@ local function branchParkedWhenLCDOff(vm, o, n, cur)
   local tile, cell = r:u8(o + 7), r:u16(o + 8)
   local set = masked(vm, addr, mask)
   if vm:lcdOff() then
-    if not set then parkNow(vm); return nil end
+    if not set then parkNow(vm, 0xA2); return nil end
     storeCell(vm, cell, tile)
     plant(vm, INITIAL, cur.bank, ptrOf(o + n))
     return o + n
@@ -211,6 +214,7 @@ local function reenterReset(vm)
   vm.flow = vm.flow or {}
   vm.flow.reset = true
   vm.loop38 = nil -- the reset leaves a $38 loop too
+  vm.run38 = nil
   if vm.threads then vm.threads.loop38 = nil end
   local h = vm.host
   if h and h.reenterReset then h.reenterReset() end

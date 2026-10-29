@@ -17,6 +17,7 @@
 | evu | 10000 | `after55.lua` | `47:19.7r\|8.4u\|19.7r,44:13.0u\|0.5l\|13.0u,51:0.12l\|13.23d\|0.12l,52:4.1u\|17.5r\|4.1u,60:14.5r>6.9d\|14.5r>6.9d,55:7.14u>14.17d` (MN_PICK=2B:43F0) | Evu, the other inn scene, Evu again; spell 3:1; exit into 52 (`52:4`, `after60.lua`) |
 | train | 7000 | `after60.lua` | `52:17.5r,51:13.23d,44:12.16d,43:far,61:0.9` | Eidon training in 61 (Awl 0:45, control 10,9), the quake on 0,9 (13:5D5F), door into 2 (`after61.lua`) |
 | glade | 6000 | `after61.lua` | `2:6.15d,277:37.13,3:far,4:far,5:21.0u` | quake scene in 2 (control 12,8), 277, the Glade 3, 4, 5; north door of 5 into 7 (`after5.lua`) |
+| glade-chase | 8000 | `after61.lua` | `2:6.15d,277:37.13,3:far,4:chase` | seed 4: the glade leg with `chase` in 4, so it walks onto the wild monsters and runs three battles; it keeps battle coverage in the seed check now that the plain glade leg ends at 277 (38,9) without one |
 | korg | 20000 | `after5.lua` | `7:far,277:37.8|38.9,8:far` | 277 step-on 37,8 (2F:4210), Shadow Geyser scene and Korg duel in 8 (control 8,8), then the second door into 277 (`277:2`, `beat12.snap`); second 277 visit parks at 38,9 so story-4 geyser slot is not re-fired |
 
 `MN_FROM=town bash scripts/mn-route12.sh` reuses the earlier legs' snapshots

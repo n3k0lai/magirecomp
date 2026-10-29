@@ -66,7 +66,9 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 
 wLCDC ($C936) is modelled in the VM: $E3 (LCDC_PLAY) from VM.new, 0 at $93
 (FinishStartup's TurnOffLCD), $E3 again where the port ends the startup loop ($94,
-$42/$12), and 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it.
+$42/$12), 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it, and 0 at
+$38 (with wScriptDone 0), which the record's $94 turns back on ($E3) through TurnOnLCDIfOff
+(install_script_record_loop_bank4.asm).
 $44, $A0-$A4, the $D392 pass tail and Overworld:lcdOn read it, so a startup script
 takes the LCD-off branches as the asm does, not only map setup.
 
@@ -122,7 +124,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $0F | CopySlotRecordFields | opcode_0f.asm | 1 | ok | ops/Records:171 |  |
 | $10 | QueueHeadWord | opcode_10.asm | 2 | ok | ops/Records:200 |  |
 | $11 | PickMapCellFromDiv | pick_map_cell_from_div.asm | 1 | ok | ScriptVM:508 |  |
-| $12 | InstallParkedScript | install_parked_script.asm | 0 | ok | ScriptVM:361, ScriptVM:362 |  |
+| $12 | InstallParkedScript | install_parked_script.asm | 0 | ok | ScriptVM:361, ScriptVM:362 | does not set wScriptDone: a main-record park in the startup loop spins (VM:startupPark, guard + outlier log); tests/engine/mn_startup_park_test.lua |
 | $13 | SetRecordHeadWord | opcode_13.asm | 2 | ok | ScriptVM:270 |  |
 | $14 | SetSlotSecondScript | opcode_14.asm | 3 | ok | ScriptVM:382 |  |
 | $15 | SlotScriptSequence | opcode_15.asm | rec4 | rec4: records+terminator, ok | ScriptVM:385 |  |
@@ -136,7 +138,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:613 |  |
 | $1E | SoundRequest4 | opcode_1e.asm | 0 | unused in decomp scripts | ops/Flow:404 |  |
 | $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:596 |  |
-| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1) (mn_sound_ops_test) |
+| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1). The driver's song sequencer ($3D4A/$57FC countdowns, $599D lower expiry) runs the installed sound, so $C924 clears when the song really ends, not on a fixed count (mn_sound_ops_test, mn_music_seq_test) |
 | $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:454 |  |
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
@@ -160,7 +162,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $35 | StageC9D8ThenCall7055 | stage_c9d8_then_call_7055.asm | 1 | unused in decomp scripts | ops/Panels:536 | ends the pass (mn_next_pass_test) |
 | $36 | PlantC9FA08AndPtr6DE9 | plant_c9fa08_ptr_6de9.asm | 0 | unused in decomp scripts | ops/Panels:560 |  |
 | $37 | PlantC9FA10AndPtr6DF9 | plant_c9fa10_ptr_6df9.asm | 0 | unused in decomp scripts | ops/Panels:561 |  |
-| $38 | InstallScriptRecordLoopBank4 | install_script_record_loop_bank4.asm | 3 | ok | ops/Panels:976 |  |
+| $38 | InstallScriptRecordLoopBank4 | install_script_record_loop_bank4.asm | 3 | ok | ops/Panels:976 | TurnOffLCD (wLCDC 0) and wScriptDone 0 at the op; the next `$94` runs TurnOnLCDIfOff (wLCDC $E3) |
 | $39 | StageHandler1126 | stage_handler_1126.asm | 3 | ok | ops/Panels:1024 |  |
 | $3A | PlantLimit30At6C0C | plant_limit_30_at_6c0c.asm | 0 | ok | ops/Panels:498 |  |
 | $3B | PlantLimit24At6C3C | plant_limit_24_at_6c3c.asm | 0 | ok | ops/Panels:499 |  |
@@ -170,7 +172,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $3F | PlantLimit1DAt6D5C | plant_limit_1d_at_6d5c.asm | 0 | ok | ops/Panels:502 |  |
 | $40 | ScriptByteCountdown | script_byte_countdown.asm | 1 | ok | ScriptVM:674 |  |
 | $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:754 | hMainLoopCounter holds during the startup loop and every other loop outside GameLoop (Grass.outsideMainLoop); phase 3 there dispatches with no frame; tests/engine/mn_startup_counter_test.lua |
-| $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 |  |
+| $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 | does not set wScriptDone: a main-record park in the startup loop spins (VM:startupPark, guard + outlier log); a thread's park leaves startup pending; tests/engine/mn_startup_park_test.lua |
 | $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:705 |  |
 | $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:684 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $45 | EnterScriptFromLookup | enter_script_from_lookup.asm | 3 | ok | ScriptVM:696 |  |
@@ -252,7 +254,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:610 | ends the pass (mn_next_pass_test); zero path fills both banks and runs Copy7646IntoNextSRAMBank (2:4799), also on a new game with no save images (mn_op91_sram_fill_test) |
 | $92 | StageSavedScriptPairThenBank7 | stage_saved_script_pair.asm | 1 | ok | ops/Save:125 |  |
 | $93 | FinishStartup | finish_startup.asm | 0 | ok | ScriptVM:220 |  |
-| $94 | MarkScriptDone21B2 | mark_script_done_21b2.asm | 0 | ok | ScriptVM:352 |  |
+| $94 | MarkScriptDone21B2 | mark_script_done_21b2.asm | 0 | ok | ScriptVM:352 | sets wScriptDone $C705, the only end of FinishStartup's loop (VM:endStartup); tests/engine/mn_startup_park_test.lua |
 | $95 | CopyFallbackScriptRecord | copy_fallback_script_record.asm | 3 | ok | ops/Flow:400 |  |
 | $96 | SaveScriptTripleToSRAM | save_script_triple.asm | 3 | ok | ScriptVM:498 |  |
 | $97 | ReenterReset | reenter_reset.asm | 0 | ok | ops/Flow:403 |  |
@@ -265,8 +267,8 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $9E | FormatSRAMWord | opcode_9e.asm | 2 | ok | ops/Save:164 |  |
 | $9F | StageStripTextFromScript | stage_strip_text_from_script.asm | strip | strip: via MnRom:insn | ScriptVM:728 |  |
 | $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:449 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
-| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:450 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
-| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:451 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:450 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua; the LCD-off park leaves wScriptDone alone (VM:startupPark, tests/engine/mn_startup_park_test.lua) |
+| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:451 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua; the LCD-off park leaves wScriptDone alone (VM:startupPark, tests/engine/mn_startup_park_test.lua) |
 | $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:708 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:686 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $A5 | OrSramMaskWhenLookup | or_sram_mask_when_lookup.asm | expr_wb | expr_wb: via MnRom:insn | ScriptVM:725 |  |

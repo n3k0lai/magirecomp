@@ -69,6 +69,8 @@ local rom = image({
   at(0x4030, 0x39, 0x01, 0x20, 0x50, 0x12),
   -- $38 then a long wait so the loop runs
   at(0x4040, 0x38, 0x02, 0x01, 0x02, 0x40, 0x10, 0x12),
+  -- $38 then $94: RunScriptRecord returns, TurnOnLCDIfOff
+  at(0x4050, 0x38, 0x02, 0x01, 0x02, 0x94, 0x12),
   at4(0x5000, 0x07, 0x05, 0x02, 0x10, 0x01, 0x03, 0x00, 0x99),
   at4(0x5010, 0x09, 0x04, 0x03, 0x02, 0x00, 0x00),
   at4(0x5020, 0x09, 0x06, 0x00, 0x77),
@@ -125,6 +127,20 @@ do
   ok(s:rd8(0xC706) == B and rd16(s, 0xC707) == 0x4004 and rd16(s, 0xC709) == 0x0A66,
     "$38 copies the script record to C706")
   ok(s.loop38 == true and s.threads and s.threads.loop38, "$38 starts the frame loop")
+end
+
+-- $38 turns the LCD off (wLCDC 0) and clears wScriptDone; it stays off until a $94
+do
+  local s = VM.new(rom, {})
+  s:wr8(0xC936, 0xE3); s:wr8(0xC705, 1)
+  s:start(B, 0x4040)
+  ok(s:rd8(0xC936) == 0 and s:lcdOff() and s:rd8(0xC705) == 0 and s.run38,
+    "$38 TurnOffLCD: wLCDC 0, wScriptDone 0")
+  local t = VM.new(rom, {})
+  t:wr8(0xC936, 0xE3)
+  run(t, B, 0x4050)
+  ok(t:rd8(0xC936) == 0xE3 and t:rd8(0xC705) == 1 and not t.run38,
+    ("$94 after $38: TurnOnLCDIfOff restores wLCDC $E3 (%02X)"):format(t:rd8(0xC936)))
 end
 
 -- the loop: C9C0/C9C1/C9C2/camera per frame, Start pause and B park behind C9C6

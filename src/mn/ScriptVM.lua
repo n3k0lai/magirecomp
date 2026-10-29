@@ -45,6 +45,7 @@ local function finishStartup(self, h)
   -- DefaultState -> SetupWindow: window closed and parked below the picture
   self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
   self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
+  self.run38 = nil
   if self.threads then self.threads.loop38 = nil end
   -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
   -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
@@ -56,7 +57,8 @@ local function finishStartup(self, h)
   -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
   -- The boot path stores the same bytes (boot/Title.lua).
   require("mn.boot.Title").applyDefaults(self)
-  self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
+  self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop returns
+  self:wr8(0xC705, 0) -- run_script_record.asm: wScriptDone cleared on entry
   self:wr8(WLCDC, 0) -- TurnOffLCD (turn_off_lcd.asm) before RunScriptLoop
   if h.lcdOff then h.lcdOff() end
 end
@@ -157,10 +159,70 @@ end
 -- FinishStartup's RunScriptLoop (run_script_record.asm) runs the main record's passes
 -- back to back, handler then callback, until wScriptDone, with the LCD off and no frame
 -- wait; record threads only step from MainLoop's FinishFrame, after it. So while the
--- main record runs between $93 (or the $30 spiral) and its park or $94, a pass end or a
+-- main record runs between $93 (or the $30 spiral) and its $94 (VM:startupPark), a pass end or a
 -- per-pass step costs no frame. (Map setup, self.init, is the same but has no coroutine.)
 function VM:inStartup()
   return self.startupPending and self.co ~= nil and coroutine.running() == self.co or false
+end
+
+-- FinishStartup's tail once RunScriptLoop returns (finish_startup.asm): wScriptDone
+-- ($C705) is nonzero, $C6F3 = 1 and TurnOnLCD stores LCDC $E3.
+function VM:endStartup()
+  self:wr8(0xC705, 1)
+  self.startupPending = nil; self:wr8(0xC6F3, 1); self:wr8(WLCDC, LCDC_PLAY)
+end
+
+-- A park ($42 InstallParkedScript, $12, and the LCD-off parks of $A1/$A2) does not set
+-- wScriptDone: InstallParkedScript only sets $C6F4, pointer 0 and itself as the handler,
+-- and runs again every pass. The only stores to $C705 are MarkScriptDone ($1141, no
+-- caller in the ROM) and MarkScriptDone21B2 ($94); IdleCallback only plants itself.
+-- So a main record that parks inside FinishStartup's RunScriptLoop leaves the asm loop
+-- spinning until wScriptDone. The port runs those passes (the parked handler changes
+-- nothing; $C705 is re-read each pass) up to VM.PARK_GUARD, then logs the outlier and
+-- ends startup the way wScriptDone would. A park by another record (a thread) leaves
+-- $C705 alone and does not end startup.
+VM.PARK_GUARD = 4096
+function VM:startupPark(op)
+  if not self:inStartup() then return end
+  local passes = 0
+  while passes < VM.PARK_GUARD and self:rd8(0xC705) == 0 do passes = passes + 1 end
+  self.parkSpin = passes
+  if self:rd8(0xC705) == 0 then
+    local cb = self:rd8(0xC6E4) + 256 * self:rd8(0xC6E5)
+    local m = ("[vm] park $%02X in the startup loop: wScriptDone 0, callback $%04X; the asm spins here"
+      .. " (outlier); guard released after %d passes, startup ends as at wScriptDone"):format(op, cb, passes)
+    self.log[#self.log + 1] = m; print(m)
+  end
+  self:endStartup()
+end
+
+-- $41 off phase 3 inside FinishStartup's RunScriptLoop, pass by pass as the asm runs it:
+-- hScriptHandler is .resume, which returns while (hMainLoopCounter & 3) ~= 3; then the
+-- callback at wCallback runs; the loop ends only when wScriptDone ($C705) is nonzero.
+-- No pass ticks $FFA8 (only MainLoop's $02E9 store does) and IdleCallback ($29A4) only
+-- plants itself again, so with the idle callback the asm never leaves this loop.
+-- The port has no callback interpreter here, so each pass re-reads the counter and
+-- $C705 (the only state the asm loop tests) and stops after VM.SPIN41_GUARD passes so
+-- a headless run cannot hang; it then logs the outlier and keeps the field wait.
+-- Returns the count left for the caller's wait, or nil when the spin ended by the phase.
+VM.SPIN41_GUARD = 4096
+function VM:startupSpin41(h, cnt)
+  local passes = 0
+  while passes < VM.SPIN41_GUARD do
+    passes = passes + 1
+    if band(h.frame(), 3) == 3 then
+      -- .resume passes on this pass; the count runs down one pass each, back to back
+      self.spin41 = passes; return nil
+    end
+    if self:rd8(0xC705) ~= 0 then self.spin41 = passes; return cnt end
+  end
+  self.spin41 = passes
+  local cb = self:rd8(0xC6E4) + 256 * self:rd8(0xC6E5)
+  local m = ("[vm] $41 in the startup loop off phase 3: counter %d frozen, callback $%04X, wScriptDone 0;"
+    .. " the asm spins here (outlier); guard released after %d passes, port waits")
+    :format(h.frame(), cb, passes)
+  self.log[#self.log + 1] = m; print(m)
+  return cnt
 end
 
 function VM:rd8(a) return self.mem[a] or 0 end
@@ -403,15 +465,20 @@ function VM:run(bank, ptr)
     elseif op == 0x0B then h.slotFlag(r:u8(o + 1)); o = o + n -- opcode_0b.asm: clear bit 7 of slot record
     elseif op == 0x94 then -- MarkScriptDone21B2: stop this frame's loop, resume at the next opcode
       if self.init then return end
-      -- it sets wScriptDone ($C705), which also ends FinishStartup's RunScriptRecord
-      -- (run_script_record.asm): $C6F3 = 1 and the LCD on happen here, not only at a park
+      -- it sets wScriptDone ($C705), the only way FinishStartup's RunScriptRecord ends
+      -- (run_script_record.asm): $C6F3 = 1 and the LCD on happen here (VM:endStartup)
       -- (map 2 Eidon scene 14:512C waits on C6FD after its $94; its talk record waits on $C6F3)
-      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1); self:wr8(WLCDC, LCDC_PLAY) end
+      self:wr8(0xC705, 1)
+      if self.startupPending then self:endStartup() end
+      if self.run38 then -- $38's RunScriptRecord returns: TurnOnLCDIfOff (turn_on_lcd.asm)
+        self.run38 = nil
+        if self:lcdOff() then self:wr8(WLCDC, LCDC_PLAY) end
+      end
       o = o + n; coroutine.yield("wait", 1)
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
       if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
-      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1); self:wr8(WLCDC, LCDC_PLAY) end
+      self:startupPark(op)
       return
     elseif op == 0x6B then
       -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest,
@@ -764,10 +831,7 @@ function VM:run(bank, ptr)
       if not self.init then
         local cnt = r:u8(off(base + bit.band(VM.dividerNext(self), 0x0F), 1))
         if self:inStartup() and h.frame and band(h.frame(), 3) == 3 then cnt = nil
-        elseif self:inStartup() then
-          local m = ("[vm] $41 in the startup loop off phase 3: the asm spins here (outlier), port waits")
-          self.log[#self.log + 1] = m; print(m)
-        end
+        elseif self:inStartup() and h.frame then cnt = self:startupSpin41(h, cnt) end
         local w = cnt and (h.frame and ((3 - h.frame()) % 4 + 4 * cnt) or 4 * (cnt + 1)) or 0
         if w > 0 then coroutine.yield("wait", w) end
       end

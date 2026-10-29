@@ -81,6 +81,14 @@ do -- $41 in the startup loop off phase 3: the asm spins; the port waits and log
   local logged = false
   for _, l in ipairs(vm.log) do if l:find("$41 in the startup loop", 1, true) then logged = true end end
   ok(live and vm:rd8(0xC6F8) ~= 0x09 and logged, "$41 startup off phase: outlier logged, record waits")
+  ok(vm.spin41 == VM.SPIN41_GUARD and vm:rd8(0xFFA8) == 0x40, "$41 startup off phase: spins to the guard, counter frozen")
+end
+
+do -- the spin re-reads the counter each pass: a phase-3 read ends it in the same pass
+  local vm, reads = nil, 0
+  vm = VM.new(rom, { frame = function() reads = reads + 1; return reads >= 5 and 0x43 or 0x40 end })
+  local live = vm:start(0x12, 0x4000)
+  ok(not live and vm:rd8(0xC6F8) == 0x09 and vm.spin41 and vm.spin41 < VM.SPIN41_GUARD, "$41 spin: leaves when the phase reads 3")
 end
 
 do -- $41 with the LCD on still waits for the phase: (3 - f) % 4 + 4 * cnt frames

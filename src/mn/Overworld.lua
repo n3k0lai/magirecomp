@@ -764,6 +764,7 @@ function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
   self:musicFadeFrame()
+  self:musicHoldFrame()
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
   self:stepEdgeLatches()
   if self.bgStale then self:flushStale() end
@@ -1394,12 +1395,34 @@ function M:musicFadeFrame()
   if self.music then self.music:stop(); self.music = nil end
 end
 
+-- $20 (SoundCountdown $072D) drops the music gate, saves $DFA6-$DFF7 to $C8C9 and installs
+-- its song; SoundCountdownIdle ($074F) copies the saved bytes back once that song stops, so
+-- the field song carries on from where it stopped. The field song here is MnMusic, so it
+-- pauses for that span (sfx.songHold, set at $072D and cleared at the $074F restore) and
+-- resumes from the same position. Muted runs keep only the state (musicHeld, log lines).
+function M:musicHoldFrame()
+  local d = self.sfx
+  local held = d and d.songHold or false
+  if held and not self.musicHeld then
+    self.musicHeld = true
+    self.log[#self.log + 1] = "music held ($20 song)"
+    if self.music then self.music:pause() end
+  elseif not held and self.musicHeld then
+    self.musicHeld = nil
+    self.log[#self.log + 1] = "music resumed"
+    if self.music then self.music:play() end
+  end
+end
+
 -- $1F music: decode the song from the cached ROM banks and loop it.
 local MnMusic = require("mn.MnMusic")
 local musicCache = {}
 function M:playMusic(v)
   -- Same mute rule as SfxOut (SDL_AUDIODRIVER=dummy, MN_NOMUSIC, MN_MUTE). love plays
   -- through OpenAL, so the SDL driver alone never silenced this path.
+  -- a $1F during a $20 song: the asm installs the field song over it ($0670), so the new
+  -- song plays at once and the hold only ends (no pause) when the driver restores
+  if self.musicHeld then self.musicHeld = "replaced" end
   if require("mn.SfxOut").muted() then return end
   local rom = self.vm and self.vm.rom
   if not rom or v >= 41 then return end
