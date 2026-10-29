@@ -160,7 +160,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $35 | StageC9D8ThenCall7055 | stage_c9d8_then_call_7055.asm | 1 | unused in decomp scripts | ops/Panels:536 | ends the pass (mn_next_pass_test) |
 | $36 | PlantC9FA08AndPtr6DE9 | plant_c9fa08_ptr_6de9.asm | 0 | unused in decomp scripts | ops/Panels:560 |  |
 | $37 | PlantC9FA10AndPtr6DF9 | plant_c9fa10_ptr_6df9.asm | 0 | unused in decomp scripts | ops/Panels:561 |  |
-| $38 | InstallScriptRecordLoopBank4 | install_script_record_loop_bank4.asm | 3 | ok | ops/Panels:976 |  |
+| $38 | InstallScriptRecordLoopBank4 | install_script_record_loop_bank4.asm | 3 | ok | ops/Panels:976 | TurnOffLCD (wLCDC 0) and wScriptDone 0 at the op; the next `$94` runs TurnOnLCDIfOff (wLCDC $E3) |
 | $39 | StageHandler1126 | stage_handler_1126.asm | 3 | ok | ops/Panels:1024 |  |
 | $3A | PlantLimit30At6C0C | plant_limit_30_at_6c0c.asm | 0 | ok | ops/Panels:498 |  |
 | $3B | PlantLimit24At6C3C | plant_limit_24_at_6c3c.asm | 0 | ok | ops/Panels:499 |  |

@@ -121,4 +121,4 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | LCD-off branches | `$A0`-`$A2` | `ops/Flow` | tested (`mn_ops_flow_test`) |
 | Unpack header + block | `$67`: UnpackMapHeaderIntoWRAMBank3 (`$2F37`: stride `$C847`, word `$C849`, camera limits, `$C848` = row limit + `$0A`, scroll state cleared, `$C842` = `$44`, packed plane to WRAM 3, 1-8x stride table at `$C84D`) then UnpackBlockIntoWRAMBank5 (`$2DDC`), then the next op | `ops/Records` (`host.unpackMap` swaps both live planes) | tested (`mn_unpack_map_test`); no decoded script uses it |
 | Bank jump | `$29` `jp $7449` in the script bank (bank 2: a lone `ret`) | logged; no use in any decoded script | outlier (unused) |
-| Record loop / `$1126` | `$38` (C706 record, `$C9C6`/`$C9C7`-gated loop), `$39` pair countdown | `ops/Panels` | tested (`mn_record_loop_test`) |
+| Record loop / `$1126` | `$38` (C706 record, wLCDC 0 until the record's `$94` TurnOnLCDIfOff, `$C9C6`/`$C9C7`-gated loop), `$39` pair countdown | `ops/Panels` | tested (`mn_record_loop_test`) |

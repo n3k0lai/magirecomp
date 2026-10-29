@@ -45,6 +45,7 @@ local function finishStartup(self, h)
   -- DefaultState -> SetupWindow: window closed and parked below the picture
   self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
   self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
+  self.run38 = nil
   if self.threads then self.threads.loop38 = nil end
   -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
   -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
@@ -469,6 +470,10 @@ function VM:run(bank, ptr)
       -- (map 2 Eidon scene 14:512C waits on C6FD after its $94; its talk record waits on $C6F3)
       self:wr8(0xC705, 1)
       if self.startupPending then self:endStartup() end
+      if self.run38 then -- $38's RunScriptRecord returns: TurnOnLCDIfOff (turn_on_lcd.asm)
+        self.run38 = nil
+        if self:lcdOff() then self:wr8(WLCDC, LCDC_PLAY) end
+      end
       o = o + n; coroutine.yield("wait", 1)
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record

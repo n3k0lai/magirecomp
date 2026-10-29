@@ -214,6 +214,7 @@ local function reenterReset(vm)
   vm.flow = vm.flow or {}
   vm.flow.reset = true
   vm.loop38 = nil -- the reset leaves a $38 loop too
+  vm.run38 = nil
   if vm.threads then vm.threads.loop38 = nil end
   local h = vm.host
   if h and h.reenterReset then h.reenterReset() end

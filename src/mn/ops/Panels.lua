@@ -986,6 +986,12 @@ M.handlers[0x38] = function(vm, o, n, cur)
     vm:rd8(0xFFA6), vm:rd8(0xFFA7) }
   for i = 1, 7 do vm:wr8(0xC706 + i - 1, rec[i]) end
   vm:wr8(0xC938, 4)
+  -- TurnOffLCD (turn_off_lcd.asm) clears wLCDC; RunScriptRecord clears wScriptDone and
+  -- runs the record until $94, whose TurnOnLCDIfOff puts wLCDC back (ScriptVM $94, run38)
+  if not vm.init then
+    vm:wr8(0xC936, 0); vm:wr8(0xC705, 0); vm.run38 = true
+    if vm.host and vm.host.lcdOff then vm.host.lcdOff() end
+  end
   -- PresentInstalledScriptEntries ($04:722E)
   vm:wr8(0xC728, 0); vm:wr8(0xC729, 0)
   local h = vm.host
