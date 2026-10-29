@@ -182,5 +182,53 @@ do -- with a bank-1 SRAM image the entry goes there; the bank-0 bytes stay
   ok(vm:rd8(0xA118) == 1, "the id slot is in bank 0")
 end
 
+-- With MN_ROM (the user's own ROM; nothing from it is committed): the seven $8E
+-- forge scripts. The only stores to $CD50 in the ROM are $2C (02:747F), the shop
+-- commit (03:7347, $02) and RefreshChangedSlotDigits (04:60C9, the highlighted row's
+-- +7). The window loop (04:582C) runs that refresh before it reads a choice, and
+-- StageCopiedBlockWindow clears $CD3B with $CD81 = 1, so every pick has its own
+-- row's +7 in $CD50 when SpendNewEntryMeasures reads it. Each list has 1 + 8n bytes,
+-- unique ids and a +7 of at least 1 (the pass count never wraps to 255).
+local path = os.getenv("MN_ROM")
+local rf = path and io.open(path, "rb")
+if rf then
+  rf:close()
+  local Forge = require("mn.ops.Forge")
+  local rom = MnRom.fromFile(path)
+  local forges = { { 0x1E, 0x7554 }, { 0x18, 0x6FD0 }, { 0x1A, 0x531E }, { 0x25, 0x6471 },
+                   { 0x14, 0x7C37 }, { 0x15, 0x540B }, { 0x1B, 0x4BE3 } }
+  local picks = 0
+  for _, s in ipairs(forges) do
+    local at = MnRom.off(s[2], s[1])
+    local tag = ("%02X:%04X"):format(s[1], s[2])
+    ok(rom:u8(at + 1) == 0x8E, tag .. " is a $8E forge")
+    local list, n = at + 10, rom:u8(at + 10)
+    ok(rom:u16(at + 8) == 1 + 8 * n, tag .. " list length is 1 + 8n")
+    local seen = {}
+    for i = 0, n - 1 do
+      local e = Forge.entry(rom, list, i)
+      ok(not seen[e.id], tag .. " ring ids are unique (pick by id is the row)")
+      seen[e.id] = true
+      ok(e.level >= 1, tag .. " +7 is at least 1")
+      local vm = VM.new(rom, { forge = function() return e.id end })
+      vm:wr8(0xA3A5, 0xFF); vm:wr8(0xA3A6, 0xFF)
+      for k = 0, 0xFF do vm:wr8(0xA4A6 + k, 0xFF) end
+      vm:wr8(0xA025, 0xFF)
+      vm:wr8(0xCD50, 0x77)
+      vm:start(s[1], s[2])
+      local k = 0
+      while vm.co and coroutine.status(vm.co) == "suspended" and vm:rd8(0xA122) == 0 and k < 64 do
+        k = k + 1; vm:resume()
+      end
+      ok(vm:rd8(0xA122) == 1 and vm:rd8(0xC726) == e.id, tag .. " row " .. i .. " is forged")
+      ok(vm:rd8(0xCD50) == e.level, tag .. " row " .. i .. ": $CD50 is the row's +7")
+      picks = picks + 1
+    end
+  end
+  ok(picks == 98, "98 forge rows checked, got " .. picks)
+else
+  print("mn_forge_ring_test: MN_ROM not set, ROM checks skipped")
+end
+
 print(("mn_forge_ring_test: %d checks, %d failures"):format(checks, failures))
 if failures > 0 then os.exit(1) end
