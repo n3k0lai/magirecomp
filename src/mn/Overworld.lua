@@ -83,13 +83,26 @@ function M:host()
       s.padHead, s.pw = nil, nil -- the next slot-0 fill picks the head family
       Walk.init(s) -- BuildPointerList (01:40D3): no record linked
     end,
-    freshScene = function() -- record threads start over (the running script survives)
+    -- InitPointerList (01:40D3) sets bit 7 and clears bit 6 of all $31 records and
+    -- touches nothing else: a record's two script records stay where they were, so a
+    -- slept record's script resumes where it stopped once $0B wakes it (map 40 river
+    -- scene 2A:4975: its $93 sleeps records 3 and 4 mid-script, $0B 03 / $0B 04 wake
+    -- them, record 3 runs on to 2A:4AC0 $0B 05 and record 5 gives Tony the pad, $07 00
+    -- 81 5D). Other threads (talk, the stand-in's) start over. The running one goes on:
+    -- the ROM runs its pass to the end in one go ($1D/$21 fades and the $64 map load
+    -- block there), and the port's frame-split ops must not strand it (map 219
+    -- 2A:4769 runs $93 then loads map 40 from record 3's own pass with no $0B 03).
+    freshScene = function()
       s.asleep = s.asleep or {}
-      -- (slot 0 is the player; the port keeps only a cutscene stand-in there)
-      for k, ob in pairs(s.objects) do if k ~= 0 then ob.dormant = true; s.asleep[k] = ob end end
-      s.objects = {}
       local co = coroutine.running()
-      for k, t in pairs(s.vm.threads or {}) do if t.co ~= co then s.vm.threads[k] = nil end end
+      local self_ = nil
+      for k, t in pairs(s.vm.threads or {}) do if t.co == co then self_ = t.slot end end
+      -- (slot 0 is the player; the port keeps only a cutscene stand-in there)
+      for k, ob in pairs(s.objects) do if k ~= 0 and k ~= self_ then ob.dormant = true; s.asleep[k] = ob end end
+      s.objects = {}
+      for k, t in pairs(s.vm.threads or {}) do
+        if t.co ~= co and not (type(k) == "number" and k ~= 0 and t.slot == k and s.asleep[k]) then s.vm.threads[k] = nil end
+      end
     end,
     setTriggers = function(p)
       s.triggerPtr = p
@@ -247,7 +260,7 @@ function M:host()
       Walk.take(s, slot) -- TakePointerSlot (00:0C07) unless the record is already linked
     end,
     slotSleep = function(slot) if s.objects[slot] then s.objects[slot].dormant = true end end,
-    slotActive = function(slot) local ob = s.objects[slot]; return not (ob and ob.dormant) end,
+    slotActive = function(slot) local ob = s.objects[slot] or (s.asleep and s.asleep[slot]); return not (ob and ob.dormant) end,
     pan = function(c, dx, dy, carry)
       -- walkers that start the same $16 scroll together share it (Tavel Gorge kids 1F:50CD)
       local p = s.panv
