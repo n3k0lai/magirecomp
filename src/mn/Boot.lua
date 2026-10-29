@@ -133,30 +133,30 @@ local function ensureCache()
 end
 
 -- Headless test planner: path to targets with BFS, press A on talk cells.
-local function bfs(def, sx, sy, goal)
-  local prev, q, h = { [sy * def.w + sx] = -1 }, { { sx, sy } }, 1
-  local found
+-- States are (cell, head family): World.moves gives every cell one press
+-- reaches, so hops and $01/$02 layer walks are planned like plain steps.
+local DIRNAME = { ["1,0"] = "right", ["-1,0"] = "left", ["0,1"] = "down", ["0,-1"] = "up" }
+local function bfs(def, sx, sy, goal, layer, vm)
+  local n = def.w * def.h
+  local gates, mark = World.gatesFor(vm, layer), World.mark(vm)
+  local s0 = (layer or 0) * n + sy * def.w + sx
+  local prev, q, h = { [s0] = -1 }, { { sx, sy, layer } }, 1
+  local found, fk
   while h <= #q do
-    local x, y = q[h][1], q[h][2]; h = h + 1
-    if goal(x, y) and not (x == sx and y == sy) then found = { x, y }; break end
-    for _, d in ipairs({ { 1, 0, "right" }, { -1, 0, "left" }, { 0, 1, "down" }, { 0, -1, "up" } }) do
-      local nx, ny = x + d[1], y + d[2]; local k = ny * def.w + nx
-      if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[k] and World.walkable(World.cell(def, nx, ny)) then
-        prev[k] = { y * def.w + x, d[3] }; q[#q + 1] = { nx, ny }
-      elseif nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
-        -- a $01/$02 run Overworld hops (World.hop): one press lands past it
-        local lx, ly = World.hop(def, nx, ny, d[1], d[2], World.mark())
-        local lk = lx and (ly * def.w + lx)
-        if lk and not prev[lk] then prev[lk] = { y * def.w + x, d[3] }; q[#q + 1] = { lx, ly } end
-      end
+    local x, y, l = q[h][1], q[h][2], q[h][3]; h = h + 1
+    -- no goal on the $02 heads: they keep sliding past it (01:4F0D never reads the held pad)
+    if l ~= 2 and goal(x, y) and not (x == sx and y == sy) then found = { x, y }; fk = (l or 0) * n + y * def.w + x; break end
+    local k0 = (l or 0) * n + y * def.w + x
+    for _, m in ipairs(World.moves(def, x, y, l, mark, gates)) do
+      local k = (m[3] or 0) * n + m[2] * def.w + m[1]
+      if not prev[k] then prev[k] = { k0, DIRNAME[m[4] .. "," .. m[5]] }; q[#q + 1] = { m[1], m[2], m[3] } end
     end
   end
   if not found then return nil end
-  local k, path = found[2] * def.w + found[1], {}
+  local k, path = fk, {}
   while prev[k] ~= -1 do table.insert(path, 1, prev[k][2]); k = prev[k][1] end
   return path, found
 end
-
 local Planner = {}
 function Planner.new(ow) return setmetatable({ ow = ow, q = {}, phase = "door", tried = {} }, { __index = Planner }) end
 function Planner:isTalk(x, y)
@@ -175,7 +175,7 @@ function Planner:plan()
       if v < 0xC0 or not ow.triggerPtr or self.tried[y * 1000 + x] then return false end
       local to = ow:triggerTo(v % 64)
       return to ~= nil and to ~= ow.map
-    end)
+    end, ow.layer, ow.vm)
     if goal then self.tried[goal[2] * 1000 + goal[1]] = true end
     if path then
       -- remember goal so we don't loop on a trigger that does nothing
@@ -192,7 +192,7 @@ function Planner:plan()
       for _, f in ipairs({ { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } }) do
         if self:isTalk(x + f[1], y + f[2]) then return true end
       end
-    end)
+    end, ow.layer, ow.vm)
     if path then self.q = path else self.phase = "door"; self.dbg = nil end
   end
 end
@@ -408,19 +408,24 @@ function love.load()
             -- with Crystal Gloves ($A3A3 >= 2) a dig wall ($0B) is a step: face it and press A (Kick.try)
             local canDig = ow.vm and ow.vm:rd8(0xA3A3) >= 2
             local avoidPads = false
+            local n = def.w * def.h
             local function search(crossDoors)
-            local prev, q, h = {}, { { ow.x, ow.y } }, 1
-            prev[ow.y * def.w + ow.x] = -1
-            local best, bd, dist, hadGoal = nil, -1, { [ow.y * def.w + ow.x] = 0 }
+            -- states are (cell, head family) so $01/$02 layer walks are routed (World.step)
+            local gates, mark = W.gatesFor(ow.vm, ow.layer), W.mark(ow.vm)
+            local s0 = (ow.layer or 0) * n + ow.y * def.w + ow.x
+            local prev, q, h = {}, { { ow.x, ow.y, ow.layer } }, 1
+            prev[s0] = -1
+            local best, bd, dist, hadGoal = nil, -1, { [s0] = 0 }
             while h <= #q do
               local c = q[h]; h = h + 1
-              local id = c[2] * def.w + c[1]
+              local id = (c[3] or 0) * n + c[2] * def.w + c[1]
               local gl = goals[ow.map]; local vl = gl and gl[math.min(visits[ow.map] or 1, #gl)]
               local g = vl and vl[math.min(ow.step or 1, #vl)]
-              if g then hadGoal = true; ow.farFace = g.face; if c[1] == g[1] and c[2] == g[2] then best, bd = c, dist[id] end
-              elseif W.cell(def, c[1], c[2]) >= 0xC0 and dist[id] > bd then best, bd = c, dist[id] end
+              -- never stop on the $02 heads: they keep sliding (01:4F0D never reads the held pad)
+              if g then hadGoal = true; ow.farFace = g.face; if c[3] ~= 2 and c[1] == g[1] and c[2] == g[2] then best, bd = c, dist[id] end
+              elseif c[3] ~= 2 and W.cell(def, c[1], c[2]) >= 0xC0 and dist[id] > bd then best, bd = c, dist[id] end
               for _, dd in ipairs({ { 0, -1 }, { 0, 1 }, { -1, 0 }, { 1, 0 } }) do
-                local nx, ny = c[1] + dd[1], c[2] + dd[2]; local nid = ny * def.w + nx
+                local nx, ny = c[1] + dd[1], c[2] + dd[2]
                 local occ = false
                 -- same rule as the player's own step (World.blocks: only a live record on a $00 cell)
                 for k, ob in pairs(ow.objects) do if k ~= 0 and W.blocks(def, ob, nx, ny) then occ = true end end
@@ -446,13 +451,12 @@ function love.load()
                     if k and not W.gate(k, dd[1], dd[2]) then occ = true end
                   end
                 end
-                if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not prev[nid] and not occ and (W.walkable(W.cell(def, nx, ny)) or (canDig and W.cell(def, nx, ny) == 0x0B)) then
-                  prev[nid] = id; dist[nid] = dist[id] + 1; q[#q + 1] = { nx, ny }
-                elseif nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not occ then
-                  -- a $01/$02 run the step hops (World.hop): one press lands past it
-                  local lx, ly = W.hop(def, nx, ny, dd[1], dd[2], W.mark(ow.vm))
-                  local lid = lx and (ly * def.w + lx)
-                  if lid and not prev[lid] then prev[lid] = id; dist[lid] = dist[id] + 1; q[#q + 1] = { lx, ly } end
+                if nx >= 0 and ny >= 0 and nx < def.w and ny < def.h and not occ then
+                  local lx, ly, ll
+                  if c[3] == nil and canDig and W.cell(def, nx, ny) == 0x0B then lx, ly = nx, ny
+                  else lx, ly, ll = W.step(def, c[1], c[2], dd[1], dd[2], c[3], mark, gates[c[3] or 0]) end
+                  local lid = lx and ((ll or 0) * n + ly * def.w + lx)
+                  if lid and not prev[lid] then prev[lid] = id; dist[lid] = dist[id] + 1; q[#q + 1] = { lx, ly, ll } end
                 end
               end
             end
@@ -469,8 +473,8 @@ function love.load()
             end
             ow.farPath = {}
             if best then
-              local id = best[2] * def.w + best[1]
-              while prev[id] and prev[id] ~= -1 do table.insert(ow.farPath, 1, { id % def.w, math.floor(id / def.w) }); id = prev[id] end
+              local id = (best[3] or 0) * n + best[2] * def.w + best[1]
+              while prev[id] and prev[id] ~= -1 do local cid = id % n; table.insert(ow.farPath, 1, { cid % def.w, math.floor(cid / def.w) }); id = prev[id] end
               ow.log[#ow.log + 1] = ("route far -> %d,%d (%d steps)"):format(best[1], best[2], #ow.farPath)
             elseif hadGoal then ow.log[#ow.log + 1] = ("route far: no path from %d,%d"):format(ow.x, ow.y)
             end

@@ -220,4 +220,33 @@ function M.gate(k, dx, dy)
   return not ((k == 1 and dy >= 0) or (k == 2 and dy <= 0) or (k == 3 and dx <= 0) or (k == 4 and dx >= 0))
 end
 
+-- Planner support: the gate bytes $C12A-$C131 as they will be under each head
+-- family, starting from `mem` under `layer`. Layer changes only rewrite the
+-- three bytes in GATE_WRITES, so the table for family L is the current bytes
+-- with applyLayer(layer -> L). Keys: 0 normal, 1, 2.
+function M.gatesFor(mem, layer)
+  local out = {}
+  for _, to in ipairs({ 0, 1, 2 }) do
+    local t = {}
+    for i = 0, 7 do t[BASE + i] = gateByte(i, mem) end
+    M.applyLayer(t, layer, to ~= 0 and to or nil)
+    out[to] = t
+  end
+  return out
+end
+
+-- The cells one press reaches from x,y under head family `layer`, the way
+-- World.step moves the player: plain steps, hops, and $01/$02 layer entries
+-- and exits. Returns { { nx, ny, newLayer, dx, dy, how }, ... }.
+function M.moves(def, x, y, layer, mark, gates)
+  local out = {}
+  for _, d in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) do
+    local nx, ny, nl, how = M.step(def, x, y, d[1], d[2], layer, mark, gates[layer or 0])
+    if nx and nx >= 0 and ny >= 0 and nx < def.w and ny < def.h then
+      out[#out + 1] = { nx, ny, nl, d[1], d[2], how }
+    end
+  end
+  return out
+end
+
 return M
