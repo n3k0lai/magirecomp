@@ -120,6 +120,42 @@ do
   ok(vm:rd8(0xA123) == 0x43, "$27 duel follows the win script")
 end
 
+-- a wild encounter (13:5F7C shape: $30, $25, $2E, $27, no $31) returns through the
+-- last $31 that ran, every time (dispatch_nonzero_d016.asm -> ContinueStartup)
+do
+  local b = {
+    0x30, 0x00, 0x00, 0x27,                   -- 4000 $C840 0000 (no wipe), battle music $27
+    0x25, 0x07, 0x6C, 0x12, 0x4C, 0x23, 0x40, -- 4004 battle setup
+    0x2E, 0x09, 0x08, 0x10, 0x21, 0x01,       -- 400B summon
+    0x27,                                     -- 4011 run the battle
+  }
+  while #b < 0x30 do b[#b + 1] = 0 end
+  b[#b + 1] = 0xA9; b[#b + 1] = 0x45; b[#b + 1] = 0x00; b[#b + 1] = 0x97 -- 4030 map entry tail
+  while #b < 0x40 do b[#b + 1] = 0 end
+  b[#b + 1] = 0xA9; b[#b + 1] = 0x46; b[#b + 1] = 0x00; b[#b + 1] = 0x97 -- 4040 loss tail
+  local f = host()
+  local music = {}
+  f.h.music = function(v) music[#music + 1] = v end
+  local vm = VM.new(image(b), f.h)
+  for k, v in ipairs({ 0x12, 0x30, 0x40, 0x12, 0x40, 0x40 }) do vm:wr8(0x7D3CD + k - 1, v) end
+  vm:wr8(0xC920, 0x26)
+  for round = 1, 2 do
+    vm:wr8(0xA123, 0)
+    vm:start(0x12, 0x4000)
+    ok(f.runs == round, "wild battle " .. round .. " runs")
+    ok(vm:rd8(0xC923) == 0x26 and vm:rd8(0xC920) == 0x27, "$30 saves the field music at $C923")
+    f.active, f.result = false, "win"
+    vm:resume()
+    ok(vm:rd8(0xA123) == 0x45, "wild battle " .. round .. " continues at the $D3CD script")
+    ok(vm:rd8(0xC920) == 0x26 and music[#music] == 0x26, "the battle's end restores [$C923]")
+  end
+  vm:wr8(0xA123, 0)
+  vm:start(0x12, 0x4000)
+  f.active, f.result = false, "loss"
+  vm:resume()
+  ok(vm:rd8(0xA123) == 0x46, "a lost wild battle continues at the $D3D0 script")
+end
+
 -- Battle side: engine ops and the per-round pass, without love graphics
 do
   local okB, Battle = pcall(require, "mn.Battle")

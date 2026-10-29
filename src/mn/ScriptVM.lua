@@ -14,18 +14,44 @@ local Save = require("mn.ops.Save")
 
 local VM = {}
 
--- after a scripted duel the engine never resumes the battle's stream
--- (dispatch_nonzero_d016.asm): a loss (mode 3) continues at the $31 record's second
--- script ($D3D0), anything else at its first ($D3CD). Scripted duels use it (Korg
--- 14:6EAD -> win 14:6B30); the port keeps the field through wild encounters, so the
--- record is only followed when a $31 ran since the last battle. Returns {bank, ptr} or nil.
+-- After any battle the engine never resumes the battle's stream. 2:5E6D ends in the
+-- $6591 loop (loop_while_d0d5.asm), which only leaves through DispatchNonzeroD016
+-- (dispatch_nonzero_d016.asm) into ContinueStartup ($2158, finish_startup.asm); the
+-- `jp $015B` after bank 4's call (opcode_25_bank4.asm) is never reached. A loss (mode 3)
+-- continues at the $31 record's second script ($D3D0), anything else at its first
+-- ($D3CD). Only opcode_31.asm writes $D3CD-$D3D2 (no other `$D3CD`/`$D3D0` access in the
+-- ROM), and WRAM 7 is not cleared, so a wild encounter (13:5F7C, 14:4076: no $31) returns
+-- through the last $31 that ran: the map's entry script (21:776A -> 21:77BA, which
+-- starts with $93) on a win, 22:40CE on a loss. Returns {bank, ptr} or nil (a record
+-- never set: the port then ends the script).
 local function duelTail(vm, h)
   local lost = h.battleResult and h.battleResult() == "loss"
   local k = lost and 0x7D3D0 or 0x7D3CD
-  local had = vm.duelTail
-  vm.duelTail = nil
-  if had and vm:rd8(k) ~= 0 then return { vm:rd8(k), vm:rd8(k + 1) + 256 * vm:rd8(k + 2) } end
+  -- every D016 path ends by copying [$C923] (saved by $30) into wSoundIndex when it differs
+  local v = vm:rd8(0xC923)
+  if vm:rd8(0xC920) ~= v then vm:wr8(0xC920, v); if h.music then h.music(v) end end
+  if vm:rd8(k) ~= 0 then return { vm:rd8(k), vm:rd8(k + 1) + 256 * vm:rd8(k + 2) } end
   return nil
+end
+
+-- FinishStartup ($2158) state: what $93 and the $30 wipe's `jp FinishStartup` share.
+local function finishStartup(self, h)
+  -- DefaultState -> SetupWindow: window closed and parked below the picture
+  self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
+  self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
+  if self.threads then self.threads.loop38 = nil end
+  -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
+  -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
+  if h.defaultGates then h.defaultGates() end
+  if h.freshScene and not self.init then h.freshScene() end
+  -- finish_startup.asm: $CCA5 cleared, SetupDefaultState (default_state.asm:
+  -- $C6DE, callbacks, $C931-$C933, $C9C5/6, $C9FF 22 06 40, $C188, $C6D8 grass
+  -- enable, $CCA6, $C6F3, $C6EF = 3, $FFAA/$FFAB = 3), InitQuadRecords ($C70E,
+  -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
+  -- The boot path stores the same bytes (boot/Title.lua).
+  require("mn.boot.Title").applyDefaults(self)
+  self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
+  if h.lcdOff then h.lcdOff() end
 end
 VM.__index = VM
 
@@ -218,22 +244,7 @@ function VM:run(bank, ptr)
       h.animAt(self.curSlot, cur.bank, cur.ptr)
     end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
-      -- DefaultState -> SetupWindow: window closed and parked below the picture
-      self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
-      self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
-      if self.threads then self.threads.loop38 = nil end
-      -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
-      -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
-      if h.defaultGates then h.defaultGates() end
-      if h.freshScene and not self.init then h.freshScene() end
-      -- finish_startup.asm: $CCA5 cleared, SetupDefaultState (default_state.asm:
-      -- $C6DE, callbacks, $C931-$C933, $C9C5/6, $C9FF 22 06 40, $C188, $C6D8 grass
-      -- enable, $CCA6, $C6F3, $C6EF = 3, $FFAA/$FFAB = 3), InitQuadRecords ($C70E,
-      -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
-      -- The boot path stores the same bytes (boot/Title.lua).
-      require("mn.boot.Title").applyDefaults(self)
-      self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
-      if h.lcdOff then h.lcdOff() end
+      finishStartup(self, h)
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
       if h.picture then h.picture(nil) end -- back to the field map
@@ -277,12 +288,17 @@ function VM:run(bank, ptr)
       end
     elseif op == 0x30 then -- Opcode30: C840/C841 := b1,b2; b3 = sound index ($FF keeps)
       self:wr8(0xC840, r:u8(o + 1)); self:wr8(0xC841, r:u8(o + 2))
+      self:wr8(0xC923, self:rd8(0xC920)) -- opcode_30.asm saves wSoundIndex for the battle's end
       local v = r:u8(o + 3)
       if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
       o = o + n
-      -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral).
-      -- Its FinishStartup tail is not run here: the port's battle return keeps the field.
-      if not self.init and h.spiral and self:rd8(0xC840) == 0xED and self:rd8(0xC841) == 0x56 then h.spiral() end
+      -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral),
+      -- which ends in `jp FinishStartup` with hScriptPtr past this $30 (opcode_30.asm):
+      -- the rest of the stream runs on as the main record under FinishStartup's state.
+      if not self.init and h.spiral and self:rd8(0xC840) == 0xED and self:rd8(0xC841) == 0x56 then
+        h.spiral()
+        finishStartup(self, h)
+      end
     elseif op == 0x25 then -- Opcode25: battle setup (C9E4, D391 kind, D36D, battle script record)
       do -- opcode_25.asm first copies $C18E/$C18F to the pair
         local px, py = self:playerCell()
@@ -595,7 +611,6 @@ function VM:run(bank, ptr)
       h.slotFields(r:u8(o + 1), r:u8(o + 2), r:u8(o + 3)); o = o + n
     elseif op == 0x31 then -- opcode_31.asm: six bytes to WRAM 7 $D3CD-$D3D2
       for k = 0, 5 do self:wr8(0x7D3CD + k, r:u8(o + 1 + k)) end; o = o + n
-      self.duelTail = true -- a battle started from here returns through these records
     elseif op == 0x1F then -- opcode_1f.asm: music index (wSoundIndex $C920), wSoundActive on change
       local v = r:u8(o + 1)
       if self:rd8(0xC920) ~= v then self:wr8(0xC920, v); self:wr8(0xC91E, 1); h.music(v) end

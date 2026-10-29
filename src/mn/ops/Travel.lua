@@ -173,6 +173,13 @@ local function livePicture(vm)
   return pic
 end
 
+-- vm.rom is the script image (banks $00-$3C); picture data can sit past it (map 4's
+-- return tail 14:6029 runs $6A with records in bank $7C), so read those from the full ROM.
+local function dataRom(vm, bank)
+  if bank > 0x3C and vm.host.fullRom then return vm.host.fullRom() or vm.rom end
+  return vm.rom
+end
+
 local function publishPicture(vm, pic)
   -- clamp_map_camera.asm stores SCX/SCY at $FF43/$FF42. draw() reads them.
   pic.scx, pic.scy = vm:rd8(0xFF43), vm:rd8(0xFF42)
@@ -184,7 +191,7 @@ M.handlers[0x63] = function(vm, o, n)
   local ptr, bank = vm.rom:u16(o + 1), vm.rom:u8(o + 3)
   if vm.host.travelBg then vm.host.travelBg(bank, ptr) end
   local pic = livePicture(vm)
-  pic:unpackMaps(vm.rom, bank, ptr)
+  pic:unpackMaps(dataRom(vm, bank), bank, ptr)
   publishPicture(vm, pic)
   return o + n
 end
@@ -195,12 +202,13 @@ M.handlers[0x6A] = function(vm, o, n)
   local p2, b2 = vm.rom:u16(o + 4), vm.rom:u8(o + 6)
   if vm.host.travelTiles then vm.host.travelTiles(b1, p1) end
   local pic = livePicture(vm)
-  pic:copyRecords(vm.rom, b1, p1) -- CopyMapRecords ($2FC0), both VRAM banks
-  pic:loadPalettes(vm.rom, b2, p2) -- the $40 bytes copied onto $C7AB below
+  pic:copyRecords(dataRom(vm, b1), b1, p1) -- CopyMapRecords ($2FC0), both VRAM banks
+  local R2 = dataRom(vm, b2)
+  pic:loadPalettes(R2, b2, p2) -- the $40 bytes copied onto $C7AB below
   publishPicture(vm, pic)
   local src = b2 * 0x4000 + p2 - 0x4000
   for i = 0, 63 do
-    local v = vm.rom:u8(src + i)
+    local v = R2:u8(src + i)
     vm:wr8(0xC72B + i, v)
     -- RunPanelIndexThrough2EB6 with index $07 copies those 32 words onto
     -- the BG palette block at $C7AB. The palette upload itself is not done.

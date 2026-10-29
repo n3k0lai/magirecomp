@@ -84,6 +84,29 @@ do
   ok(vm:rd8(0xC9D8) == 7 and vm:rd8(0xC831) == 1, "$6A panel index")
 end
 
+-- $6A with records past the script image (banks $00-$3C): map 4's battle return
+-- tail 14:6029 names 7C:5C1E and 7C:4F3C; those reads come from host.fullRom
+do
+  local b = { 0x6A, 0x1E, 0x5C, 0x7C, 0x3C, 0x4F, 0x7C, 0x94 }
+  local pre = string.rep("\0", 0x12 * 0x4000) .. string.char(unpack(b))
+  -- MnImporter.scriptRom: scripts.bin stops after bank $3C
+  local scripts = setmetatable({ s = pre .. string.rep("\0", 0x3D * 0x4000 - #pre) }, MnRom)
+  local full = {}
+  for i = 0, 63 do full[i + 1] = string.char((i * 5 + 2) % 256) end
+  local at = 0x7C * 0x4000 + 0x0F3C
+  local fs = string.rep("\0", at) .. table.concat(full)
+  local fullRom = MnRom.new(fs .. string.rep("\0", 0x200000 - #fs))
+  local vm = VM.new(scripts, { fullRom = function() return fullRom end })
+  local okRun, err = pcall(vm.runInit, vm, 0x12, 0x4000)
+  ok(okRun, "$6A past bank $3C runs: " .. tostring(err))
+  local pal = true
+  for i = 0, 63 do
+    local v = (i * 5 + 2) % 256
+    if vm:rd8(0xC72B + i) ~= v or vm:rd8(0xC7AB + i) ~= v then pal = false end
+  end
+  ok(pal, "$6A reads 7C:4F3C from the full ROM")
+end
+
 -- $88 floors an item, clears a spell, and wraps the Animite word
 do
   local vm = run({

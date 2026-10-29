@@ -119,7 +119,7 @@ disassembled yet.
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
 | $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
-| $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | tail jp 04:6416 not traced (open) |
+| $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | 04:6416 traced: InitWram7BeforeReset, LoopWhileD0D5, DispatchNonzeroD016, ContinueStartup ($2158); Reset is never reached. Every battle returns through the last $31 record ($D3CD win, $D3D0 loss) and restores [$C923] (mn_battle_director_test) |
 | $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op: asm ends the pass; port battle director (open) |
 | $27 | HaltClearD3C2 | opcode_27.asm | 0 | ok | ScriptVM:339 |  |
 | $28 | CopyScriptToD392 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op (open) |
@@ -130,7 +130,7 @@ disassembled yet.
 | $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 |  |
 | $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | battle record op (open) |
 | $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | battle record op (open) |
-| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); FinishStartup tail not applied (open) |
+| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); saves $C920 to $C923; the wipe ends in `jp FinishStartup`, applied after the spiral (mn_battle_director_test) |
 | $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:593 |  |
 | $32 | SetThirdScript | opcode_32.asm | 5 | ok | ops/Flow:398 |  |
 | $33 | PlantRecord30 | plant_record_30.asm | 0 | ok | ops/Panels:497 |  |
@@ -188,7 +188,7 @@ disassembled yet.
 | $67 | CallScriptUnpackHeaderAndBlock | call_script_unpack_header_and_block.asm | 6 | unused in decomp scripts | ops/Records:362 |  |
 | $68 | CallScriptUnpackIntoWRAM4And6 | call_script_unpack_wram4_and_wram6.asm | 6 | ok | ops/Records:344 |  |
 | $69 | CallScriptPtrThenMapScriptBank | call_script_ptr_then_map_script_bank.asm | 2 | ok | ScriptVM:243 |  |
-| $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 |  |
+| $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 | records past bank $3C (14:6029 -> 7C) read from the full ROM (mn_ops_travel_test) |
 | $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | glyph copy over count passes; port copies at once (open) |
 | $6C | StageColorWordThenCall5C00 | stage_color_word_then_call_5c00.asm | 3 | ok | ops/Panels:583 |  |
 | $6D | SaveScriptPtrAndSplitByte | save_script_ptr_and_split_byte.asm | 1 | ok | ops/Panels:596 |  |
