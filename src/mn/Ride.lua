@@ -16,8 +16,14 @@
 -- Head $6405 (the parked boat) runs GateCellNearFirstRecord (01:641D) and on
 -- a hit plants $64D1 (RunTailScriptThenPlantTwoScripts), which runs the
 -- record's tail script (22:40C2: put Tony to sleep, music $0B, head word
--- $60E7, anim 11:780A). The gate needs $FFAB bit 2 (Tony pressed A against a
--- blocked faced cell), wRecordState = 0, $C6EE = 0 and $C716 = 0.
+-- $60E7, anim 11:780A). The gate needs $FFAB bit 2 (any A dispatch by Tony,
+-- whatever the faced cell), wRecordState = 0, $C6EE = 0 and $C716 = 0.
+-- 22:40C2 does not move Tony's record: through the ride $C18E/$C18F stay on the
+-- cell he boarded from (only Opcode00 at 01:4426 and slot 0's own commit write
+-- them), and the $65A4 step-on gate compares records against that cell (ow.rec0).
+-- With no direction held the head's idle tail is picked by hRecordHead & 3, the
+-- boat record's opening byte. Opcode05 skips that byte, so the first idle facing
+-- is whatever the slot last held; the port does not mirror record byte 0.
 local World = require("mn.World")
 local Sprites = require("mn.Sprites")
 
@@ -73,11 +79,12 @@ end
 -- One control frame. True when a ride owns the pad.
 function M.tick(ow)
   local slot, ob = M.rider(ow)
-  if not slot then ow.riding = nil; return false end
+  if not slot then ow.riding = nil; ow.rec0 = nil; return false end
   local vm = ow.vm
   if ow.riding ~= slot then
     -- $60E7's first pass: gates, then the planted head drives this record
     World.writeGates(vm, "ride")
+    ow.rec0 = { ow.x, ow.y } -- $C18E/$C18F as the mount finds them
     ow.riding = slot; ob.driven = true
     ow.x, ow.y = ob.x, ob.y; ow:snap(); ow.moving = nil; ow.hidePlayer = true; ow.camFix = nil
     if ob.rideFacing then ow.facing = ob.rideFacing end
@@ -99,7 +106,7 @@ function M.tick(ow)
     if World.cell(ow.def, fx, fy) == 0x00 then
       World.writeGates(vm, "dock")
       ob.handler = M.PARKED; ob.x, ob.y, ob.ox, ob.oy = ow.x, ow.y, 0, 0
-      ow.riding = nil
+      ow.riding = nil; ow.rec0 = nil
       ow.x, ow.y = fx, fy; ow:snap(); ow.hidePlayer = nil; ow.moving = nil
       ow.log[#ow.log + 1] = ("dock slot %d, Tony at %d,%d"):format(slot, fx, fy)
       vm:spawnThread(slot, M.DOCK_SCRIPT[1], M.DOCK_SCRIPT[2])
@@ -109,24 +116,36 @@ function M.tick(ow)
   M.sync(ow); return true
 end
 
--- Tony's A against a blocked faced cell: a parked boat whose window holds
--- him runs its tail script (the re-mount).
-function M.try(ow)
+-- GateCellNearFirstRecord (01:641D) for every parked boat, in slot order (records run
+-- in slot order; $6405 does not set wRecordState, so it does not block a later one).
+-- The $FFAB bit 2 latch comes from any A dispatch: the faced cell is not tested.
+function M.find(ow)
   local vm = ow.vm
-  local f = DIRS[ow.facing or "down"]
-  local fx, fy = ow.x + f[1], ow.y + f[2]
-  if World.walkable(World.cell(ow.def, fx, fy), vm) then return false end
-  if vm:rd8(0xC6EE) ~= 0 or vm:rd8(0xC716) ~= 0 then return false end
+  if vm:rd8(0xC6EE) ~= 0 or vm:rd8(0xC716) ~= 0 then return nil end
   local fa = M.FACING[ow.facing or "down"]
-  for slot, ob in pairs(ow.objects) do
-    if ob.handler == M.PARKED and not ob.dormant and ob.tail and M.near(fa, ob.x, ob.y, ow.x, ow.y) then
-      ob.handler = M.TAIL
-      ow.log[#ow.log + 1] = ("board slot %d -> %02X:%04X"):format(slot, ob.tail[1], ob.tail[2])
-      vm:spawnThread(slot, ob.tail[1], ob.tail[2])
-      return true
-    end
+  local slots = {}
+  for slot in pairs(ow.objects) do if type(slot) == "number" then slots[#slots + 1] = slot end end
+  table.sort(slots)
+  for _, slot in ipairs(slots) do
+    local ob = ow.objects[slot]
+    if ob.handler == M.PARKED and not ob.dormant and ob.tail and M.near(fa, ob.x, ob.y, ow.x, ow.y) then return slot end
   end
-  return false
+end
+
+-- PlantHeadWord64D1 then RunTailScriptThenPlantTwoScripts: the record's tail script.
+function M.board(ow, slot)
+  local ob = ow.objects[slot]
+  if not ob or ob.handler ~= M.PARKED then return false end
+  if ow.vm:rd8(0xC6EE) ~= 0 or ow.vm:rd8(0xC716) ~= 0 then return false end
+  ob.handler = M.TAIL
+  ow.log[#ow.log + 1] = ("board slot %d -> %02X:%04X"):format(slot, ob.tail[1], ob.tail[2])
+  ow.vm:spawnThread(slot, ob.tail[1], ob.tail[2])
+  return true
+end
+
+function M.try(ow)
+  local slot = M.find(ow)
+  return slot ~= nil and M.board(ow, slot)
 end
 
 return M

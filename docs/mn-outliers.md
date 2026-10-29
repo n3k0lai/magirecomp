@@ -13,7 +13,7 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
 2. **`$4C`/`$4D` in map scripts.** ScriptVM now waits each record's frame count (the `$4C` sum, or entries
    x count for `$4D`). It no longer skips them.
 3. **What starts the bank-`$29` chain.** 29:4000 is a single `$86` (seed_camera_loop.asm). `$45` enters it
-   from 16:5EEB (maps 2/44), 1F:581F (through a `$04` at 1F:4D83) and 2A:5E57 (maps 182/183). It falls through
+   from 16:5EEB (maps 2/44), 1F:590A (map 219, entered from 1D:4FEF and 1D:5048) and 2A:5E57 (maps 182/183). It falls through
    into the 29:4001 stub chain, which is the travel-card tour. 187's 29:4DF2 entry is part of that tour, not
    a gameplay door.
 4. **Harness hacks.** Every MN_* switch is opt-in (MN_NOENC, MN_GOD, MN_FORGE, MN_PICK, MN_SNAP_*, MN_LOAD and
@@ -112,17 +112,50 @@ parks the slots nobody rewrote, and the record callbacks draw only through their
 QueueSpriteList calls. The port hides the object on those frames (`Sprites.tick`, `o.hidden`); the rock
 fall (11:7532) is unseen while it lifts and shows only as it drops. Test: mn_op4e_test.
 
-1. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
-3. **Conveyors `$A0`-`$A7` and warps that land mid-layer.** Not modelled yet. The ride gates (60E7 /
-   5F25) are no longer here: the boat is reachable from 236 entry 4 (2F:46C0) and from 258/40 onto map
-   281, and mn.Ride implements it (see docs/mn-engines.md, "Boat"). Ride outliers left for Nicholai:
-   the two `$5B07` slot-0 records (a tail into CommitScriptRecord that never reads the pad, so the port
-   doesn't treat them as the player); the boat's first facing; whether the `$65A4` encounter roll on 281
-   compares against the boat or Tony; and whether the talk hit-test or the 01:641D window decides a
-   re-board when both could fire.
-4. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
-   produces those values. They look like dead data, but that isn't proven.
-5. **5C7A entry-anim timing** is still INCBIN.
+Also settled on fix/mn-secrets2, from the code:
+
+- **Owner of 1F:581F.** Map 191's trigger list 21:499C has cell `$C1` at 9,8; it runs 15:6066 (the
+  Core Glyph text), then 15:6085 does `$45` into 1F:579A, a `$93` startup on map 219 that fills slot 0
+  with 1F:585D and slots 2-4 with 586C, 58B1 and 58BC. 585D's `$5A` reaches the talk walk 1F:4C27, and at
+  1F:4D7F it does `$9B 58 54` then `$09` (RunScriptInSlot, not `$04`) slot 4 on 1F:581F, a slot
+  sequence (frames 0E:6E1A, 6E2E, 6E38, 6E1A, 6E24). The `$45` into 29:4000 sits at 1F:590A in the same
+  file; 590A is entered from 1D:4FEF and 1D:5048 (map 223), and 1D:4FEF from 23:7CAF (map 64) <-
+  13:5E2E (map 61). The port's `$45`, `$5A` and `$09` paths already run this chain.
+- **186 `$C3`-`$C6`** are dead data. 186 has one entry (1F:688B) and list 21:4E14. Its base plane holds
+  only C0, C1, C2, C7, C8 and C9; its A-list overlay 69:7AD0 (1F:62D4) has none of C3-C6. The overlays
+  that do (6D:6EBF, 6A:5D88) are 187-sized and applied by 187's scripts (1F:699C, 69D0, 6B69, 6C91,
+  6E67); loading 186 rewrites all 4096 cells. 187's C0-C5 (1F:6910-693D) enter 186 at the same pairs,
+  so 1F:62A1-62BC are the unused reverse rows. No `$04`/`$80` cell write on 186 makes C3-C6.
+- **Warps that land mid-layer** don't exist: every target entry runs `$93`, which resets the layer
+  gates and refills slot 0.
+- **Conveyors `$A0`-`$A7`** (01:5E65 inside the `$5B41` family) are implemented: mn.Motion (05:682D,
+  the probes, 422E) and mn.PixelWalk. Tests: mn_motion_test, mn_pixelwalk_test.
+- **`$5B07`** (21:78EB, 19:7D92, script 20:5BDF) is the player held in place: 4AF0, then
+  StepCell82EveryFourthFrame (01:4212), then DispatchCellAboveOnButtonA (01:4C6E), then
+  CommitScriptRecord. No pad walk; a newly pressed A tests the cell above whatever the facing.
+  Port: Overworld `frozenPass`. Test: mn_frozen_head_test.
+- **Re-board vs the A dispatch.** Every A dispatch sets `$FFAA` bit 2 before it reads the cell (the
+  faced cell is never tested for the latch). FinishFrame copies it to `$FFAB`, and the parked boat's
+  `$6405` runs 01:641D in its own pass on the next frame, needing wRecordState = 0, `$C6EE` = 0 and
+  `$C716` = 0. So a list script staged by the A press blocks the re-board, while a push or kick does
+  not. Talk records use the same gate (StageScratchThenPlantHeadWord64D1, 01:63ED) in slot order; one
+  that fires sets wRecordState and blocks later slots, while `$6405` does not. The port keeps its talk
+  hit-test first (exact when the talker's slot is the lower one), runs push/kick/list next, and then
+  the boat. The port's old "blocked faced cell" condition is gone. Test: mn_frozen_head_test.
+- **`$65A4` while riding** compares the record's cell with `$C18E`/`$C18F`, slot 0's record. Only
+  Opcode00 (01:4426) and slot 0's own commit write those, and 22:40C2 (`$0C`, `$1F`, `$13`, `$45`)
+  doesn't move Tony. So during a ride the roll is against the cell Tony boarded from, not the boat.
+  Port: `ow.rec0` (mn.Ride), used by the step-on check. Test: mn_ride_mode_test.
+
+1. **The boat's first facing.** With no direction held, `$60FD` picks the idle tail from
+   hRecordHead & 3, which is the boat record's opening byte. Opcode05 skips that byte, so the value is
+   whatever the slot's last occupant left (InitPointerList only sets bit 7 and clears bit 6). The port
+   doesn't mirror record byte 0 across occupants and keeps Tony's facing until the first direction.
+2. **5C7A entry-anim timing** (layer-2 heads, the story worker's area; report only). The table gives
+   dy -2,-2,-1,-1, 0 x4, +2 x6, +3 x4, +4 x2, then +1 x3: net 35 px over 23 frames. The 5CB3 slide
+   that follows moves 4 px a frame; the port slides 1.
+3. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
+4. **The layer-1 pixel heads** are not implemented in the port yet.
 
 ## Secrets and engines (fix/mn-secrets)
 

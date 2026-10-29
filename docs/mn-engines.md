@@ -56,14 +56,27 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
   22:40AD runs (music $07).
 - Re-board (GateCellNearFirstRecord 01:641D): the facing is record 0's (the player's); the windows are
   up d = b, e in [c, c+1]; down d = b, e in [c-1, c]; left d in [b, b+1], e in [c-1, c+1]; right
-  d in [b-1, b], e in [c-1, c+1]. `$64D1` runs the tail 22:40C2 in the boat's slot. $C6EE nonzero
-  blocks it.
+  d in [b-1, b], e in [c-1, c+1]. `$64D1` runs the tail 22:40C2 in the boat's slot. The gate reads
+  the `$FFAB` latch of `$FFAA` bit 2, which every A dispatch sets whatever the faced cell. It runs the
+  frame after the press, so a list script staged by that press (`$C716`), an open window (`$C6EE`) or
+  a filled scratch (wRecordState) blocks it.
+- While riding, `$C18E`/`$C18F` (slot 0's record) stay on the cell Tony boarded from, and `$65A4`
+  step-on records compare against that cell (`ow.rec0`).
 - `$93` (FinishStartup -> SetupDefaultState) starts with WriteC12APattern (05:6C08), which puts
   00 FF FF 00 FF FF FF FF back at $C12A. That is what ends a ride when a step trigger such as 2F:466C
   (C6 on 281) lands Tony back on 236 through 25:7129. The port does the same and also clears its own
   layer state.
-- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41` or `$5D47` read the pad, so they are the player.
-  2F:466C fills slot 0 with `$5B41`.
+- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41`, `$5D47` or `$5B07` read the pad, so they are the
+  player. 2F:466C fills slot 0 with `$5B41`. `$5B07` (21:78EB, 19:7D92) reads only A: no walk, and A
+  always tests the cell above (4C6E). It still runs the `$82` countdown (4212).
+
+### Pixel motion (mn.Motion, mn.PixelWalk)
+
+- mn.Motion: SaveStepThenApplyOrDispatch (05:682D), the cell probes and their handler table, the
+  conveyor cells `$A0`-`$A7` (01:5E65) and the once-per-entry step triggers (01:422E).
+- mn.PixelWalk: the `$5B41` head family, which takes fine steps every frame from fine 8,8
+  (FillScriptRecord0808); a conveyor cell adds to the step. Boot's planner holds the pad while it
+  runs. Tests: mn_motion_test, mn_pixelwalk_test.
 
 ## Cutscene routines
 

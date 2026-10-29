@@ -25,8 +25,12 @@ M.__index = M
 M.wideAware = true -- Boot passes the logical view to draw() (see mn.Viewport)
 
 local Ride = require("mn.Ride")
--- bank-1 record heads that read the pad: a slot-0 record with one is the player
-local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5D47] = true }
+local PixelWalk = require("mn.PixelWalk")
+local Motion = require("mn.Motion")
+-- bank-1 record heads that read the pad (5B07: A only): a slot-0 record with one is the player
+local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5D47] = true, [0x5B07] = true }
+-- 01:5B07: the player record held in place (no pad walk; A tests the cell above)
+local FROZEN_HEAD = 0x5B07
 local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
 
 function M.new(mapIndex, x, y, input)
@@ -74,6 +78,7 @@ function M:host()
     -- record slot 4 the 236/258/40 shore spawned, then loads the sea map 281)
     defaultGates = function() -- $93: WriteC12APattern; the walk heads start from the normal family
       World.seedPattern(s.vm); s.layer, s.layerDir, s.layerHeld = nil, nil, nil
+      s.padHead, s.pw = nil, nil -- the next slot-0 fill picks the head family
     end,
     freshScene = function() -- record threads start over (the running script survives)
       s.asleep = s.asleep or {}
@@ -152,7 +157,7 @@ function M:host()
     objPalette = function(bank, ptr) Panels.loadPalettes(s.vm, s:paletteBlock(bank, ptr), true) end,
     playerCell = function() return s.x, s.y end,
     cellOpen = function(x, y) return World.walkable(World.cell(s.def, x, y)) end,
-    placePlayer = function(x, y) s.x, s.y = x, y; s:snap(); s.moving = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
+    placePlayer = function(x, y) if s.riding then s.rec0 = { x, y } end; s.x, s.y = x, y; s:snap(); s.moving = nil; s.pw = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
     centerCamera = function() s.pan = nil; s.camFix = nil end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
@@ -238,10 +243,15 @@ function M:host()
       -- $5B41 (SelectSRAMBankThenDownMark, falls into ResumeDownClearHead $5B6E) and
       -- $5D47 (inside ResumeOtherLeftCellScript: reads $C9A3 and plants the up / left /
       -- right heads) are pad heads too: 2F:466C plants $5B41 with 20:5BCF when the boat
-      -- lands on 236 (sea trigger $C6), and Tony walks off it
+      -- lands on 236 (sea trigger $C6), and Tony walks off it. $5B07 (21:78EB, 19:7D92
+      -- with 20:5BDF) is the player too, held in place: M:frozenPass
       if slot == 0 and PAD_HEADS[handler] and anim then
         if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
-        s.objects[0] = nil; s.hidePlayer = false; return
+        s.objects[0] = nil; s.hidePlayer = false
+        -- the record's handler picks the head family; $5B41 is the conveyor family
+        -- (mn.PixelWalk), started at fine 8,8 (FillScriptRecord0808) on first use
+        s.padHead, s.pw = handler, nil
+        return
       end
       if slot ~= 0 or s.hidePlayer then
         local prev = s.objects[slot]
@@ -288,7 +298,7 @@ function M:host()
     release = function(slot)
       local ob = slot and s.objects[slot]
       if slot == 0 and ob then
-        s.x, s.y = ob.x, ob.y; s.objects[0] = nil; s.hidePlayer = false; s.moving = nil; s.camFix = nil; s:snap()
+        s.x, s.y = ob.x, ob.y; s.objects[0] = nil; s.hidePlayer = false; s.moving = nil; s.camFix = nil; s.pw = nil; s:snap()
         s.log[#s.log + 1] = ("player control at %d,%d"):format(s.x, s.y)
       end
     end,
@@ -648,8 +658,12 @@ function M:update()
   -- start battles, so route legs can be tested; story records (e.g. 277 slot 2) still fire
   local noEnc = os.getenv("MN_NOENC") == "1"
   if not self.moving and not self.textBox and not self.scriptWaiting then
+    -- 01:65A4 compares the record's cell with $C18E/$C18F, slot 0's record: during a
+    -- ride that is the cell Tony boarded from (mn.Ride), not the boat
+    local tx, ty = self.x, self.y
+    if self.rec0 then tx, ty = self.rec0[1], self.rec0[2] end
     for slot, ob in pairs(self.objects) do
-      if ob.handler == 0x65A4 and not ob.dormant and ob.x == self.x and ob.y == self.y and ob.beh
+      if ob.handler == 0x65A4 and not ob.dormant and ob.x == tx and ob.y == ty and ob.beh
         and not (noEnc and type(slot) == "number" and slot >= 31) then
         ob.handler = 0x4A6B
         self.log[#self.log + 1] = ("encounter slot %d at %d,%d"):format(slot, ob.x, ob.y)
@@ -789,44 +803,10 @@ function M:update()
   -- ResumePlantedHead6167 (01:6167): a held direction ($C9A3 bits 4-7) jumps to its
   -- plant before anything else; only with no direction held does a newly pressed A
   -- ($C9A4 bit 0) reach DispatchPressedAOnFacingCell (01:619A). A with a direction is dropped.
+  if self.padHead == PixelWalk.HEAD and not self.layer then return self:pixelWalk(dir) end
+  if self.padHead == FROZEN_HEAD and not self.layer then return self:frozenPass() end
   if not dir and (not self.aCool or self.aCool <= 0) and self.input("a") then
-    local f = DIRS[self.facing]; local fx, fy = self.x + f[1], self.y + f[2]
-    if os.getenv("MN_ADBG") then print(("[a] map %d at %d,%d facing %s cell $%02X alist %s"):format(self.map, self.x, self.y, tostring(self.facing), World.cell(self.def, fx, fy), tostring(self.aList))) end
-    -- talk: the facing cell is the object's cell or the one below it (PyBoy: Evu at 15,5
-    -- answers from 15,6 up, 14,5 / 14,6 right, 16,6 left, 15,4 down; only 15,5 blocks)
-    for slot, ob in pairs(self.objects) do
-      local hit = ob.x == fx and (ob.y == fy or ob.y + 1 == fy)
-      -- a record script that only plants its talk ($5B ..., $42) is the talk itself; one that
-      -- carries on after the $5B (257 boatman 1B:509A waits on C6FD for the talk's $58 01
-      -- post, then 1B:50ED) has to run as the slot's thread
-      if hit and ob.beh and M.useRunsRecord(self.vm.rom, ob.beh[1], ob.beh[2])
-        and not (self.vm.threads and self.vm.threads[slot]) then
-        -- the record's own script (sbank:sptr) runs as the slot's thread when used
-        self.log[#self.log + 1] = ("use slot %d -> %02X:%04X"):format(slot, ob.beh[1], ob.beh[2])
-        self.vm:spawnThread(slot, ob.beh[1], ob.beh[2]); return
-      end
-      if hit and ob.talk then
-        self:runScript(ob.talk[1], ob.talk[2], ("talk to slot %d"):format(slot)); return
-      end
-    end
-    -- DispatchPressedAOnFacingCell (01:619A): $09 is the gloves push, $0B the kick
-    if Push.try(self) then return end
-    if Kick.try(self) then return end
-    if Ride.try(self) then return end -- a parked boat ($6405) in GateCellNearFirstRecord's window
-    local v = World.cell(self.def, fx, fy)
-    -- DispatchPressedAOnFacingCell (01:619A) reads only the faced cell; list
-    -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one
-    -- SaveCellBelowAndStageThirdScript: bit 5/6 set, bit 7 clear -> index v-$40
-    if v < 0x80 and bit.band(v, 0x60) ~= 0 and self.aList then
-      -- SaveCellBelowAndStageThirdScript (01:4B61): row $C99C, column $C99D, the
-      -- cell's WRAM word $C99E/$C99F and the list index $C9A0
-      local w = 0xD000 + fy * self.def.w + fx
-      self.vm:wr8(0xC99C, fy); self.vm:wr8(0xC99D, fx)
-      self.vm:wr8(0xC99E, w % 256); self.vm:wr8(0xC99F, math.floor(w / 256)); self.vm:wr8(0xC9A0, v)
-      local _, b, p = self:listEntry(self.aList, v - 0x40)
-      if b then self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil; self.kickSeen = true end -- harness: a cell script ends a ">" goal like a kick
-    end
-    return
+    self:pressA(); return
   end
   if self.layer == 2 then
     -- The $02 layer heads (01:4F0D and siblings) never read the held pad:
@@ -856,6 +836,121 @@ function M:update()
   end
   if how == "hop" then self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, nx, ny) end
   self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
+end
+
+-- cellFacing: the facing whose A dispatch runs. 01:619A picks it from hRecordHead & 3;
+-- the $5B07 head always calls DispatchCellAboveOnButtonA (01:4C6E), so "up". Talk and
+-- the parked-boat gate keep self.facing: GateCellNearFirstRecord (01:641D) reads the
+-- first list record's opening byte, which 4C6E does not rewrite.
+function M:pressA(cellFacing)
+  local f = DIRS[self.facing]; local fx, fy = self.x + f[1], self.y + f[2]
+  if os.getenv("MN_ADBG") then print(("[a] map %d at %d,%d facing %s cell $%02X alist %s"):format(self.map, self.x, self.y, tostring(self.facing), World.cell(self.def, fx, fy), tostring(self.aList))) end
+  -- talk: the facing cell is the object's cell or the one below it (PyBoy: Evu at 15,5
+  -- answers from 15,6 up, 14,5 / 14,6 right, 16,6 left, 15,4 down; only 15,5 blocks)
+  for slot, ob in pairs(self.objects) do
+    local hit = ob.x == fx and (ob.y == fy or ob.y + 1 == fy)
+    -- a record script that only plants its talk ($5B ..., $42) is the talk itself; one that
+    -- carries on after the $5B (257 boatman 1B:509A waits on C6FD for the talk's $58 01
+    -- post, then 1B:50ED) has to run as the slot's thread
+    if hit and ob.beh and M.useRunsRecord(self.vm.rom, ob.beh[1], ob.beh[2])
+      and not (self.vm.threads and self.vm.threads[slot]) then
+      -- the record's own script (sbank:sptr) runs as the slot's thread when used
+      self.log[#self.log + 1] = ("use slot %d -> %02X:%04X"):format(slot, ob.beh[1], ob.beh[2])
+      self.vm:spawnThread(slot, ob.beh[1], ob.beh[2]); return
+    end
+    if hit and ob.talk then
+      self:runScript(ob.talk[1], ob.talk[2], ("talk to slot %d"):format(slot)); return
+    end
+  end
+  -- Every A dispatch (4C6E and its left / right / below siblings) sets $FFAA bit 2
+  -- before it reads the cell, whatever the cell is; FinishFrame latches that into
+  -- $FFAB. A parked boat ($6405) runs GateCellNearFirstRecord in its own pass on the
+  -- next frame: it needs that latch, wRecordState = 0, $C6EE = 0, $C716 = 0 and Tony's
+  -- record cell in its window. So the cell action runs first; a list script it stages
+  -- ($C716) blocks the re-board, a push or kick (a new Tony head) does not. The window
+  -- is taken before the push or kick moves anything.
+  local boat = Ride.find(self)
+  local keep = self.facing
+  if cellFacing then self.facing = cellFacing end
+  local cf = DIRS[self.facing]; local cx, cy = self.x + cf[1], self.y + cf[2]
+  -- DispatchPressedAOnFacingCell (01:619A): $09 is the gloves push, $0B the kick
+  local acted = Push.try(self) or Kick.try(self)
+  if cellFacing and self.facing == cellFacing then self.facing = keep end -- hRecordHead is not rewritten
+  local staged = false
+  local v = World.cell(self.def, cx, cy)
+  -- DispatchPressedAOnFacingCell (01:619A) reads only the faced cell; list
+  -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one
+  -- SaveCellBelowAndStageThirdScript: bit 5/6 set, bit 7 clear -> index v-$40
+  if not acted and v < 0x80 and bit.band(v, 0x60) ~= 0 and self.aList then
+    -- SaveCellBelowAndStageThirdScript (01:4B61): row $C99C, column $C99D, the
+    -- cell's WRAM word $C99E/$C99F and the list index $C9A0
+    local w = 0xD000 + cy * self.def.w + cx
+    self.vm:wr8(0xC99C, cy); self.vm:wr8(0xC99D, cx)
+    self.vm:wr8(0xC99E, w % 256); self.vm:wr8(0xC99F, math.floor(w / 256)); self.vm:wr8(0xC9A0, v)
+    local _, b, p = self:listEntry(self.aList, v - 0x40)
+    if b then staged = true; self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil; self.kickSeen = true end -- harness: a cell script ends a ">" goal like a kick
+  end
+  if boat and not staged then Ride.board(self, boat) end
+end
+
+-- 01:5B07 (slot-0 records 21:78EB and 19:7D92, script 20:5BDF): the player held in
+-- place. Each pass: 4AF0 (camera dead zone), StepCell82EveryFourthFrame (01:4212),
+-- DispatchCellAboveOnButtonA (01:4C6E), CommitScriptRecord (01:5D9B). The held pad is
+-- never read, so Tony neither walks nor turns; a newly pressed A tests the cell above.
+-- 4212 is the plain every-fourth-pass gate, not the B-held one.
+function M:frozenPass()
+  local bh = self.bHeld; self.bHeld = nil
+  local started = Grass.walk(self)
+  self.bHeld = bh
+  if started then return end
+  if (not self.aCool or self.aCool <= 0) and self.input("a") then self:pressA("up") end
+end
+
+-- The conveyor head family ($5B41, mn.PixelWalk): fine steps every frame, the
+-- $A0-$A7 cells add to the step, 05:682D moves the record, 01:422E fires the
+-- step triggers once per entry. External placements (placePlayer, release) drop
+-- the state, and the next frame restarts it at fine 8,8 of the current cell.
+function M:pixelWalk(dir)
+  local w, vm = self.def.w, self.vm
+  local function frames(b, p) return Sprites.frames(vm.rom, b, p) end
+  local pw = self.pw
+  if not pw then
+    pw = PixelWalk.new(frames, self.x, self.y, w, self.facing); self.pw = pw
+  end
+  local held = self.input("held")
+  if type(held) ~= "number" then held = dir and PixelWalk.BIT[dir] or 0 end
+  local a = (not self.aCool or self.aCool <= 0) and self.input("a") or false
+  local def, objs = self.def, self.objects
+  local env = {
+    -- the WRAM-5 plane: MarkZeroMapCell writes $08 under a record on a $00 cell
+    cell = function(p)
+      if p < 0 or p >= w * def.h then return 0x08 end
+      local x, y = p % w, math.floor(p / w)
+      for _, ob in pairs(objs) do if World.blocks(def, ob, x, y) then return 0x08 end end
+      return def.block[p + 1]
+    end,
+    gate = function(v) return World.walkable(v, vm) and 0 or 0xFF end,
+  }
+  local r = PixelWalk.tick(pw, {
+    frames = frames, held = held, a = a, frame = vm:rd8(Grass.FRAME), env = env,
+    grass = function() return Grass.walk(self) end,
+    face = function(d) self.facing = d end,
+    pressA = function() self:pressA() end,
+    trigger = function(st)
+      if not self.triggerPtr then return false end
+      local b, p = Motion.trigger(st, env, vm, function(i) return self:listEntry(self.triggerPtr, i) end, vm:rd8(0xC716) ~= 0)
+      if not b then return false end
+      self.x, self.y = st.cx, st.cy; self.px, self.py = PixelWalk.pixel(pw)
+      self:snapshot(b, p); self:runScript(b, p, "step trigger"); return true
+    end,
+  })
+  if self.pw ~= pw then return end -- a script relocated the player
+  local st = pw.st
+  if st.cx ~= self.x or st.cy ~= self.y then self.camFix = nil; self.hidePlayer = nil end
+  self.x, self.y = st.cx, st.cy
+  self.px, self.py = PixelWalk.pixel(pw)
+  if r == "move" and (st.ox ~= 0 or st.oy ~= 0) then self.anim = (self.anim or 0) + 1 end
+  Ride.sync(self)
 end
 
 -- A WRAM-3 store the LCD-on tail did not redraw (setMetatile) shows its old tiles
@@ -995,6 +1090,7 @@ function M:drawField(vw, vh, ux, uy)
   -- bank-$20 list at the wobbled origin. A zero pointer keeps the walker.
   if not self.hidePlayer then
     local pose = Sprites.lungeList(self.push) or Sprites.lungeList(self.kick)
+      or (self.pw and self.pw.list)
     local img = pose and Sprites.playerList(self, pose)
     if img then love.graphics.draw(img, self.px - L - 24, self.py - T - 24)
     else love.graphics.draw(self.sheet, self.quads[self:frame()], self.px - L - 8, self.py - T - 8) end

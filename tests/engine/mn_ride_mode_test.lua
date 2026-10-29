@@ -86,7 +86,7 @@ ok(not Ride.try(ow), "facing away (up) is outside the window")
 ow.facing = "down"; ow.x = 3
 ok(not Ride.try(ow), "one column off is outside the down window")
 ow.facing = "left"; ow.x, ow.y = 1, 0
-ok(not Ride.try(ow), "left facing a $00 cell: the step is open, no A dispatch")
+ok(not Ride.try(ow), "left from 1,0 is outside the left window (columns 2-3)")
 ow.facing = "down"; ow.x = 2
 ow.vm.mem[0xC6EE] = 1; ok(not Ride.try(ow), "$C6EE nonzero blocks the gate"); ow.vm.mem[0xC6EE] = 0
 ok(Ride.try(ow) and bt.handler == Ride.TAIL, "A facing the boat runs $64D1")
@@ -94,6 +94,9 @@ sp = ow.vm.spawned[#ow.vm.spawned]
 ok(sp[1] == 4 and sp[2] == 0x22 and sp[3] == 0x40C2, "the tail script (22:40C2) runs in the boat's slot")
 bt.handler = Ride.HANDLER -- its $13 $60E7
 ok(Ride.tick(ow) and ow.x == 2 and ow.y == 1 and ow.hidePlayer, "the next frame rides again from the boat's cell")
+ok(ow.rec0 and ow.rec0[1] == 2 and ow.rec0[2] == 0, "Tony's record cell ($C18E/$C18F) stays where he boarded")
+pad.dir = "down"; Ride.tick(ow); ow.moving = nil; ow:snap()
+ok(ow.y == 2 and ow.rec0[1] == 2 and ow.rec0[2] == 0, "the boat moves, Tony's record cell does not")
 
 -- $93 FinishStartup -> SetupDefaultState -> WriteC12APattern (05:6C08): a script that
 -- reloads the scene ends the ride's gates (2F:466C -> 25:7129 lands Tony back on foot).
