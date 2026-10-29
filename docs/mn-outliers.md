@@ -36,11 +36,11 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
 
    On the story path, level 5 comes after 186: `$10` is maps 187-189. The only earlier source is the 2A:50AE
    preset selector (maps 40/42). `$A123` is written only by `$A9`/`$AD` story stores.
-7. **`$4E` RepeatTwoScriptBytes in object anims.** Verified against repeat_two_script_bytes.asm. For
-   `count` passes it sets the fine deltas `$C6D2`/`$C6D3` and queues no sprite list, then the next op runs.
-   Count 0 is two bytes long. The port used to multiply the next record's count instead, which sent the
-   11:7532 rock fall 1600 px down. It now lifts the rock 160 px while hidden and drops it back onto the
-   spawn cell. Test: tests/engine/mn_anim_4e_test.lua.
+7. **`$4E` RepeatTwoScriptBytes.** Verified against repeat_two_script_bytes.asm (commit d9783293, from the
+   fix/mn-secrets branch). For `count` passes it sets the fine deltas `$C6D2`/`$C6D3` and queues no sprite
+   list, then the next op runs. Count 0 is two bytes long. The port used to multiply the next record's count,
+   which made the 11:7532 rock fall 10x too long. `$4F` is in the same commit. Test:
+   tests/engine/mn_op4e_test.lua.
 
 ## Still open (the code can't answer yet)
 
@@ -56,9 +56,10 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
    means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
 5. **Fade length.** `$6E`/`$6F` stage `$C9D8`/`$C9DA` and call bank 7 `$4837`/`$4850` with callback `$4575`,
    and all three are INCBIN. The port's 16-frame fade isn't derived from code.
-6. **`$4F` QueueRepeatedOffsetSpriteList** adds raw screen offsets (hObjectCellX/Y) rather than fine deltas.
-   It's only used in banks 40/41 (battle) and the unused 20:4F59, so the port's `$4C`-style decode isn't
-   reached on the field.
+6. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
+   last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
+   that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
+   then 40 at +4) that means the rock shows while it's lifted.
 7. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
    story `$01`-`$0F` or 186 script reaches them in the static graph.
 8. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
