@@ -48,6 +48,23 @@ No other puzzle kinds (levers, ice, ordered or timed switches) have their own
 engine in the lifted asm: they are map scripts built from the ops below (`$80` cell
 writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 
+### Boat (bank 1 $60E7 / $5F25 / $6405 / $641D)
+
+- Mount (`$60E7`): $C12B = 0, $C12A = $01, so water ($01) is floor and land ($00) is solid. The record
+  in the boat's slot carries the player; Tony is hidden.
+- Dock (`$5F25`): A facing a $00 cell. $C12B = $01, $C12A = 0, the boat is parked by `$6405` and
+  22:40AD runs (music $07).
+- Re-board (GateCellNearFirstRecord 01:641D): the facing is record 0's (the player's); the windows are
+  up d = b, e in [c, c+1]; down d = b, e in [c-1, c]; left d in [b, b+1], e in [c-1, c+1]; right
+  d in [b-1, b], e in [c-1, c+1]. `$64D1` runs the tail 22:40C2 in the boat's slot. $C6EE nonzero
+  blocks it.
+- `$93` (FinishStartup -> SetupDefaultState) starts with WriteC12APattern (05:6C08), which puts
+  00 FF FF 00 FF FF FF FF back at $C12A. That is what ends a ride when a step trigger such as 2F:466C
+  (C6 on 281) lands Tony back on 236 through 25:7129. The port does the same and also clears its own
+  layer state.
+- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41` or `$5D47` read the pad, so they are the player.
+  2F:466C fills slot 0 with `$5B41`.
+
 ## Cutscene routines
 
 | Routine | Opcode / asm | Port | Status |

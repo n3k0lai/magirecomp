@@ -109,7 +109,11 @@ end
 --   exit2  01:4EC2  $C12A = 0, $C12C = $FF (back to the normal pattern)
 --   enter1 01:56C0  $C12A = $FF, $C12B = 0 ($01 floor, $00 wall)
 --   exit1  01:56B7  $C12A = 0, $C12B = $FF
+--   ride   01:60E7  $C12B = 0, $C12A = $01 ($01 floor, $00 wall; mn.Ride)
+--   dock   01:5F25  $C12B = $01, $C12A = 0 (A on a faced $00 cell)
 M.GATE_WRITES = {
+  ride = { [0x01] = 0x00, [0x00] = 0x01 },
+  dock = { [0x01] = 0x01, [0x00] = 0x00 },
   enter2 = { [0x02] = 0x00, [0x00] = 0xFF },
   exit2 = { [0x00] = 0x00, [0x02] = 0xFF },
   enter1 = { [0x00] = 0xFF, [0x01] = 0x00 },

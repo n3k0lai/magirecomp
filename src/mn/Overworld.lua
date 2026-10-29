@@ -24,6 +24,9 @@ local M = {}
 M.__index = M
 M.wideAware = true -- Boot passes the logical view to draw() (see mn.Viewport)
 
+local Ride = require("mn.Ride")
+-- bank-1 record heads that read the pad: a slot-0 record with one is the player
+local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5D47] = true }
 local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
 
 function M.new(mapIndex, x, y, input)
@@ -69,7 +72,17 @@ function M:host()
       if keepThreads then s.vm.threads = keepThreads end
       if keep then for k, ob in pairs(keep) do s.objects[k] = ob end end
     end,
-    freshScene = function() -- records and their threads start over (the running script survives)
+    -- FinishStartup ($93) -> SetupDefaultState -> BuildPointerList (01:40D3) sets bit 7
+    -- and clears bit 6 on all $31 records: they sleep, they are not erased, and a later
+    -- $0B wakes one with its cell, handler and scripts intact (2F:46C0 wakes the boat
+    -- record slot 4 the 236/258/40 shore spawned, then loads the sea map 281)
+    defaultGates = function() -- $93: WriteC12APattern; the walk heads start from the normal family
+      World.seedPattern(s.vm); s.layer, s.layerDir, s.layerHeld = nil, nil, nil
+    end,
+    freshScene = function() -- record threads start over (the running script survives)
+      s.asleep = s.asleep or {}
+      -- (slot 0 is the player; the port keeps only a cutscene stand-in there)
+      for k, ob in pairs(s.objects) do if k ~= 0 then ob.dormant = true; s.asleep[k] = ob end end
       s.objects = {}; s.sceneFresh = true
       local co = coroutine.running()
       for k, t in pairs(s.vm.threads or {}) do if t.co ~= co then s.vm.threads[k] = nil end end
@@ -121,7 +134,7 @@ function M:host()
     objPalette = function(bank, ptr) Panels.loadPalettes(s.vm, s:paletteBlock(bank, ptr), true) end,
     playerCell = function() return s.x, s.y end,
     cellOpen = function(x, y) return World.walkable(World.cell(s.def, x, y)) end,
-    placePlayer = function(x, y) s.x, s.y = x, y; s:snap(); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end,
+    placePlayer = function(x, y) s.x, s.y = x, y; s:snap(); s.moving = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
     centerCamera = function() s.pan = nil; s.camFix = nil end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
@@ -182,7 +195,10 @@ function M:host()
     end,
     -- record byte 0 bit 7: set by op05/op0C (dormant), cleared by op0B. Dormant
     -- records keep their state but their scripts do not run.
-    slotFlag = function(slot) if s.objects[slot] then s.objects[slot].shown = true; s.objects[slot].dormant = nil end end,
+    slotFlag = function(slot)
+      if not s.objects[slot] and s.asleep and s.asleep[slot] then s.objects[slot] = s.asleep[slot] end
+      if s.asleep then s.asleep[slot] = nil end
+      if s.objects[slot] then s.objects[slot].shown = true; s.objects[slot].dormant = nil end end,
     slotSleep = function(slot) if s.objects[slot] then s.objects[slot].dormant = true end end,
     slotActive = function(slot) local ob = s.objects[slot]; return not (ob and ob.dormant) end,
     pan = function(c, dx, dy, carry)
@@ -200,13 +216,18 @@ function M:host()
       -- stand-in: drop a leftover stand-in so the pad works (1A:6841 into room 10 after
       -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB). $5B1E is the other
       -- pad head (bank 1 direction dispatch): 2F:44F9 plants it with 20:4F73 when the
-      -- Ogar duel tail drops Tony on 279, and the duel's stand-in must go then too
-      if slot == 0 and (handler == 0x5D81 or handler == 0x5B1E) and anim then
+      -- Ogar duel tail drops Tony on 279, and the duel's stand-in must go then too.
+      -- $5B41 (SelectSRAMBankThenDownMark, falls into ResumeDownClearHead $5B6E) and
+      -- $5D47 (inside ResumeOtherLeftCellScript: reads $C9A3 and plants the up / left /
+      -- right heads) are pad heads too: 2F:466C plants $5B41 with 20:5BCF when the boat
+      -- lands on 236 (sea trigger $C6), and Tony walks off it
+      if slot == 0 and PAD_HEADS[handler] and anim then
         if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
         s.objects[0] = nil; s.hidePlayer = false; return
       end
       if slot ~= 0 or s.hidePlayer then
         local prev = s.objects[slot]
+        if s.asleep then s.asleep[slot] = nil end
         s.objects[slot] = Sprites.npc(s, x, y, base, abank, aptr, sbank, sptr)
         local ob = s.objects[slot]
         ob.dormant = os.getenv("MN_NODORM") == nil or nil
@@ -217,6 +238,8 @@ function M:host()
         -- slot 2 at 37,8 runs 2F:4210 -> 14:6A95, the Shadow Geyser scene, PyBoy)
         ob.handler = handler ~= 0 and handler or nil
         ob.beh = (sbank and sbank ~= 0x22) and { sbank, sptr } or nil
+        -- the record's tail script (second bank/ptr), run by $64D1 (mn.Ride re-mount 22:40C2)
+        ob.tail = (sbank and sbank ~= 0) and { sbank, sptr } or nil
         -- an anim field that is more than sprite ops is the record's script: run it as a thread
         if not anim then ob.driven = true; s.vm:spawnThread(slot, abank, aptr, true) end
         s.log[#s.log + 1] = ("npc slot %d at %d,%d sprite=%s talk=%s"):format(slot, x, y, tostring(ob.image ~= nil) .. (ob.seq and ("/" .. #ob.seq .. "f") or "") .. (ob.sched and ("/sched" .. #ob.sched) or ""),
@@ -695,6 +718,7 @@ function M:update()
     local d = DIRS[self.moving]
     self.px, self.py = self.px + d[1], self.py + d[2]
     self.anim = (self.anim or 0) + 1
+    Ride.sync(self) -- a riding record moves with the field position
     if self.px == self.x * 16 and self.py == self.y * 16 then
       local dx, dy = d[1], d[2]; self.moving = nil
       -- the live list ($64's self.triggerPtr) gives the kind and script; the
@@ -732,6 +756,8 @@ function M:update()
     end
     return
   end
+  -- $60E7 ride head (boat): the record takes the pad, A docks on a faced $00 cell
+  if Ride.tick(self) then return end
   if self.aCool and self.aCool > 0 then self.aCool = self.aCool - 1; self.input("a") end
   if (not self.aCool or self.aCool <= 0) and self.input("a") then
     local f = DIRS[self.facing]; local fx, fy = self.x + f[1], self.y + f[2]
@@ -756,6 +782,7 @@ function M:update()
     -- DispatchPressedAOnFacingCell (01:619A): $09 is the gloves push, $0B the kick
     if Push.try(self) then return end
     if Kick.try(self) then return end
+    if Ride.try(self) then return end -- a parked boat ($6405) in GateCellNearFirstRecord's window
     local v = World.cell(self.def, fx, fy)
     -- DispatchPressedAOnFacingCell (01:619A) reads only the faced cell; list
     -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one

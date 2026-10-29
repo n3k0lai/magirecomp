@@ -311,7 +311,7 @@ function love.load()
     local seedEnv = tonumber(os.getenv("MN_SEED") or "")
     if seedEnv then love.math.setRandomSeed(seedEnv) end
     local start = tonumber(os.getenv("MN_START") or "1")
-    local def = Importer.loadMap(start); local e = def.entries[1]
+    local def = Importer.loadMap(start); local e = def.entries[tonumber(os.getenv("MN_START_ENTRY") or "1")] -- MN_START_ENTRY (harness): which entry script starts the run
     local planner
     -- MN_ROUTE="220:up,221:right": hold a direction while in that map (A every 20 frames)
     local route = {}

@@ -226,6 +226,9 @@ function VM:run(bank, ptr)
       self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
       self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
       if self.threads then self.threads.loop38 = nil end
+      -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
+      -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
+      if h.defaultGates then h.defaultGates() end
       if h.freshScene and not self.init then h.freshScene() end
       self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
       o = o + 1

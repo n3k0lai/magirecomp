@@ -111,8 +111,13 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
    last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
    that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
    then 40 at +4) that means the rock shows while it's lifted.
-3. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
-   story `$01`-`$0F` or 186 script reaches them in the static graph.
+3. **Conveyors `$A0`-`$A7` and warps that land mid-layer.** Not modelled yet. The ride gates (60E7 /
+   5F25) are no longer here: the boat is reachable from 236 entry 4 (2F:46C0) and from 258/40 onto map
+   281, and mn.Ride implements it (see docs/mn-engines.md, "Boat"). Ride outliers left for Nicholai:
+   the two `$5B07` slot-0 records (a tail into CommitScriptRecord that never reads the pad, so the port
+   doesn't treat them as the player); the boat's first facing; whether the `$65A4` encounter roll on 281
+   compares against the boat or Tony; and whether the talk hit-test or the 01:641D window decides a
+   re-board when both could fire.
 4. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
    produces those values. They look like dead data, but that isn't proven.
 5. **5C7A entry-anim timing** is still INCBIN.
