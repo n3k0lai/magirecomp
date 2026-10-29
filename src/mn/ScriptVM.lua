@@ -280,6 +280,9 @@ function VM:run(bank, ptr)
       local v = r:u8(o + 3)
       if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
       o = o + n
+      -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral).
+      -- Its FinishStartup tail is not run here: the port's battle return keeps the field.
+      if not self.init and h.spiral and self:rd8(0xC840) == 0xED and self:rd8(0xC841) == 0x56 then h.spiral() end
     elseif op == 0x25 then -- Opcode25: battle setup (C9E4, D391 kind, D36D, battle script record)
       do -- opcode_25.asm first copies $C18E/$C18F to the pair
         local px, py = self:playerCell()

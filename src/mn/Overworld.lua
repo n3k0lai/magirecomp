@@ -397,6 +397,13 @@ function M:host()
       while s.overlay == scr do coroutine.yield("wait", 1) end
       return res
     end,
+    -- $30: the 07:56ED wipe holds the field (mn.Spiral)
+    spiral = function()
+      if s.vm.init or not coroutine.running() then return end
+      local scr = require("mn.Spiral").new(s)
+      s.overlay, s.overlayDone = scr, nil
+      while s.overlay == scr do coroutine.yield("wait", 1) end
+    end,
     uiContext = function() return { rom = s.vm.rom, vm = s.vm, ow = s, input = s.input, log = s.log } end,
     -- $38's loop polls B / Start behind the $C9C6 gate (Panels.lua)
     buttonPressed = function(k) return s.input(k) and true or false end,

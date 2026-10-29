@@ -28,6 +28,13 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
   same frame; it now yields one frame (`mn_next_pass_test`).
 - $34, $35, $A9, $91: same pattern (plant INITIAL_SCRIPT_HANDLER, call, ret); the
   port went on in the same pass and now yields one frame.
+- $30: its tail (07:584A, CallCallback then `jp [$C840]`) runs 07:56ED
+  FillTilemapRect22x20 in every script use: tile $FF / attribute $8F painted
+  over the 22x20 rectangle at [$C863] as 11x10 blocks of 2x2 tiles, one block a
+  frame in the spiral order of the call list at 07:56FD (110 frames). The port
+  skipped it; `mn.Spiral` now holds the field for those frames with the order
+  read from the ROM (`mn_spiral_test`). Its FinishStartup tail ($2158) is not
+  applied: the port's battle return keeps the field (open, see below).
 
 ## Pass boundaries
 
@@ -36,7 +43,8 @@ runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
 $48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91 match. Open (asm ends
 the pass, port goes on or the tail is untraced): $25, $26-$2F battle record ops
-(run by the port's battle director), $30 (tail jp $584A), $6B (glyph copy
+(run by the port's battle director), $30's FinishStartup tail after the
+spiral (the port's battle return keeps the field), $6B (glyph copy
 spread over count passes). $91's zero path calls 2:4799, which is not
 disassembled yet.
 
@@ -122,7 +130,7 @@ disassembled yet.
 | $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 |  |
 | $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | battle record op (open) |
 | $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | battle record op (open) |
-| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | tail jp $584A not traced (open) |
+| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); FinishStartup tail not applied (open) |
 | $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:593 |  |
 | $32 | SetThirdScript | opcode_32.asm | 5 | ok | ops/Flow:398 |  |
 | $33 | PlantRecord30 | plant_record_30.asm | 0 | ok | ops/Panels:497 |  |
