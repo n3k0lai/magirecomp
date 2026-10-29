@@ -546,7 +546,7 @@ function VM:run(bank, ptr)
       -- save_script_triple.asm: $C18E/$C18F -> sSavedScriptPair first, then jp INITIAL_SCRIPT_HANDLER
       do local px, py = self:playerCell(); self:wr8(0xA015, px); self:wr8(0xA016, py) end
       self:wr8(0xA012, r:u8(o + 1)); self:wr8(0xA013, r:u8(o + 2)); self:wr8(0xA014, r:u8(o + 3)); o = o + n
-      if not self.init then coroutine.yield("wait", 1) end
+      -- INITIAL_SCRIPT_HANDLER is $0A66 DispatchScriptOpcode: the next op runs in this pass
     elseif op == 0x89 or op == 0x8A then -- (bank-7 $4087 call for $8A: INCBIN) LoadSRAMScriptAndDispatch
       -- load_sram_script_dispatch.asm: sSavedScriptPair -> $C9A1/$C9A2 before the jump
       self:wr8(0xC9A1, self:rd8(0xA015)); self:wr8(0xC9A2, self:rd8(0xA016))

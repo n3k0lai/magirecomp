@@ -43,7 +43,9 @@ runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
 $48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91, $6B (one tile a
 pass), $26-$2F (operands to $D392, then the pass ends) match; $91's zero path
-runs 2:4799. Open: $25.
+runs 2:4799. $96 ends in `jp INITIAL_SCRIPT_HANDLER`, which is $0A66
+DispatchScriptOpcode itself, so its next op runs in the same pass; the port had
+yielded a frame (fixed, `mn_startup_passes_test`). Open: $25.
 
 A pass is not a frame while FinishStartup's RunScriptLoop runs
 (run_script_record.asm): from $93, or the $30 spiral's `jp FinishStartup`, until

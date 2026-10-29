@@ -105,5 +105,19 @@ for i, e in ipairs(ends) do
   ok(v2:rd8(0xC6F8) == 0x09, e[1] .. ": and the next op runs on the next pass")
 end
 
+-- $96 SaveScriptTripleToSRAM ends in `jp INITIAL_SCRIPT_HANDLER` ($0A66 is
+-- DispatchScriptOpcode, save_script_triple.asm): the next op runs in the same pass,
+-- with the LCD on or off.
+do
+  local rom3 = image({ [0x4000] = { 0x96, 0x12, 0x34, 0x56, 0x56, 0x09, 0x42 } })
+  local vm = VM.new(rom3, {})
+  vm:start(0x12, 0x4000)
+  ok(vm:rd8(0xC6F8) == 0x09, "$96: the next op runs in the same pass")
+  ok(vm:rd8(0xA012) == 0x12 and vm:rd8(0xA013) == 0x34 and vm:rd8(0xA014) == 0x56, "$96: saves bank and pointer")
+  local v2 = VM.new(rom3, {})
+  v2.startupPending = true
+  ok(not v2:start(0x12, 0x4000) and v2:rd8(0xC6F8) == 0x09, "$96: same in the startup loop")
+end
+
 print(("mn_startup_passes: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
