@@ -483,10 +483,14 @@ run_story15() {
   # The road south: 135 -> 138 -> 280 -> 147 ... 156 -> 158, then the door
   # into 159 (1A:460E). A door checkpoint replays the entry, so 159's wild
   # monsters (slots 31/32, beh 1A:4019) exist on load.
+  # 156's step trigger 1A:45C5 is a $47 pick (1 in 6 runs 1A:45D9, which
+  # leaves for 157). The port's rDIV is love.math.random, so the seed picks
+  # the outcome; seed 4 hits 1A:45D9 after the f40dee7c timing merge, seed 5
+  # does not (docs/mn-outliers.md, rDIV reads).
   run_leg s15road 14000 \
     "135:28.44,138:4.19,280:29.21,147:far,148:far,149:far,150:far,151:far,152:far,153:far,156:far,158:far" \
     159 "$S15/to159s15.lua" \
-    "${MN_TO135S14:-$S15/r15-135.lua}" MN_SEED=4 MN_NOENC=1
+    "${MN_TO135S14:-$S15/r15-135.lua}" MN_SEED=5 MN_NOENC=1
   # The 181 ferryman's "Pay 300" (2A:5255) checks $A5A3 >= $012C at 2A:5256.
   # The road has no battles, so 159 is farmed (MN_CHASE_MIN) until 300
   # Animite, then 159 8,49 -> 277 -> 181, pay, ferry 277 -> 184 -> 277 -> 183.
