@@ -132,6 +132,13 @@ function M:host()
     -- WRAM 3, and collision plane, WRAM 5) from src to dst. PyBoy map 222 cave-in:
     -- src $D012 (hidden rubble template, row 0) -> dst $D061, one cell per frame.
     mapWidth = function() return s.def.w end,
+    -- Opcode03Continue's inputs for StagedByteEdgeCheck: wMapColumn, wMapRow
+    -- (the camera's top-left cell) and the column / row reload latches
+    -- (M:stepEdgeLatches).
+    edgeLatches = function()
+      local cx, cy = s:cameraXY()
+      return math.floor(cx / 16), math.floor(cy / 16), s.colLatch or 0, s.rowLatch or 0
+    end,
     copyCell = function(si, di)
       local d = s.def
       local mt = d.cells[si + 1]
@@ -623,10 +630,35 @@ function M:flushInit()
   end
 end
 
+-- The reload latches FinishFrame sets before it runs the script records.
+-- StepHorizontalScroll (07:4CF5) shifts $C891 right each pass and sets it to 2
+-- when the fine X position crosses bit 3 (an 8 px tile column);
+-- CopyQueuedColumn copies the countdown into wColumnLoadLatch ($C892): 2 on the
+-- tile pass, 1 on the attribute pass a frame later. FlushQueuedScroll clears
+-- $C892 at VBlank. StepVerticalScroll (07:5198) / LoadScrolledRow do the same
+-- for rows through $C869 -> wRowLoadLatch ($C86A). The camera position at the
+-- start of a pass is the one the scroll step just applied.
+function M:stepEdgeLatches()
+  local cx, cy = self:cameraXY()
+  local p = self.edgePrev
+  if not p or p[3] ~= self.map then
+    self.colLatch, self.rowLatch = 0, 0
+  else
+    local function step(latch, a, b)
+      if math.floor(a / 8) ~= math.floor(b / 8) then return 2 end
+      return latch == 2 and 1 or 0
+    end
+    self.colLatch = step(self.colLatch, cx, p[1])
+    self.rowLatch = step(self.rowLatch, cy, p[2])
+  end
+  self.edgePrev = { cx, cy, self.map }
+end
+
 function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
+  self:stepEdgeLatches()
   if self.bgStale then self:flushStale() end
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then

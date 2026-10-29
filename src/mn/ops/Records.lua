@@ -233,11 +233,44 @@ M.handlers[0x78] = function(vm, o, n)
   return o + n
 end
 
+-- Opcode03Continue (opcode_03_continue.asm, 01:4617). lcdOn is wLCDC != 0;
+-- mapCol/mapRow are wMapColumn ($C85F) / wMapRow ($C860); colLatch is
+-- wColumnLoadLatch ($C892), rowLatch wRowLoadLatch ($C86A). Returns 1 when the
+-- cell sits on an edge being reloaded, else 0. Deltas are unsigned 8-bit and
+-- any high-nibble bit means out of view. Edges: column delta 0 or 10 tests the
+-- column latch first (a set latch returns 1); then row delta 0 or 9 tests the
+-- row latch. The in-view cell is also queued for bank 7 $4AA4 (BG redraw at
+-- the next VBlank), which the host's copy already patches.
+function M.cellInView(lcdOn, col, row, mapCol, mapRow, colLatch, rowLatch)
+  if not lcdOn then return 0 end
+  local b = sub8(col, mapCol)
+  if band(b, 0xF0) ~= 0 then return 0 end
+  local c = sub8(row, mapRow)
+  if band(c, 0xF0) ~= 0 then return 0 end
+  if (b == 0 or b == 10) and (colLatch or 0) ~= 0 then return 1 end
+  if c ~= 0 and c ~= 9 then return 0 end
+  return ((rowLatch or 0) ~= 0) and 1 or 0
+end
+
+local function edgeStall(vm, col, row)
+  if vm.init then return false end
+  local h = vm.host
+  if not (h and h.edgeLatches) then return false end
+  local mapCol, mapRow, colLatch, rowLatch = h.edgeLatches()
+  if not mapCol then return false end
+  return M.cellInView(true, col, row, mapCol, mapRow, colLatch, rowLatch) ~= 0
+end
+
 -- StageEightScriptBytes / StageEightScriptBytesCopy (stage_eight_script_bytes.asm).
 -- Eight script bytes: source pointer, width, height, dest pointer, row, column.
 -- AdvanceStagedCopy steps one cell. Width and height of 0 count 256 (`dec`
--- wraps). The stride is the map width ($C847). StagedByteEdgeCheck's reload
--- latch is not modeled.
+-- wraps). The stride is the map width ($C847).
+-- StagedByteEdgeCheck (copy_staged_byte_banks_5_and_3.asm, shared by $7E and
+-- $7F): with the LCD on, Opcode03Continue (01:4617) runs on the cell's column
+-- ($C703) and row ($C702) after the copy. A nonzero result drops the pushes
+-- and returns before AdvanceStagedCopy, so the next frame copies the same cell
+-- again. M.cellInView is that rule; the host supplies the camera cell and the
+-- two reload latches (h.edgeLatches).
 -- wLCDC == 0 (map setup, vm.init) fills a row inside the handler, and
 -- RunScriptLoop (finish_startup.asm) calls it again before DrawMetatileWindow,
 -- so the rect is in the planes before the first draw. runInit cannot resume a
@@ -256,7 +289,13 @@ local function stageRect(vm, o, n, blit)
   local left = across
   while true do
     blit(src, dst)
+    local stall = edgeStall(vm, col, row)
     frame(vm)
+    while stall do -- StagedByteEdgeCheck returned early: same cell next frame
+      blit(src, dst)
+      stall = edgeStall(vm, col, row)
+      frame(vm)
+    end
     left = left - 1
     if left > 0 then
       src, dst = add16(src, 1), add16(dst, 1)
