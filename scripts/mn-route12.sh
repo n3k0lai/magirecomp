@@ -499,12 +499,15 @@ run_leg river 12000 \
   0 "$SNAP/after40.lua" \
   "$SNAP/into222.lua"
 
-# Leg 3. Vash Naroom (43). Entry 1 is Eidon's scene from the stairs; it ends
-# with a second entry at 2,46. Only after that entry ("@43#2") does the route
-# take over: up through the step trigger at 6,38 (16:4026) to the north exit
-# at 9,0 (live list 16:4271 entry 1, 16:401D -> map 44).
+# Leg 3. Vash Naroom (43). Entry 1 is Eidon's scene from the stairs; control
+# comes back at 8,50 and the route takes over ("@43"). The step trigger at
+# 6,38 (16:4026) runs a scene whose $65 hops go 43 -> 2 -> 43 inside the
+# script (no door crossing is counted), so control returns at 2,46 on the
+# same entry; the route then goes on to the north exit at 9,0 (live list
+# 16:4271 entry 1, 16:401D -> map 44). The scene's talk thread needs the $94
+# C6F3 latch (FinishStartup's script loop) to run.
 run_leg town 8000 \
-  "@43#2,43:9.0" \
+  "@43,43:9.0" \
   44 "$SNAP/into44.lua" \
   "$SNAP/after40.lua"
 
