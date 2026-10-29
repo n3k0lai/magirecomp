@@ -10,8 +10,8 @@ What it walks
     02-7F, the same scan as MnRom:findEntries
   * per entry: `64` trigger list (bank 21: count, {kind, bank, ptr}; cell $C0+i,
     kind 1 up / 2 down / 3 right / 4 left), `69` A list (bank 21: count, then
-    {kind, bank, ptr}; index = cell - $40), `05` object records (script at
-    operand 12-14), `09` slot scripts, `5A`/`5B`/`59` record fills
+    {kind, bank, ptr}; index = cell - $40), `05` object records (running script
+    at operand 9-11, second triple at 12-14), `09` slot scripts, `5A`/`5B`/`59` record fills
   * every reachable script, following far targets (`45`, `43`, `49`, `4B`,
     `9C`, `47`, `8E`, `A0`-`A3`) and `46` (in-bank jump) to END ops.
 
@@ -119,6 +119,11 @@ class Rom:
             if op in (0x59, 0x5A, 0x5B):
                 t.append((self.u8(o + 1), self.u16(o + 2)))
             if op == 0x05:
+                # opcode_05.asm: operand bytes 9-11 land in record bytes 10-12 with
+                # DispatchScriptOpcode at 13-14 (copy_three_script_bytes_and_handler.asm),
+                # the same bank/ptr/handler layout as hScriptBank..hScriptHandler: that
+                # triple is the slot's running script. Bytes 12-14 go to record 24-26.
+                t.append((self.u8(o + 9), self.u16(o + 10)))
                 t.append((self.u8(o + 12), self.u16(o + 13)))
             if op in (0xA0, 0xA1, 0xA2, 0xA3):
                 t.append((self.u8(o + 4), self.u16(o + 5)))
@@ -321,7 +326,14 @@ def walk(rom, bank, ptr, limit=4000, own_entry=None):
             if op == 0x46:
                 q.append((b, rom.u16(o + 1)))
                 break
-            if op in rom.END and op != 0x93:
+            # $86 SeedCameraAndEnterLoop and $93 FinishStartup rerun the script loop
+            # from the next byte; $94 MarkScriptDone21B2 ends only this frame's
+            # loop: $94 plants DispatchScriptOpcode with BC kept, so the script
+            # resumes at the next byte next frame (mark_script_done_21b2.asm).
+            # $8E CallBank4_5494ThenEnterScript (ring forge) enters one of its two
+            # records, or on a pick returns and the script goes on past its
+            # length-prefixed list (ScriptVM's $8E model): walk all three.
+            if op in rom.END and op not in (0x86, 0x8E, 0x93, 0x94):
                 break
             o += n
     return [seen_ops[k] for k in sorted(seen_ops)], bad

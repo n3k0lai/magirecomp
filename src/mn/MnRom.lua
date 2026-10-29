@@ -290,7 +290,9 @@ function M:resolveWarp(bank, ptr, entryAt)
         for _, x in ipairs(t) do queue[#queue + 1] = x end
         -- $93 FinishStartup resets SP into MainLoop; the record's script
         -- continues at the next byte (every map-entry script starts 93 65).
-        if Op.END[op] and op ~= 0x93 then break end
+        -- $86 SeedCameraAndEnterLoop reruns the loop from the next byte too;
+        -- $94 MarkScriptDone21B2 yields a frame and resumes at the next byte.
+        if Op.END[op] and op ~= 0x86 and op ~= 0x93 and op ~= 0x94 then break end
         o = o + n
       end
     end
