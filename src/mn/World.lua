@@ -9,11 +9,12 @@
 --             00 FF FF 00 FF FF FF FF, so $00 and $03 start open and
 --             $01, $02, $04-$07 start solid. Opcode $85 rewrites
 --             $C12E-$C131 (cells $04-$07).
---   $02       stop cell: ResumeHead00Record commits without walking.
---             Stays solid even when $C12C is clear.
+--   $02       solid in the normal pattern ($C12C = $FF). The $02 layer
+--             heads (01:4F0D and siblings) call 01:4ECB every frame, which
+--             clears $C12C and sets $C12A, so $02 is floor and $00 is wall.
 --   $09/$0B   A-button cells (DispatchCell*OnButtonA). $09 needs $C9A6 >= 1
 --             and plants the bank-$20 push tail (WalkTwoCells*). $0B needs
---             $C9A6 >= 2 and plants the kick. Both are solid.
+--             $C9A6 >= 2 and plants the kick. Both are solid ($08-$7F).
 --   $81       WalkTwoCells* accepts only this far cell. StampTwoStepCells
 --             writes $09 there and $81 on the near cell. ProbeCells* leaves
 --             a cell >= $80 clear, so $81 stays walkable.
@@ -89,23 +90,47 @@ local function noteGate(cell, byte)
   print(("[gates] cell $%02X blocked ($%04X=$%02X)"):format(cell, BASE + cell, byte))
 end
 
--- ProbeCells*: >= $80 stays clear, $08-$7F is occupied, and a byte under
--- $08 is occupied only when $C12A + cell is nonzero. $02/$09/$0B stay
--- solid on top of that (stop cell and the A-button cells). $40-$7F stay
--- solid (signs and the high list cells).
+-- ProbeCells* (05:6B31 and its seven siblings): a cell byte >= $80 is
+-- clear, $08-$7F is occupied, and a byte under $08 is occupied only when
+-- $C12A + cell is nonzero. Nothing else: the A-button cells ($09, $0B and
+-- the $20-$7F list cells) are faced from the next cell, never stood on
+-- (DispatchPressedAOnFacingCell 01:619A only runs on a blocked step), and
+-- $01/$02 follow $C12B/$C12C like the colored gates follow $C12E-$C131.
 function M.walkable(v, mem)
-  if v == 0x08 or v == 0x02 or v == 0x09 or v == 0x0B then return false end
-  -- $40-$5F are A-press cells (signs, counters, fireplaces): PyBoy blocks Tony on them
-  -- (map 59 counter $41, map 60 $45); $60-$7F are solid
-  if v >= 0x40 and v < 0x80 then return false end
-  -- Only the colored gates $04-$07 are gated here. $01/$02 are crossed
-  -- by M.hop (CountCellRun); the $C12A-$C12C swaps only matter for the
-  -- layer walks ($01 at $C9A6 >= 4, $02 runs at >= 5), not modelled yet.
-  if v >= 0x04 and v < 0x08 then
-    local b = gateByte(v, mem)
-    if b ~= 0 then noteGate(v, b); return false end
-  end
+  if v >= 0x80 then return true end
+  if v >= 0x08 then return false end
+  local b = gateByte(v, mem)
+  if b ~= 0 then noteGate(v, b); return false end
   return true
+end
+
+-- The four bank-1 writers of the $C12A-$C12C gate bytes. Index is the cell.
+--   enter2 01:4ECB  $C12C = 0, $C12A = $FF ($02 floor, $00 wall)
+--   exit2  01:4EC2  $C12A = 0, $C12C = $FF (back to the normal pattern)
+--   enter1 01:56C0  $C12A = $FF, $C12B = 0 ($01 floor, $00 wall)
+--   exit1  01:56B7  $C12A = 0, $C12B = $FF
+M.GATE_WRITES = {
+  enter2 = { [0x02] = 0x00, [0x00] = 0xFF },
+  exit2 = { [0x00] = 0x00, [0x02] = 0xFF },
+  enter1 = { [0x00] = 0xFF, [0x01] = 0x00 },
+  exit1 = { [0x00] = 0x00, [0x01] = 0xFF },
+}
+
+function M.writeGates(mem, which)
+  local dst = mem or wram
+  if not dst then return end
+  for cell, b in pairs(M.GATE_WRITES[which]) do
+    if dst.wr8 then dst:wr8(BASE + cell, b)
+    else dst[BASE + cell] = b end
+  end
+end
+
+-- Gate writes for a layer change from one head family to another
+-- (nil = the normal walk heads, 1 = the $01 layer, 2 = the $02 layer).
+function M.applyLayer(mem, from, to)
+  if from == to then return end
+  if from == 2 then M.writeGates(mem, "exit2") elseif from == 1 then M.writeGates(mem, "exit1") end
+  if to == 2 then M.writeGates(mem, "enter2") elseif to == 1 then M.writeGates(mem, "enter1") end
 end
 
 -- CountCellRun (01:517C): HL is the cell Tony walks into, DE the stride.
@@ -130,14 +155,53 @@ end
 -- DispatchZeroStepCellRun and its three siblings (01:51B6 down, 01:526A up,
 -- 01:51F2 left, 01:522E right), run when a step into the cell is blocked:
 -- a run of one hops it with no item ($56F9 / $5813 heads), a run of two
--- needs $C9A6 >= 3 (Agadon's Boots, 19:7B66 stores $A3A3 = 3), and a run of
--- three or more needs $C9A6 >= 5 and switches the record to the $02 layer
--- heads (ResumeHead00-03Record, which swap $C12A/$C12C). Returns the landing
--- cell for a hop, or nil. The $02 layer walk is not modelled yet.
+-- needs $C9A6 >= 3 (Agadon's Boots, 19:7B66 stores $A3A3 = 3). Count 3 (a
+-- run of three, or a run that lands on anything but $00/$82) is World.step's
+-- $02 layer entry. Returns the landing cell for a hop, or nil.
 function M.hop(def, x, y, dx, dy, mark)
   local c, lx, ly = M.cellRun(def, x, y, dx, dy, mark)
   if c == 1 then return lx, ly end
   if c == 2 and (mark or 0) >= 3 then return lx, ly end
+  return nil
+end
+
+-- One player step from x,y by dx,dy under head family `layer` (nil normal,
+-- 1 the $01 layer, 2 the $02 layer). Returns nx, ny, newLayer, how, where
+-- how is "step", "hop", "enter", "exit", or nil with nx = nil for a
+-- blocked step. The caller applies the gate bytes (applyLayer).
+--
+-- Normal heads (5B6E family), blocked step: CountCellRun dispatch first
+-- (01:51B6 and siblings). Count 1 hops, count 2 hops at $C9A6 >= 3, count 3
+-- at $C9A6 >= 5 jumps to 4ED4/4F7E/5028/50D2, which plant the $02 layer
+-- heads and the bank-$20 entry anim (5C7A ...) that walks Tony onto that
+-- first $02 cell. A count of zero falls to Plant*WhenCellIs01 (01:570D,
+-- 5728, 5743, 575E): a $01 cell at $C9A6 >= 4 calls 56C0 and plants the
+-- one-cell anim 59A8/58F5/592F/5969 onto it.
+--
+-- Layer heads (02: 4F0D/4FB7/5061/510B; 01: 5798/5818/58A7/5936): a blocked
+-- step looks at the faced cell. $00 calls 4EC2 (or 56B7) and plants the
+-- one-cell anim 5A9A/59E7/5A21/5A5B onto it, back on the normal heads.
+-- Anything else stays: the $02 heads bump (5CC3 ...), the $01 heads commit.
+function M.step(def, x, y, dx, dy, layer, mark, mem)
+  mark = mark or 0
+  local nx, ny = x + dx, y + dy
+  local v = M.cell(def, nx, ny)
+  if M.walkable(v, mem) then return nx, ny, layer, "step" end
+  if layer == 1 or layer == 2 then
+    if v == 0x00 then return nx, ny, nil, "exit" end
+    return nil, nil, layer, (layer == 2) and "bump" or nil
+  end
+  local c, lx, ly = M.cellRun(def, nx, ny, dx, dy, mark)
+  if c == 1 then return lx, ly, nil, "hop" end
+  if c == 2 then
+    if mark >= 3 then return lx, ly, nil, "hop" end
+    return nil
+  end
+  if c == 3 then
+    if mark >= 5 then return nx, ny, 2, "enter" end
+    return nil
+  end
+  if v == 0x01 and mark >= 4 then return nx, ny, 1, "enter" end
   return nil
 end
 

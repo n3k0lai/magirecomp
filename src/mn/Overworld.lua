@@ -713,8 +713,8 @@ function M:update()
     if Push.try(self) then return end
     if Kick.try(self) then return end
     local v = World.cell(self.def, fx, fy)
-    -- standing on a list cell ($20-$3F stay walkable) counts too
-    if not (v < 0x80 and bit.band(v, 0x60) ~= 0) then v = World.cell(self.def, self.x, self.y) end
+    -- DispatchPressedAOnFacingCell (01:619A) reads only the faced cell; list
+    -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one
     -- SaveCellBelowAndStageThirdScript: bit 5/6 set, bit 7 clear -> index v-$40
     if v < 0x80 and bit.band(v, 0x60) ~= 0 and self.aList then
       local _, b, p = self:listEntry(self.aList, v - 0x40)
@@ -731,25 +731,34 @@ function M:update()
   -- 1A:674C); the pad is ignored, so no step back onto a trigger mid-scene
   if self:slot0Scripted() then return end
   local dir = self.input("dir")
+  if self.layer == 2 then
+    -- The $02 layer heads (01:4F0D and siblings) never read the held pad:
+    -- the planted bank-$20 walk anim keeps $C6D3/$C6D2 nonzero, so Tony
+    -- keeps going. A newly pressed other direction ($C9A4) switches to that
+    -- direction's plant (4EF2 / 4F9C / 5046 / 50F0).
+    if dir and dir ~= self.layerHeld and dir ~= self.layerDir then self.layerDir = dir end
+    self.layerHeld = dir
+    dir = self.layerDir
+  end
   if not dir then return end
   -- direction held, including a bump: StepCell82EveryFourthFrame's first
   -- call does not wait for a nonzero step. A started grass script owns
   -- the frame, so the step does not also begin.
   if Grass.walk(self) then return end
   self.facing = dir
-  local d = DIRS[dir]; local nx, ny = self.x + d[1], self.y + d[2]
+  local d = DIRS[dir]
+  local nx, ny, layer, how = World.step(self.def, self.x, self.y, d[1], d[2], self.layer, World.mark(self.vm), self.vm)
+  if not nx then return end
   for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, nx, ny) then return end end
-  if nx >= 0 and ny >= 0 and nx < self.def.w and ny < self.def.h and World.walkable(World.cell(self.def, nx, ny)) then
-    self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
-    return
+  if layer ~= self.layer then
+    World.applyLayer(self.vm, self.layer, layer)
+    self.log[#self.log + 1] = ("layer %s -> %s at %d,%d"):format(tostring(self.layer), tostring(layer), nx, ny)
+    self.layer = layer
+    self.layerDir = (layer == 2) and dir or nil
+    self.layerHeld = (layer == 2) and dir or nil
   end
-  -- a blocked step into a $01/$02 run: DispatchZeroStepCellRun and siblings
-  local lx, ly = World.hop(self.def, nx, ny, d[1], d[2], World.mark(self.vm))
-  if lx then
-    for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, lx, ly) then return end end
-    self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, lx, ly)
-    self.x, self.y = lx, ly; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
-  end
+  if how == "hop" then self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, nx, ny) end
+  self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
 end
 
 function M:slot0Scripted()
