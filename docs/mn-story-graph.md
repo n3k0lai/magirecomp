@@ -58,16 +58,11 @@ The `$44` rect x 39-43, rows 52-63 brings in a 3-wide `$02` band (x 40-42) runni
 joins the `$C1` corridor at row 58. Walking that band is the `$02` layer walk: CountCellRun gives a run of 3,
 which needs `$C9A6 >= 5`.
 
-**Answer.** Static code gives exactly one gameplay path from 186 into 187. Open the `$42`, `$44` and `$45`
-rects through their flag-gated scripts, then walk the `$02` band south with `$C9A6 >= 5` into the `$C1`
-corridor. The catch is that `$C9A6` is copied from SRAM `$A3A3`, and at `$0F` the warp at 2A:5118 stores
-**3**. Only 19:63C3 (map 290, through 1A:4B10) and 2A:50CE (the warp room) store 5. So either:
-
-- the route has to pick up the `$A3A3 = 5` upgrade (map 290 or the warp room) before 186, or
-- the port's lack of a layer walk is the blocker.
-
-Both are listed in docs/mn-outliers.md. The port doesn't model the layer walk (`World.hop` only handles runs
-of 1 and 2), so the port can't make this move today, whatever the flags are.
+**Answer (resolved from code).** 186 -> 187 on foot needs the `$02` layer walk with `$C9A6 >= 5`.
+`$C9A6` is copied from SRAM `$A3A3`. On the story path level 5 is set only after 186: 19:63C3, maps 290/283,
+story `$17`. Story `$10` is maps 187-189. The other level-5 source is the 2A:50AE preset (maps 40/42), and
+its selector is still INCBIN. The port now models the `$01`/`$02` layer walks (CountCellRun 01:517C,
+dispatch 01:51B6). See docs/mn-outliers.md for the level table.
 
 Other 187 entries:
 
@@ -76,8 +71,8 @@ Other 187 entries:
 - Bank `$29` is a chain of 38-byte stubs (29:4021 + 0x26*k). Each one draws map records, calls a bank-`$26`
   routine and waits, then jumps (`45`) to a per-map entry. Each entry then jumps to the *next* stub (29:4DEF
   -> 29:4342, ...).
-- That fits a non-interactive tour (attract/demo or a recap), not a gameplay door. It's unconfirmed, because
-  the asm that starts the chain isn't traced.
+- It's the travel-card tour. 29:4000 is one `$86` (seed_camera_loop.asm), entered by `$45` from 16:5EEB
+  (maps 2/44), 1F:581F and 2A:5E57 (maps 182/183), and it falls into the 29:4001 stub chain.
 - `$10` is stored at 1F:7B0B. It's reached from 187 `$C7`/`$C8` (1F:694F / 1F:6958, through 189's entry
   1F:79E5) and from 188 `$C2` (1F:74F5). The {187, 188, 189} cluster has no other outside entry, so `$0F -> $10`
   is gated entirely on getting into 187.
@@ -87,18 +82,29 @@ Other 187 entries:
 | word | store (A9) | reached from (map: script) |
 |---|---|---|
 | $01 | 1F:5011, 2A:50C7 | 40/42: 2A:50AE, 216 |
+| $02 | 23:73AD | 63, 64, 54 |
 | $03 | 13:5D5F | 61: 13:4163 |
 | $04 | 14:6BCF | 1,2,3,7,8 |
+| $05 | 1D:5D45 | 223-225 |
 | $06 | 1A:672C | 24: 1A:65CE, 25: 1A:66CB |
 | $07 | 1D:465D | 223, 225, 277, 278 |
 | $08 | 22:6498 | 76-81 (1C:4FB5...) |
-| $09 | 2A:50D9 | 40/42 |
+| $09 | 15:4CCB, 2A:50D9 | 40/42 |
 | $0A | 13:6C74 | 125, 126, 129-132 |
-| $0B | 2A:510E | 40/42 |
-| $0F | 2A:5115, 28:63BE | 40/42; 134/146/189 via 28:63B6 |
+| $0B | 22:6BB9, 2A:510E | 40/42 |
+| $0C | 1A:76B9 | 145, 146 |
+| $0D | 1E:75FD | 144: 1E:72B4 -> `$8E` pick path -> 1E:75EA |
+| $0E | 1E:55E6 | 135, 141 |
+| $0F | 2A:5115, 28:63BE, 19:7838 | 40/42; 134/146/189 via 28:63B6 |
 | $10 | 1F:7B0B | 187 1F:694F/6958, 188 1F:74F5, 189 |
+| $11 | 1C:42A9 | 137 |
+| $12 | 2F:473C, 25:73BC | 368 (`$05` running script 1C:49BC); 281 via 2F:473F |
 | $13 | 25:74A0 | 240: 18:636F |
 | $14 | 18:52B4 | 267: 18:4B6F, 270: 18:5264 |
+| $15 | 23:67E1, 23:6953 | 63 |
+| $16 | 17:71AF | 310 |
+| $17 | 19:6477 | 283, 290 |
+| $18 | 24:7F41 | 340 |
 | $19 | 15:6058 | 191-195: 15:5F5E |
 | $1A | 15:604A | 191-195: 15:5F5E |
 
@@ -107,9 +113,11 @@ Selections on the story word (`4B`/`49`) for $0F-$1A: 134 12:7183, 135 17:6B34 /
 
 ## Unresolved
 
-- Stores for $02, $05, $0C-$0E, $11, $12, $15-$18 aren't found as `A9` in map-reachable scripts. They may
-  be `AD`/`A7` word stores to $A123, asm, battle/cutscene scripts, or lookup tables (`45`) the walk can't follow.
-- Attribution is reachability: the walk follows far targets (`45`, `43`, `09`, `59`-`5B`) up to a limit, so a
-  shared script can show up under several maps.
+- Every story store `$01`-`$1A` is attributed. The earlier misses were tool bugs. The tool read `$05`
+  operand 12-14 as the running script, but opcode_05.asm puts it at 9-11. It also stopped at `$86`, `$94`
+  and `$8E`, which all resume (MarkScriptDone21B2 resumes at the next byte; the `$8E` pick path continues
+  past the list).
+- Attribution is reachability: the walk follows far targets (`45`, `43`, `09`, `59`-`5B`, `05`) up to a
+  limit, so a shared script can show up under several maps.
 - About 25 ops are unsized (`tab`/`rec` variants with data-dependent length), so those walks stop early.
-- 187's entry 29:4DF3 has no static caller.
+- The `$8E` resume after `ret nz` (`$CD49 != 0`) is in INCBIN (docs/mn-outliers.md).

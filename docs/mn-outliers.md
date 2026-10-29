@@ -1,26 +1,68 @@
-# Open questions for Nicholai (static audit, static-story branch)
+# Open questions for Nicholai (static audit)
 
-1. **`$02` layer walk.** `World.hop` only models runs of 1 and 2. CountCellRun with 3+ and `$C9A6 >= 5`
-   switches the record to the `$02` layer heads (`$C12A`/`$C12C` swap). 186's overlay (69:7AD0) has the open
-   corridors the base map lacks. Should the port model the layer walk? It's a design call: it touches the
-   planner, the step and the camera. What sets `$C9A6 >= 5` is not traced yet.
-2. **`$4C` QueueRepeatedSpriteList / `$4D` StepScriptSpritePointerTable** run in map scripts (24, 35, 44-48,
-   52, 53, 63, 72, 73, 75, 82, 113, 124, 135, 136, 189, 222, 224, 257, 341, 345, 346 / 40, 44, 47, 52, 53, 189,
-   222, 257, 270). ScriptVM logs them as unimplemented and skips them. If the asm waits on the sprite list,
-   skipping changes script timing (cutscene sync with `$C6F8`-`$C6FD`). Confirm against the bank-1 handlers
-   before implementing.
-3. **187 entry 29:4DF2/4DF3** is only reached from the bank-`$29` stub chain (29:431C, a `45` at 29:433F).
-   Every stub chains to the next map, which looks like a demo/recap tour. Is that right, or is the chain
-   used in play (for example as a warp preview)?
-4. **Harness hacks to re-check per leg:** god mode and auto-battle skip battle-gated scripts (`$2B`/battle
-   ops); MN_NOENC hides step encounters; snapshot rebuilds re-run map init, not the original transition.
-   A route step that only worked because of one of these should be re-run with no MN_* vars. Not done in
-   this pass. The static tool gives each leg's flag writers to compare against.
-5. **Unfound story stores** ($02, $05, $0C-$0E, $11, $12, $15-$18): see docs/mn-story-graph.md. Are they
-   written by asm (for example battle wins) rather than `A9`?
-6. **186 -> 187 needs `$C9A6 >= 5`.** The only static path into 187's `$C1` corridor walks a 3-wide `$02`
-   band (from the `$44` rect at x 39-43, rows 52-63). That needs `$A3A3 = 5`, but the `$0F` warp
-   (2A:5118) stores 3. Is the intended order to get the `$A3A3 = 5` upgrade (19:63C3, map 290 / 2A:50CE)
-   before entering 186? And should the port implement the layer walk (item 1) to make it possible?
-7. **186 `$C3`-`$C6`** (1F:62A1-62BC) exist in the trigger list, but no base or overlay cell carries those
-   values. Are they dead data, or written by asm we haven't traced?
+Everything below was checked against the decomp source (asm and decoded evscripts). "Verified" means the
+port now follows the cited routine and a made-up-byte test pins it. An open item is one the code can't
+answer yet: the routine is still INCBIN, or no static caller exists. Nothing here is a guess.
+
+## Resolved by the code
+
+1. **`$01`/`$02` layer walks.** Verified against CountCellRun (01:517C), the dispatch at 01:51B6 and the
+   ProbeCells rule: a cell `>= $80` is clear, `$08-$7F` is occupied, and `< $08` is occupied when
+   `[$C12A+cell] != 0`. Layer 2 heads slide and layer 1 heads walk on the held pad. Port: World.lua and
+   Overworld.lua. Tests: tests/engine/mn_layer_walk_test.lua and mn_gates_test.lua.
+2. **`$4C`/`$4D` in map scripts.** ScriptVM now waits each record's frame count (the `$4C` sum, or entries
+   x count for `$4D`). It no longer skips them.
+3. **What starts the bank-`$29` chain.** 29:4000 is a single `$86` (seed_camera_loop.asm). `$45` enters it
+   from 16:5EEB (maps 2/44), 1F:581F (through a `$04` at 1F:4D83) and 2A:5E57 (maps 182/183). It falls through
+   into the 29:4001 stub chain, which is the travel-card tour. 187's 29:4DF2 entry is part of that tour, not
+   a gameplay door.
+4. **Harness hacks.** Every MN_* switch is opt-in (MN_NOENC, MN_GOD, MN_FORGE, MN_PICK, MN_SNAP_*, MN_LOAD and
+   others). MN_NODORM is the inverse: records are dormant unless it's set. The suites run with no MN_* vars.
+5. **Story stores the walk didn't find.** All of them are now attributed (docs/mn-story-graph.md). The
+   misses came from the tool, not the game. It read `$05` operand 12-14 as the running script, but
+   opcode_05.asm puts the running script at operand 9-11. It also stopped at `$86`/`$94`/`$8E`, and those ops
+   resume.
+6. **`$A3A3` / `$C9A6` levels and 186 -> 187.** `$C9A6` is copied from `$A3A3` (01:613A). The level stores
+   are:
+
+   | Level | Sites |
+   |---|---|
+   | 0 | 1F:5014, 1C:426B |
+   | 1 | 14:6B30 (story `$04` battle tail) |
+   | 2 | 1D:4660 (story `$07`), 2A:510A |
+   | 3 | 19:7B66 (map 250), 1C:4168 (map 362), 2A:5118 |
+   | 4 | 2F:472F/473C (story `$12`, from map 368's `$05` running script 1C:49BC) |
+   | 5 | 19:63C3 (maps 290/283, story `$17`), 2A:50CE preset, 2A:5123 unused |
+
+   On the story path, level 5 comes after 186: `$10` is maps 187-189. The only earlier source is the 2A:50AE
+   preset selector (maps 40/42). `$A123` is written only by `$A9`/`$AD` story stores.
+7. **`$4E` RepeatTwoScriptBytes in object anims.** Verified against repeat_two_script_bytes.asm. For
+   `count` passes it sets the fine deltas `$C6D2`/`$C6D3` and queues no sprite list, then the next op runs.
+   Count 0 is two bytes long. The port used to multiply the next record's count instead, which sent the
+   11:7532 rock fall 1600 px down. It now lifts the rock 160 px while hidden and drops it back onto the
+   spawn cell. Test: tests/engine/mn_anim_4e_test.lua.
+
+## Still open (the code can't answer yet)
+
+1. **`$8E` resume when `$CD49 != 0`.** CallBank4_5494ThenEnterScript does `ret nz` with the saved BC. The
+   resume point after that return is in INCBIN, so the port's "continue at list+len" can't be confirmed.
+2. **2A:50AE preset selector.** The code that picks which preset (level 3 or 5) runs is still INCBIN.
+3. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
+4. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
+   port only threads it outside banks 0E/0F/10/11/20/25, and it decodes those banks statically
+   (Sprites.frames). That's exact for pure `$4C`/`$4D`/`$4E`/`$46` anims. It isn't exact for the bank-25
+   choreography scripts 25:7211, 731F, 739D, 746C, 747F, 74DE, 751E (maps 236, 237, 240, 368) or 25:68D8,
+   all of which hold flow and story ops. None of these are in stories `$01`-`$0F` or the 186 area. Fixing it
+   means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
+5. **Fade length.** `$6E`/`$6F` stage `$C9D8`/`$C9DA` and call bank 7 `$4837`/`$4850` with callback `$4575`,
+   and all three are INCBIN. The port's 16-frame fade isn't derived from code.
+6. **`$4F` QueueRepeatedOffsetSpriteList** adds raw screen offsets (hObjectCellX/Y) rather than fine deltas.
+   It's only used in banks 40/41 (battle) and the unused 20:4F59, so the port's `$4C`-style decode isn't
+   reached on the field.
+7. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
+   story `$01`-`$0F` or 186 script reaches them in the static graph.
+8. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
+   produces those values. They look like dead data, but that isn't proven.
+9. **5C7A entry-anim timing** is still INCBIN.
+10. **The route planner doesn't plan layer walks.** The engine now walks layers, but the planner doesn't
+    route through them.
