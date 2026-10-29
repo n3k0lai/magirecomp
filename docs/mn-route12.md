@@ -1307,3 +1307,6 @@ must start from k241 or earlier.
   seed 4 now picks 1A:45D9 on 156's `$47` 1A:45C5 and lands in 157 (rDIV outlier, mn-outliers
   item 8). s15ship gets 16000 frames: wild battles in 242 and 247 add about 5000 frames
   before 19:6F64 into 249.
+- Full pass on 9abd1367 (origin/master 6e48144d, sfx timing): s15road, s15ferry (309 Animite,
+  fare 300 at 2A:5256, 9 left), s15ship (into 249 at 27,49) and s15horn (`A123 <- 0F at 19:7838`,
+  ends in 250 at 9,16). Checkpoints and leg logs are in s15/post-6e48/.
