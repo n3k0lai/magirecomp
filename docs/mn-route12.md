@@ -1288,3 +1288,17 @@ must start from k241 or earlier.
   (+13 +34 +24 +24 +24 -> 322), then 159 -> 277 -> 181, pays 300, ferry 277 -> 184 -> 277 -> 183.
   Checkpoints (s15): r15-277b (door 1A:4686 into 277, 322 Animite), r15-183 (control, 183 at
   18,7, `$A2AD = 2`, 22 Animite).
+
+### Story 15 (`$0F`) from the ferry (s15, Oct 29)
+
+- g1 (r15-183, seed 4): `@182,182:far,277:58.45,257:10.10,255:17.5u>11.6,241:22.31,242:47.7,247:27.49`,
+  `MN_SNAP_TO=c182,249`. Checkpoints r15-182 (control, 182 at 29,11) and r15-249d (step
+  trigger 19:6F64 from 247 27,49 into 249).
+- g2 (r15-249d, seed 4, `MN_TALK=1`): `249:27.3u>27.2|27.3u>27.2|27.3u>27.2,250:10.6u>9.19|9.16d>9.19`.
+  The run logs `A123 <- 0F at 19:7838`. Its end checkpoint r15-249h is control in 250 at 9,16
+  with `$A123 = $0F`.
+- g3 (r15-135, seed 4, `MN_NOENC=1`): `135:28.44,138:4.19,280:29.21,147:far,...,156:far,158:far`
+  replays the road 135 -> 159 that r2 walked. Its checkpoint r15-159d is the door 1A:460E
+  into 159, so 159's wild monsters exist on load. With no battles on the road, Animite is 55.
+- `MN_LEGS=story15 bash scripts/mn-route12.sh` runs these as four legs (s15road, s15ferry,
+  s15ship, s15horn) and fails unless the last log has `A123 <- 0F`.

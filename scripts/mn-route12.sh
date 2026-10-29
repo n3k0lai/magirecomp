@@ -11,6 +11,7 @@
 #   MN_LEGS=bracelet bash scripts/mn-route12.sh  # only the bracelet legs, from into15.lua
 #   MN_LEGS=story9 MN_TO80S8=to80s8.lua bash scripts/mn-route12.sh  # story 8 -> Ogar -> 279
 #   MN_LEGS=story10 bash scripts/mn-route12.sh  # story 10 -> town duel (needs s9/to279w.lua)
+#   MN_LEGS=story15 bash scripts/mn-route12.sh  # story 14 -> 15 (needs s15/r15-135.lua or MN_TO135S14)
 #
 # Prints one "beat N: ..." line when that beat's log marker appears.
 # Exits nonzero if a beat marker is missing or a snapshot was not written.
@@ -90,6 +91,14 @@ require_beats() {
 # from an earlier run are still in $SNAP.
 FROM="${MN_FROM:-}"
 
+# snaps_written FILES: true when every file in the comma list exists
+# (MN_SNAP_FILE may pair a comma list of files with MN_SNAP_TO).
+snaps_written() {
+  local f files
+  IFS=, read -ra files <<<"$1"
+  for f in "${files[@]}"; do [ -f "$f" ] || return 1; done
+}
+
 # run_leg NAME FRAMES ROUTE SNAP_TO SNAP_FILE [LOAD]
 run_leg() {
   local name="$1" frames="$2" route="$3" snap_to="$4" snap_file="$5" load="${6:-}"
@@ -97,7 +106,7 @@ run_leg() {
   local extra=("${@:7}")
   local log="$SNAP/${name}.log"
   if [ "$name" = "$FROM" ]; then FROM=""; fi
-  if [ -n "$FROM" ] && [ -f "$log" ] && { [ -z "$snap_to" ] || [ -f "$snap_file" ]; }; then
+  if [ -n "$FROM" ] && [ -f "$log" ] && { [ -z "$snap_to" ] || snaps_written "$snap_file"; }; then
     echo "leg $name: reused"
     LOGS+=("$log")
     report_beats
@@ -130,7 +139,7 @@ run_leg() {
     echo "leg $name: love exited $ec" >&2
     exit "$ec"
   fi
-  if [ -n "$snap_to" ] && [ ! -f "$snap_file" ]; then
+  if [ -n "$snap_to" ] && ! snaps_written "$snap_file"; then
     echo "leg $name: snapshot $snap_file was not written" >&2
     grep -F "[mn-test] final player" "$log" >&2 || true
     exit 1
@@ -464,6 +473,45 @@ run_story10() {
   grep -qF "A123 <- 0E" "$SNAP/s14exit.log" || { echo "story 14: NOT SET" >&2; exit 1; }
   echo "story 14 reached"
 }
+# Story 14 -> 15 ($0E -> $0F), from 135 at 28,44 (MN_TO135S14, a control
+# checkpoint taken after s14exit). Checkpoints go to $BSNAP/s15
+# (MN_S15_DIR overrides). See docs/mn-route12.md, "New-game regression to
+# the ferry" and "Story 15".
+run_story15() {
+  local S15="${MN_S15_DIR:-$BSNAP/s15}"
+  mkdir -p "$S15"
+  # The road south: 135 -> 138 -> 280 -> 147 ... 156 -> 158, then the door
+  # into 159 (1A:460E). A door checkpoint replays the entry, so 159's wild
+  # monsters (slots 31/32, beh 1A:4019) exist on load.
+  run_leg s15road 14000 \
+    "135:28.44,138:4.19,280:29.21,147:far,148:far,149:far,150:far,151:far,152:far,153:far,156:far,158:far" \
+    159 "$S15/to159s15.lua" \
+    "${MN_TO135S14:-$S15/r15-135.lua}" MN_SEED=4 MN_NOENC=1
+  # The 181 ferryman's "Pay 300" (2A:5255) checks $A5A3 >= $012C at 2A:5256.
+  # The road has no battles, so 159 is farmed (MN_CHASE_MIN) until 300
+  # Animite, then 159 8,49 -> 277 -> 181, pay, ferry 277 -> 184 -> 277 -> 183.
+  run_leg s15ferry 60000 \
+    "159:chase,277:40.55,181:17.8l" \
+    277,c183 "$S15/to277s15.lua,$S15/to183s15.lua" \
+    "$S15/to159s15.lua" MN_SEED=4 MN_CHASE_MIN=300 MN_CHASE_THEN=159:8.49 MN_PICK=2A:5255
+  grep -qF "enter map 184" "$SNAP/s15ferry.log" || { echo "s15ferry: no ferry" >&2; exit 1; }
+  # 183 -> 182 -> 277 58,45 -> 257 -> 255 (talk) -> 241 -> 242 -> 247, then
+  # the step trigger 19:6F64 into 249.
+  run_leg s15ship 8000 \
+    "@182,182:far,277:58.45,257:10.10,255:17.5u>11.6,241:22.31,242:47.7,247:27.49" \
+    c182,249 "$S15/to182s15.lua,$S15/to249s15.lua" \
+    "$S15/to183s15.lua" MN_SEED=4
+  # 249 -> 250: the talks there store story $0F at 19:7838.
+  run_leg s15horn 30000 \
+    "249:27.3u>27.2|27.3u>27.2|27.3u>27.2,250:10.6u>9.19|9.16d>9.19" \
+    "" "" "$S15/to249s15.lua" MN_SEED=4 MN_TALK=1 MN_WATCH=A123
+  grep -qF "A123 <- 0F" "$SNAP/s15horn.log" || { echo "story 15: NOT SET" >&2; exit 1; }
+  echo "story 15 reached"
+}
+if [ "${MN_LEGS:-}" = story15 ]; then
+  run_story15
+  exit 0
+fi
 if [ "${MN_LEGS:-}" = story10 ]; then
   run_story10
   exit 0
