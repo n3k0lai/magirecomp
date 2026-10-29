@@ -138,8 +138,8 @@ Unresolved items from docs/mn-secrets.md and docs/mn-engines.md. None is guessed
    last operand byte.
 9. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
    the port waits the worst case, 4 x (count + 1).
-10. **`$6E`/`$6F` fades and `$99`/`$9A`/`$9B` window slides**: the bank-7/bank-1 targets are
-    INCBIN; the port uses its own fade and text-box timing.
+10. **`$99`/`$9A`/`$9B` window slides**: the bank-7/bank-1 targets are INCBIN; the port uses its own
+    text-box timing. (`$6E`/`$6F` fades are no longer open: see Resolved 8.)
 11. **`$4F` offset lists** add dx/dy to the object cell each frame; the port's sprite model
     applies them as cell steps, not fine-pixel motion. `Sprites.firstImage` takes the first
     list image as the initial frame (assumption).
