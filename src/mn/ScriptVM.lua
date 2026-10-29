@@ -216,6 +216,9 @@ function VM:run(bank, ptr)
     if not n then self:note(op); return end
     local cur = { bank = math.floor(o / 0x4000), ptr = o % 0x4000 + 0x4000 }
     local function jump(b, p) o = off(p, b) end
+    if (op == 0x4C or op == 0x4D or op == 0x4E or op == 0x4F) and self.curSlot and h.animAt and not self.init then
+      h.animAt(self.curSlot, cur.bank, cur.ptr)
+    end
     -- the entry's script loop ends here: a blocked door pair its $7E opened is the player's cell
     if self.pairWall and (op == 0x94 or op == 0x42 or op == 0x12) then self:openedPairWall(h) end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
@@ -517,11 +520,12 @@ function VM:run(bank, ptr)
         coroutine.yield("wait", 1)
       end
     elseif op == 0x09 then -- Opcode09 (slot, bank, ptr): give a slot a new script
-      -- a sprite-bank target is a plain anim: slot 0 then becomes the player again
+      -- a target made only of sprite ops (Sprites.isAnim) is a plain anim: slot 0 then
+      -- becomes the player again
       -- (bank $14 holds both anims and scripts: a $15/$16 schedule head is a script)
       local hd = r:u8(off(r:u16(o + 3), r:u8(o + 2)))
       if os.getenv("MN_THR") then print(("[op09] slot %d -> %02X:%04X head %02X sprite=%s init=%s by %s pc %X"):format(r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), hd, tostring(h.isSpriteBank and h.isSpriteBank(r:u8(o + 2))), tostring(self.init), tostring(self.curKey), o)) end
-      if h.isSpriteBank and h.isSpriteBank(r:u8(o + 2)) and not (r:u8(o + 2) == 0x14 and (hd == 0x15 or hd == 0x16)) then
+      if h.isSpriteBank and h.isSpriteBank(r:u8(o + 2), r:u16(o + 3)) and not (r:u8(o + 2) == 0x14 and (hd == 0x15 or hd == 0x16)) then
         local sl = r:u8(o + 1)
         if self.threads and self.threads[sl] and self.threads[sl].co ~= coroutine.running() then self.threads[sl] = nil end
         if sl == 0 and h.release then h.release(0)

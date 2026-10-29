@@ -71,8 +71,40 @@ function M.frames(rom, bank, ptr)
   return out, false
 end
 
+-- Banks whose $14/$15 anim records the behaviour walker trusts as sprite anims.
 local SPRITE_BANKS = { [0x0E] = 1, [0x0F] = 1, [0x10] = 1, [0x11] = 1, [0x20] = 1, [0x25] = 1 }
 M.SPRITE_BANKS = SPRITE_BANKS
+
+-- opcode_05.asm: CopyThreeScriptBytesAndHandler stores DispatchScriptOpcode as the
+-- record's handler next to the anim field, so the game always runs that field as a
+-- script; a "sprite anim" is only a script made of sprite-list ops. The game has no
+-- bank test, so the port decides by content: the static frame decoder may stand in
+-- for the VM only when every op it would reach is $4C/$4D/$4E/$4F (with $46 jumps)
+-- up to a loop or a $42/$94/$12 end. Anything else (25:7211's $5A/$5C/$0B
+-- choreography, 11:7039's $47 random pick, 0E:5EA8's $45/$4B, 11:75C8's $48 waits)
+-- is a script the VM runs, its sprite ops drawing through host.animAt.
+local ANIM_OPS = { [0x4C] = 1, [0x4D] = 1, [0x4E] = 1, [0x4F] = 1 }
+local animMemo = setmetatable({}, { __mode = "k" })
+function M.isAnim(rom, bank, ptr)
+  if not (ptr and ptr >= 0x4000 and ptr < 0x8000) then return false end
+  local memo = animMemo[rom]; if not memo then memo = {}; animMemo[rom] = memo end
+  local key = bank * 65536 + ptr
+  if memo[key] ~= nil then return memo[key] end
+  local o, seen, any, res = bank * 0x4000 + ptr - 0x4000, {}, false, nil
+  for _ = 1, 256 do
+    if seen[o] then res = any; break end
+    seen[o] = true
+    local op = rom:u8(o)
+    if op == 0x46 then o = bank * 0x4000 + rom:u16(o + 1) - 0x4000
+    elseif op == 0x42 or op == 0x94 or op == 0x12 then res = any; break
+    elseif ANIM_OPS[op] then
+      local n = rom:insn(o); if not n then res = false; break end
+      any = true; o = o + n
+    else res = false; break end
+  end
+  memo[key] = res or false
+  return memo[key]
+end
 
 -- Walk an object's behaviour script: $15 records (key, ptr, bank) name the
 -- facing anims (Script14_5E33: "sc_op15 $10, $F0, $56, $10, ..."), and $5B
@@ -115,12 +147,15 @@ function M.npc(ow, x, y, base, abank, aptr, sbank, sptr)
   local o = { x = x, y = y }
   local rom = ow.vm.rom
   local beh = M.behaviour(rom, sbank or 0, sptr or 0)
-  if not SPRITE_BANKS[abank] then
+  if not M.isAnim(rom, abank, aptr) then
     local b2 = M.behaviour(rom, abank, aptr); beh.talk = beh.talk or b2.talk
     -- the spawn's anim script wins: it is what the object runs first
-    if b2.anim then beh.anim, beh.sched = b2.anim, b2.sched or (not b2.anim and beh.sched or nil) end
+    if b2.anim then beh.anim, beh.sched = b2.anim, b2.sched or (not b2.anim and beh.sched or nil)
+    elseif ANIM_OPS[rom:u8(abank * 0x4000 + aptr - 0x4000)] then
+      -- a script that opens on a sprite op shows that list first (0E:5EA8, 11:7596)
+      beh.anim, beh.sched = { abank, aptr }, nil
+    end
   else beh.anim = beh.anim or { abank, aptr } end
-  if not SPRITE_BANKS[abank] then beh.sched = beh.sched end
   o.talk = beh.talk; o.anim = beh.anim; o.sched = beh.sched; o.base = base
   if beh.anim then M.build(ow, o) end
   return o

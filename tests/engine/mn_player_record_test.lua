@@ -9,10 +9,18 @@ local function ok(cond, what)
 end
 
 local Overworld = require("mn.Overworld")
+local MnRom = require("mn.MnRom")
+
+-- the anim field is classified by content (Sprites.isAnim), so give 20:4F73 a made-up
+-- sprite loop: $4C (1 frame, list $5000), $46 back to itself
+local at = 0x20 * 0x4000 + 0x4F73 - 0x4000
+local img = string.rep("\0", at) .. string.char(0x4C, 0x01, 0x00, 0x00, 0x00, 0x50, 0x00, 0x46, 0x73, 0x4F)
+local rom = MnRom.new(img .. string.rep("\0", 0x200000 - #img))
 
 local function spawnAfterDuel(handler)
   -- a duel scene leaves the slot 0 stand-in hidden and in objects[0]
-  local s = setmetatable({ x = 33, y = 21, objects = { [0] = { x = 18, y = 20 } }, hidePlayer = true, log = {} },
+  local s = setmetatable({ x = 33, y = 21, objects = { [0] = { x = 18, y = 20 } }, hidePlayer = true, log = {},
+    vm = { rom = rom } },
     { __index = Overworld })
   local h = s:host()
   -- without the pad-head check this builds an npc sprite (no vm here), so trap it

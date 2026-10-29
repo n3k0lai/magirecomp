@@ -90,24 +90,32 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
     1F:500C. VM.fillSRAM does this; the 02:7646 bytes are read from the ROM at run time. Test:
     tests/engine/mn_op91_sram_fill_test.lua.
 
+13. **Running scripts in "sprite" banks (was Still open 2).** opcode_05.asm's CopyThreeScriptBytesAndHandler
+    always installs DispatchScriptOpcode as the handler for operand 9-11, with no bank test. The port used to
+    pick by bank (0E/0F/10/11/20/25). It now picks by content: Sprites.isAnim is true only when every op
+    reachable from the field is `$4C`/`$4D`/`$4E`/`$4F` (following `$46`) up to a loop or `$42`/`$94`/`$12`.
+    Those still decode statically. Everything else runs on the VM as the record's thread, and each
+    `$4C`-`$4F` it reaches calls the animAt hook, which rebuilds the object's sprite from that point. `$09`
+    uses the same test. Fields that changed class: 0E:5EA8 and 11:7596 (maps 123, 80), 11:7039 (`$47` random
+    pick, map 236), 11:75C8 (`$48`, map 268), 11:7900 (`$40`, map 196), 25:7211/731F/739D (map 237),
+    25:746C/747F/74DE/751E (map 236), and 25:68D8. `$09` targets that changed: 0F:4A1E, 0F:4A83, 10:5CA1,
+    0F:6D60 and 11:7647; none of them is slot 0, so the slot-0 player release still holds. Headless runs on
+    maps 80, 123, 196, 236, 237 and 268 have no VM errors. On 237, slot 0 now runs 25:7211 as a stand-in, so
+    the player is hidden behind the choreography record. Tests: tests/engine/mn_record_script_anim_test.lua
+    and tests/engine/mn_player_record_test.lua.
+
 ## Still open (the code can't answer yet)
 
 1. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
-2. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
-   port only threads it outside banks 0E/0F/10/11/20/25, and it decodes those banks statically
-   (Sprites.frames). That's exact for pure `$4C`/`$4D`/`$4E`/`$46` anims. It isn't exact for the bank-25
-   choreography scripts 25:7211, 731F, 739D, 746C, 747F, 74DE, 751E (maps 236, 237, 240, 368) or 25:68D8,
-   all of which hold flow and story ops. None of these are in stories `$01`-`$0F` or the 186 area. Fixing it
-   means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
-3. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
+2. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
    last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
    that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
    then 40 at +4) that means the rock shows while it's lifted.
-4. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
+3. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
    story `$01`-`$0F` or 186 script reaches them in the static graph.
-5. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
+4. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
    produces those values. They look like dead data, but that isn't proven.
-6. **5C7A entry-anim timing** is still INCBIN.
+5. **5C7A entry-anim timing** is still INCBIN.
 
 ## Secrets and engines (fix/mn-secrets)
 

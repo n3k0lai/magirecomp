@@ -188,13 +188,14 @@ function M:host()
     spawn = function(slot, x, y, handler, base, abank, aptr, sbank, sptr)
       -- slot 0 with a script record in its anim field is a cutscene stand-in:
       -- the real game shows no player sprite there until control returns
-      if slot == 0 and not Sprites.SPRITE_BANKS[abank] then s.hidePlayer = true end
+      local anim = Sprites.isAnim(s.vm.rom, abank, aptr)
+      if slot == 0 and not anim then s.hidePlayer = true end
       -- slot 0 with a sprite anim and the $5D81 pad handler is the player itself, not a
       -- stand-in: drop a leftover stand-in so the pad works (1A:6841 into room 10 after
       -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB). $5B1E is the other
       -- pad head (bank 1 direction dispatch): 2F:44F9 plants it with 20:4F73 when the
       -- Ogar duel tail drops Tony on 279, and the duel's stand-in must go then too
-      if slot == 0 and (handler == 0x5D81 or handler == 0x5B1E) and Sprites.SPRITE_BANKS[abank] then
+      if slot == 0 and (handler == 0x5D81 or handler == 0x5B1E) and anim then
         if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
         s.objects[0] = nil; s.hidePlayer = false; return
       end
@@ -210,8 +211,8 @@ function M:host()
         -- slot 2 at 37,8 runs 2F:4210 -> 14:6A95, the Shadow Geyser scene, PyBoy)
         ob.handler = handler ~= 0 and handler or nil
         ob.beh = (sbank and sbank ~= 0x22) and { sbank, sptr } or nil
-        -- a non-sprite-bank anim field is the object's script record: run it as a thread
-        if not Sprites.SPRITE_BANKS[abank] then ob.driven = true; s.vm:spawnThread(slot, abank, aptr, true) end
+        -- an anim field that is more than sprite ops is the record's script: run it as a thread
+        if not anim then ob.driven = true; s.vm:spawnThread(slot, abank, aptr, true) end
         s.log[#s.log + 1] = ("npc slot %d at %d,%d sprite=%s talk=%s"):format(slot, x, y, tostring(ob.image ~= nil) .. (ob.seq and ("/" .. #ob.seq .. "f") or "") .. (ob.sched and ("/sched" .. #ob.sched) or ""),
           ob.talk and ("%02X:%04X"):format(ob.talk[1], ob.talk[2]) or "-") .. (" anim=%02X:%04X beh=%02X:%04X base=%02X%s"):format(abank, aptr, sbank or 0, sptr or 0, base, ob.anim and (" use=%02X:%04X"):format(ob.anim[1], ob.anim[2]) or "")
       end
@@ -229,7 +230,14 @@ function M:host()
     end,
     -- Opcode19 (bit 7 of the record flags, dispatch resumes): the slot-0
     -- cutscene stand-in hands its cell back to the player
-    isSpriteBank = function(b) return Sprites.SPRITE_BANKS[b] ~= nil end,
+    isSpriteBank = function(b, p) return Sprites.isAnim(s.vm.rom, b, p) end,
+    -- $4C/$4D/$4E/$4F run by a record's script queue that record's sprite lists: show
+    -- them from this op on (the VM waits the same frame count before its next op)
+    animAt = function(slot, bank, ptr)
+      local ob = s.objects[slot]; if not ob or (ob.anim and ob.anim[1] == bank and ob.anim[2] == ptr and not ob.spent) then return end
+      ob.blank = nil; ob.sched = nil; ob.anim = { bank, ptr }
+      Sprites.build(s, ob)
+    end,
     release = function(slot)
       local ob = slot and s.objects[slot]
       if slot == 0 and ob then
