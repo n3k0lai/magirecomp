@@ -233,6 +233,7 @@ function VM:run(bank, ptr)
       -- The boot path stores the same bytes (boot/Title.lua).
       require("mn.boot.Title").applyDefaults(self)
       self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
+      if h.lcdOff then h.lcdOff() end
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
       if h.picture then h.picture(nil) end -- back to the field map

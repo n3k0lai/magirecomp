@@ -114,7 +114,7 @@ function M:host()
       if d.cells and i >= 0 and i < d.w * d.h then d.cells[i + 1] = mt end
       s.log[#s.log + 1] = ("metatile (%d,%d) := $%02X"):format(x, y, mt)
       if not s.vm or s.vm.init then
-        s.patches[#s.patches + 1] = { x = x, y = y, mt = mt }
+        s:patch(x, y, mt)
         return
       end
       s.bgStale = s.bgStale or {}
@@ -123,9 +123,19 @@ function M:host()
       local ax, ay = vm:rd8(0xC99D), vm:rd8(0xC99C)
       local aw = vm:rd8(0xC99E) + vm:rd8(0xC99F) * 256
       local ai = aw - 0xD000
+      -- BuildMetatilePointers (07:4C53) aims the 07:4CA1 callback at BG map
+      -- $9800 + (row & 15) * 64 + (col & 15) * 2: the 16 x 16 cell ring, with no
+      -- view test (unlike Opcode03Continue). The cell that shows it is whichever
+      -- on-screen cell shares that ring slot; an off-screen slot is redrawn by
+      -- the seam before it can show. A word outside the map plane is not modelled.
       if ai >= 0 and ai < d.w * d.h and d.cells and d.cells[ai + 1] then
-        s.patches[#s.patches + 1] = { x = ax, y = ay, mt = d.cells[ai + 1] }
-        if ax + ay * d.w == ai then s.bgStale[ai] = nil end
+        local vx, vy = s:ringAlias(ax, ay)
+        if vx then
+          s:patch(vx, vy, d.cells[ai + 1])
+          local vi = vx + vy * d.w
+          if vi == ai then s.bgStale[ai] = nil
+          elseif d.cells[vi + 1] ~= d.cells[ai + 1] then s.bgStale[vi] = true end
+        end
       end
     end,
     -- $7E StageEightScriptBytes: copy a w x h rect of map cells (metatile plane,
@@ -142,7 +152,7 @@ function M:host()
     copyCell = function(si, di)
       local d = s.def
       local mt = d.cells[si + 1]
-      if mt then d.cells[di + 1] = mt; s.patches[#s.patches + 1] = { x = di % d.w, y = math.floor(di / d.w), mt = mt } end
+      if mt then d.cells[di + 1] = mt; s:patch(di % d.w, math.floor(di / d.w), mt) end
       if d.block[si + 1] then d.block[di + 1] = d.block[si + 1] end
     end,
     -- DispatchBank7Arg ($7350). Category 0 clamps an item count; 1-3 are
@@ -165,7 +175,9 @@ function M:host()
     playerCell = function() return s.x, s.y end,
     cellOpen = function(x, y) return World.walkable(World.cell(s.def, x, y)) end,
     placePlayer = function(x, y) if s.riding then s.rec0 = { x, y } end; s.x, s.y = x, y; s:snap(); s.moving = nil; s.pw = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
-    centerCamera = function() s.pan = nil; s.camFix = nil end,
+    -- $93 turns the LCD off; DrawMetatileWindow redraws the view before it is on again
+    lcdOff = function() s.fullDraw = true end,
+    centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s:ringApply() end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
     -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER (15 px in
@@ -185,7 +197,7 @@ function M:host()
         for k, ob in pairs(s.objects) do if k ~= 0 then ob.x, ob.y = ob.x - dx, ob.y - dy; ob.hx, ob.hy = nil, nil end end
         s.log[#s.log + 1] = ("camera clamp shift %d,%d"):format(dx, dy)
       end
-      s.camFix = { cx, cy }
+      s:ringRecord(); s.camFix = { cx, cy }; s:ringApply()
     end,
     -- $7C/$7D scroll nudge (bank 1 $4587): the camera's top-left cell (C85F/C860)
     -- steps toward (tc,tr) by spd px per axis per frame; edges stop an axis
@@ -215,7 +227,7 @@ function M:host()
       local i = addr - 0xD000; local d = s.def
       if i < 0 or i >= d.w * d.h then return end
       d.block[i + 1] = col; d.cells[i + 1] = mt
-      s.patches[#s.patches + 1] = { x = i % d.w, y = math.floor(i / d.w), mt = mt }
+      s:patch(i % d.w, math.floor(i / d.w), mt)
     end,
     cellByte = function(addr) local i = addr - 0xD000; return s.def.cells[i + 1] end,
     slotCell = function(word)
@@ -406,7 +418,14 @@ end
 
 -- The map data $65 loads (see host.loadMap); no record, thread or WRAM state.
 function M:loadArea(i)
+  -- With the LCD on (a running script, not under $93's RunScriptLoop) the ROM's
+  -- $65 writes no BG map and moves no scroll: the ring keeps the old cells.
+  local lcdOn = self:lcdOn() and self.def ~= nil
+  local oldAtlas = lcdOn and self.map and love.filesystem.read(("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, self.map))
+  if lcdOn then self:ringRecord() end
   self.def = Importer.loadMap(i); self.map = i
+  self.shown = {}; self.orig = {}
+  for k, v in ipairs(self.def.cells or {}) do self.orig[k] = v end
   -- $65 LoadFiveBankedMapSources -> FillC72BFromBCThenBank7 ($2EC3): slot 0's
   -- 32 words land in $C72B, are copied to $C7AB and uploaded the same frame
   if self.def.bgWords then
@@ -414,8 +433,12 @@ function M:loadArea(i)
     Panels.loadPalettes(self.vm, w, false)
   end
   if self.x then self:snap() end
-  -- port camera overrides and BG overlays belong to the old plane
-  self.camOff = nil; self.camFix = nil; self.patches = {}; self.bgStale = nil
+  self.patches = {}; self.bgStale = nil
+  if not lcdOn then
+    -- LCD off: FinishStartup's DrawMetatileWindow draws the new plane; the port's
+    -- camera overrides belong to the old one
+    self.camOff = nil; self.camFix = nil; self.ring = nil
+  end
   self.atlas = love.graphics.newImage(("%s/maps/%03d_meta.png"):format(Importer.CACHE, i)); self.atlas:setFilter("nearest", "nearest")
   local ai = ("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, i)
   self.atlasIndex = self.def.index and love.filesystem.getInfo(ai) and love.graphics.newImage(ai) or nil
@@ -423,6 +446,14 @@ function M:loadArea(i)
   local ov = love.filesystem.read(("%s/maps/%03d.obj"):format(Importer.CACHE, i))
   self.obj = {}; for k = 1, #ov do self.obj[k - 1] = ov:byte(k) end
   self.log[#self.log + 1] = ("enter map %d at %d,%d"):format(i, self.x or -1, self.y or -1)
+  if lcdOn then
+    -- CopyMapRecords runs with the LCD on, so how much of a new tile set lands is
+    -- down to PPU timing; the old BG cells are exact only when both maps load the
+    -- same metatile tiles. Otherwise the new plane is drawn at once.
+    local newAtlas = love.filesystem.read(("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, i))
+    if oldAtlas and newAtlas == oldAtlas then self:ringApply()
+    else self.ring = nil; self.log[#self.log + 1] = "lcd-on $65: tile set differs, drawn at once (not modelled)" end
+  end
   if os.getenv("MN_THR") then local co = coroutine.running(); local who = "main"; for k, t in pairs(self.vm.threads or {}) do if t.co == co then who = tostring(k) end end; self.log[#self.log + 1] = "  by thread " .. who .. " pc " .. (self.vm.pcs and self.vm.pcs[co] and ("%X"):format(self.vm.pcs[co]) or "?") end
 end
 
@@ -431,6 +462,7 @@ end
 function M:enterMap(i, x, y)
   self.objects = {}
   self.x, self.y = x, y
+  self.def = nil -- port-only start: a full draw
   self:loadArea(i)
   self.moving = nil; self.facing = self.facing or "down"
   self:settleAList()
@@ -590,8 +622,7 @@ function M:applyPlanes(list)
     local i, c, m = list[k], list[k + 1], list[k + 2]
     if i >= 0 and i < d.w * d.h then
       d.block[i + 1] = c; d.cells[i + 1] = m
-      self.patches = self.patches or {}
-      self.patches[#self.patches + 1] = { x = i % d.w, y = math.floor(i / d.w), mt = m }
+      self:patch(i % d.w, math.floor(i / d.w), m)
     end
   end
 end
@@ -660,6 +691,7 @@ function M:update()
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
   self:stepEdgeLatches()
   if self.bgStale then self:flushStale() end
+  self:ringFrame()
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then
     local r = self.overlay:update()
@@ -995,6 +1027,94 @@ end
 -- A WRAM-3 store the LCD-on tail did not redraw (setMetatile) shows its old tiles
 -- while on screen; a cell entering the view is drawn by the scroll seam from WRAM 3,
 -- so once a stale cell is off screen its stored metatile is what the BG will show.
+-- A BG overlay cell; shown[] is what the BG map holds for it (orig[] otherwise).
+function M:patch(x, y, mt)
+  self.patches = self.patches or {}
+  self.patches[#self.patches + 1] = { x = x, y = y, mt = mt }
+  if self.def then self.shown = self.shown or {}; self.shown[x + y * self.def.w] = mt end
+end
+
+function M:shownAt(x, y)
+  local i = x + y * self.def.w
+  local v = self.shown and self.shown[i]
+  if v == nil then v = self.orig and self.orig[i + 1] or self.def.cells[i + 1] end
+  return v
+end
+
+-- The LCD is off during map setup (vm.init) and from $93 until RunScriptLoop parks.
+function M:lcdOn()
+  local vm = self.vm
+  return vm ~= nil and not vm.init and not vm.startupPending
+end
+
+-- The on-screen cell range (the 160 x 144 view), clamped to the map.
+function M:viewCells()
+  local d = self.def
+  local cx, cy = self:cameraXY()
+  return math.max(0, math.floor(cx / 16)), math.min(d.w - 1, math.floor((cx + 159) / 16)),
+    math.max(0, math.floor(cy / 16)), math.min(d.h - 1, math.floor((cy + 143) / 16))
+end
+
+-- BG map ring: $9800 holds 16 x 16 metatile cells, cell (x, y) at slot
+-- (x & 15, y & 15) (BuildMetatilePointers, 07:4C53). The scroll seam keeps the
+-- slots under the view equal to the view, so the ring is recorded from what the
+-- view shows. Nothing but the seam, the single-cell redraws and FinishStartup's
+-- DrawMetatileWindow ($93) writes it: $82/$84 (StoreMapCellFromDEMinus5) only
+-- move wMapColumn/wMapRow, and $65 writes no BG map.
+function M:ringRecord()
+  if not self.def or not self.def.cells then return end
+  self.ring = self.ring or {}
+  local x0, x1, y0, y1 = self:viewCells()
+  for y = y0, y1 do for x = x0, x1 do self.ring[(y % 16) * 16 + x % 16] = self:shownAt(x, y) end end
+end
+
+-- After a jump with no redraw, every on-screen cell shows its ring slot. A cell
+-- whose slot differs from WRAM 3 is stale until the seam draws it again.
+function M:ringApply()
+  local ring, d = self.ring, self.def
+  if not ring or not self:lcdOn() or not d.cells then return end
+  local x0, x1, y0, y1 = self:viewCells()
+  for y = y0, y1 do for x = x0, x1 do
+    local v = ring[(y % 16) * 16 + x % 16]
+    if v ~= nil and v ~= self:shownAt(x, y) then self:patch(x, y, v) end
+    local i = x + y * d.w
+    if v ~= nil and v ~= d.cells[i + 1] then self.bgStale = self.bgStale or {}; self.bgStale[i] = true end
+  end end
+end
+
+-- Once a pass: with the LCD off, FinishStartup's DrawMetatileWindow redraws the
+-- view from WRAM 3 when it turns the LCD back on.
+function M:ringFrame()
+  if not self.def or not self.def.cells then return end
+  if not self:lcdOn() then self.fullDraw = true; return end
+  if self.fullDraw then
+    self.fullDraw = nil
+    if self.bgStale then
+      local x0, x1, y0, y1 = self:viewCells()
+      local d = self.def
+      for i in pairs(self.bgStale) do
+        local x, y = i % d.w, math.floor(i / d.w)
+        if x >= x0 and x <= x1 and y >= y0 and y <= y1 then self:patch(x, y, d.cells[i + 1]); self.bgStale[i] = nil end
+      end
+      if next(self.bgStale) == nil then self.bgStale = nil end
+    end
+  end
+  self:ringRecord()
+end
+
+-- The on-screen cell holding BG ring slot (x & 15, y & 15), or nil. The view is
+-- at most 11 x 10 cells, so at most one cell per axis shares a slot.
+function M:ringAlias(x, y)
+  local d = self.def
+  local cx, cy = self:cameraXY()
+  local x0, x1 = math.max(0, math.floor(cx / 16)), math.min(d.w - 1, math.floor((cx + 159) / 16))
+  local y0, y1 = math.max(0, math.floor(cy / 16)), math.min(d.h - 1, math.floor((cy + 143) / 16))
+  local vx, vy
+  for c = x0, x1 do if c % 16 == x % 16 then vx = c end end
+  for r = y0, y1 do if r % 16 == y % 16 then vy = r end end
+  if vx and vy then return vx, vy end
+end
+
 function M:flushStale()
   local d = self.def
   local cx, cy = self:cameraXY()
@@ -1003,7 +1123,7 @@ function M:flushStale()
   for i in pairs(self.bgStale) do
     local x, y = i % d.w, math.floor(i / d.w)
     if x < x0 or x > x1 or y < y0 or y > y1 then
-      self.patches[#self.patches + 1] = { x = x, y = y, mt = d.cells[i + 1] }
+      self:patch(x, y, d.cells[i + 1])
       self.bgStale[i] = nil
     end
   end

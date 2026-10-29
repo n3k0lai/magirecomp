@@ -69,5 +69,24 @@ do -- LCD off (map setup): the stored cell shows in the full draw
   ok(#s.patches == 1 and p.x == 8 and p.y == 4 and p.mt == 0x33, "LCD off: the stored cell itself is drawn")
 end
 
+do -- LCD on, the A cell is off screen: BuildMetatilePointers (07:4C53) writes ring
+  -- slot (col & 15, row & 15), which shows on the on-screen cell sharing it
+  local s, h = world(false)
+  s.px, s.py = 25 * 16, 5 * 16 -- camera cols 20..29, rows 0..8
+  aCell(s, 6, 4) -- slot (6, 4): on screen that is cell (22, 4)
+  s.def.cells[4 * W + 6 + 1] = 0x44
+  h.setMetatile(addr(8, 4), 0x33)
+  local p = last(s)
+  ok(p and p.x == 22 and p.y == 4 and p.mt == 0x44, "the A cell's byte shows on the aliased cell (22,4)")
+  ok(s.bgStale and s.bgStale[4 * W + 22], "the aliased cell is stale")
+  s.px = 5 * 16 -- back west: (22,4) leaves the view, the seam redraws it from WRAM 3
+  s:flushStale()
+  local q
+  for _, pp in ipairs(s.patches) do if pp.x == 22 and pp.y == 4 then q = pp end end
+  ok(q and q.mt == 0x10, "off screen, the aliased cell is redrawn from WRAM 3")
+  ok(s:ringAlias(6, 12) == nil, "a ring slot with no on-screen cell is not shown")
+  ok(select("#", s:ringAlias(38, 4)) == 2 and s:ringAlias(38, 4) == 6, "slot 38 & 15 = 6 is on screen at column 6")
+end
+
 print(("mn_store_redraw: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

@@ -49,12 +49,67 @@ The facing is record byte 0 (`hRecordHead`). FillScriptRecord0808 skips byte 0
 and InitPointerList only sets bit 7 and clears bit 6, so the facing carries
 through a door. Port: `self.facing` is kept across `$65`.
 
+## BG map ring
+
+`$9800` holds 16 x 16 metatile cells: BuildMetatilePointers (`07:4C53`) puts
+cell (column, row) at `$9800 + (row & 15) * 64 + (column & 15) * 2`. The view
+is 11 x 10 cells, so the scroll seam keeps the slots under the view equal to
+the view. What writes the ring:
+
+- the seam (StepHorizontalScroll `07:4CF5` / StepVerticalScroll `07:5198`),
+  when the fine scroll crosses an 8 px line;
+- DrawMetatileWindow, called only by FinishStartup (`$93`) before the LCD is on;
+- single-cell redraws through the `07:4CA1` VBlank callback: Opcode03Continue
+  (`01:4617`, after its 16-cell test) and the `$A0`-`$A4` store tail.
+
+`$82` and `$84` only store wMapColumn/wMapRow (StoreMapCellFromDEMinus5,
+`$1D3D`) and the fine scroll; they draw nothing. With the LCD on, a camera
+jump shows each on-screen cell's ring slot until the seam draws it.
+
+Port (`Overworld:ringRecord`/`ringApply`/`ringFrame`): the ring is recorded
+from the view once a pass; `$82`/`$84` with the LCD on apply it, and a cell
+that differs from WRAM 3 is stale until it leaves the view (`flushStale`).
+`$93` (host `lcdOff`) redraws the view from WRAM 3. The LCD is off under
+`vm.init` and from `$93` until RunScriptLoop parks.
+
+## `$65` with the LCD on
+
+The BG map and the scroll are left as they were, so the old cells stay on
+screen until the seam draws them, and the port keeps camOff/camFix. Palettes
+are uploaded the same pass. CopyMapRecords (`$2FC0`, record copy `$2FE5`) runs
+with the LCD on and no STAT wait, so how much of a different tile set lands is
+down to PPU timing. The port keeps the old cells only when both maps' metatile
+atlases are identical; otherwise it draws the new map at once and logs
+`lcd-on $65: tile set differs`.
+
+## Edge reload stall (`$7E`/`$7F`)
+
+StagedByteEdgeCheck runs Opcode03Continue (`01:4617`) on each staged cell. With
+the LCD on, a cell in the camera's edge column (offset 0 or 10) waits while
+wColumnLoadLatch (`$C892`) is set, and a cell in the edge row (offset 0 or 9)
+waits while wRowLoadLatch (`$C86A`) is set. The same cell is retried the next
+pass. CopyQueuedColumn copies the countdown into `$C892`: 2 on the tile pass,
+1 on the attribute pass a pass later. FlushQueuedScroll clears it at VBlank.
+Port: `Records.cellInView`, `Overworld:stepEdgeLatches`.
+
+## Stores with no A cell (`$A0`-`$A4` tail, `$26CC`)
+
+With the LCD on, StoreEThroughWordInWram3 always redraws the cell at
+`$C99D`/`$C99C` with the WRAM 3 byte at the word in `$C99E`, whatever cell the
+store wrote. There is no view test: the redraw goes to that cell's ring slot,
+and shows on whichever on-screen cell shares it. The stored cell itself keeps
+its old tiles until the seam draws it. A store before any A cell was saved
+reads `$C99C`-`$C99F` as left by Reset (zero), so it redraws ring slot (0, 0)
+from the byte at address `$0000`; the port does not model a word outside the
+map plane.
+
 ## Not modelled
 
-- A `$65` with the LCD on writes no BG map; the ROM shows the old tiles until
-  a later redraw (`$82`/`$84` recenter, `$93`). The port draws the new map at
-  once.
-- Seam palette timing (the column/row streamer and the palette upload are not
-  frame-split in the port).
-- BG ring aliasing (the 32x32 tile map wraps every 16 cells).
-- The port still resets its own camera overrides (camOff/camFix) on `$65`.
+- Seam palette timing: the attribute pass lands a pass after the tile pass
+  (`$C891` 2 then 1); the port draws both at once.
+- A `$65` with the LCD on between maps with different tile sets (see above).
+- Ring slots written while off screen (an Opcode03Continue redraw at a column
+  offset of 11-15) are not recorded; only the view is.
+- The port camera follows the player (`cameraXY`); the ROM's absolute
+  wMapColumn/wMapRow plus fine scroll are not reproduced pixel for pixel, so
+  the latches come from 8 px crossings of the port camera.
