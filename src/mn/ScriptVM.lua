@@ -351,6 +351,10 @@ function VM:run(bank, ptr)
     elseif op == 0x0B then h.slotFlag(r:u8(o + 1)); o = o + n -- opcode_0b.asm: clear bit 7 of slot record
     elseif op == 0x94 then -- MarkScriptDone21B2: stop this frame's loop, resume at the next opcode
       if self.init then return end
+      -- it sets wScriptDone ($C705), which also ends FinishStartup's RunScriptRecord
+      -- (run_script_record.asm): $C6F3 = 1 and the LCD on happen here, not only at a park
+      -- (map 2 Eidon scene 14:512C waits on C6FD after its $94; its talk record waits on $C6F3)
+      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       o = o + n; coroutine.yield("wait", 1)
     elseif op == 0x24 then o = o + n; coroutine.yield("wait", r:u8(o - 1)) -- Opcode20 alias: countdown
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank

@@ -210,5 +210,13 @@ do
   ok(vm:rd8(0xD392) == 0x3C and battles[1] and battles[1][1] == 0x2A and battles[1][2][1] == 0x3C, "$2A copies one byte to $D392")
 end
 
+-- $94 after $93 sets wScriptDone, which ends FinishStartup's RunScriptRecord:
+-- $C6F3 = 1 there (map 2 Eidon scene 14:512C: its talk record waits on $C6F3).
+do
+  local vm = run({ 0x93, 0x94, 0x1E, 0x97 })
+  ok(vm:rd8(0xC6F3) == 1 and not vm.startupPending, "$94 ends the startup loop: $C6F3 = 1")
+  ok(vm:rd8(0xC91F) == 0, "$94 resumes at the next opcode on the next pass")
+end
+
 print(("mn_ops_flow: %d checks, %d failed"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
