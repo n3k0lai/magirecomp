@@ -1272,3 +1272,19 @@ must start from k241 or earlier.
 - Still closed: x=44 rows 40-43 and 49-55 row 42. No `$7F` rect in 1F:6280-6900 touches them; no `Opcode03`/`Opcode04` in the 186 scripts writes there (slots `$22`/`$23`/`$25`-`$27` only); no absolute `7F`/`80`/`81`/`03` op in banks 1F, 21-24, 28 has a destination in x 40-56 rows 38-47 (cell base `$D000`, 64 wide).
 - 187's doors back (1F:6910-693D, `Opcode02 b0 b1 00 3F`) map 187 row 0 to 186 row 63 at x 7, 20, 34-45 (+11), 46, 53, 59; 186 T3-T6 (1F:62A1-62BC) map x 7, 20, 46, 59 the other way. In 186, rows 61-62 at x 7 and 20 are `$08` under the open SW rooms (rows 58-60).
 - Next: list object records in 186 at k186d (NE room may hold a record-based switch or block), check `$58`'s `PlantOffset7` record at 51,44, look for indexed writes to the live plane landing on x=44 rows 40-43.
+
+### New-game regression to the ferry (s15 re-run, Oct 29)
+
+- Fresh r15-159 (control, 159 at 19,24, story `$0E`) has 203 Animite. The 181 ferryman's
+  "Pay 300" pick 2A:5255 runs `SRAMLookupInstallScript 13 02 A5A3 >= 012C` at 2A:5256; below
+  300 it goes to 2A:52C2 ("You don't have..."), and the route loops on the talk (run r4).
+- 203 is not a port bug: the earlier c180e (293) came from a run with more battles before 180.
+- A control checkpoint keeps no NPC records, so 159 loaded from r15-159 has no wild monsters
+  (slots 31/32, beh 1A:4019) until a live entry. The 158 detour re-enters 159 live.
+- Harness switch `MN_CHASE_MIN=n` + `MN_CHASE_THEN=route`: a map on `chase` walks onto wild
+  monsters until `$A3A5 >= n`, then takes the THEN route.
+- Leg f8 (r15-159, seed 4, `159:19.24,158:0.7,277:40.55,181:17.8l,@158,159:chase`,
+  `MN_CHASE_MIN=300 MN_CHASE_THEN=159:8.49`, `MN_PICK=2A:5255`): five wins in 159
+  (+13 +34 +24 +24 +24 -> 322), then 159 -> 277 -> 181, pays 300, ferry 277 -> 184 -> 277 -> 183.
+  Checkpoints (s15): r15-277b (door 1A:4686 into 277, 322 Animite), r15-183 (control, 183 at
+  18,7, `$A2AD = 2`, 22 Animite).

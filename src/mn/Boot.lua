@@ -382,6 +382,14 @@ function love.load()
         end
       end
       if d == "chase" then -- walk onto a live encounter record ($65A4 handler)
+        -- MN_CHASE_MIN=n (harness): once Animite ($A3A5 word) reaches n, this map takes the
+        -- MN_CHASE_THEN route ("159:8.49") instead, so a leg can earn a fare and go on
+        local need = tonumber(os.getenv("MN_CHASE_MIN") or "")
+        if need and ow.vm and ow.vm:rd8(0xA3A5) + ow.vm:rd8(0xA3A6) * 256 >= need then
+          route[ow.map] = nil; visits[ow.map] = nil; ow.farMap = nil
+          parseRoute(os.getenv("MN_CHASE_THEN") or "", route, goals)
+          return nil
+        end
         if k == "a" then return ow.textBox ~= nil and frame % 20 == 0 end
         if ow.textBox or ow.moving then return nil end
         local W = require("mn.World")
