@@ -645,8 +645,15 @@ function VM:run(bank, ptr)
     elseif op == 0x41 then -- Bank1NibblePhaseCountdown: count = bank-1 byte [ptr + (rDIV mix & $0F)],
       -- then wait until the 4-frame phase has passed that many times (a random idle pause)
       local base = r:u16(o + 1); o = o + n
-      local cnt = r:u8(off(base + love.math.random(0, 15), 1))
-      if not self.init then coroutine.yield("wait", 4 * (cnt + 1)) end
+      -- bank1_nibble_phase_countdown.asm: AddDividerStep & $0F indexes the table; .resume
+      -- passes on frames with (hMainLoopCounter & 3) == 3 and dispatches on the (cnt+1)th.
+      -- The phase needs hMainLoopCounter from the host (h.frame); without it the wait is the
+      -- worst case, 4 * (cnt + 1) (outlier: docs/mn-engines.md).
+      if not self.init then
+        local cnt = r:u8(off(base + bit.band(VM.dividerNext(self), 0x0F), 1))
+        local w = h.frame and ((3 - h.frame()) % 4 + 4 * cnt) or 4 * (cnt + 1)
+        if w > 0 then coroutine.yield("wait", w) end
+      end
     elseif op == 0x45 then jump(r:u8(o + 1), r:u16(o + 2)) -- EnterScriptFromLookup
     elseif op == 0xAA or op == 0xAB then
       -- StoreScriptByteInWramBank ($2801) / StoreScriptWordInWramBank: addr, WRAM bank,
@@ -790,12 +797,17 @@ function VM.dividerStep(acc, div1, div2)
   return (acc + step) % 256
 end
 
-function VM.dividerPick(vm, count)
+-- AddDividerStep: mix two rDIV reads into hDividerAccum ($FFA9) and return it
+function VM.dividerNext(vm)
   local h = vm.host or {}
   local div = h.div or function() return love.math.random(0, 255) end
   local a = VM.dividerStep(vm:rd8(0xFFA9), div(), div())
   vm:wr8(0xFFA9, a)
-  return bit.band(a, 0x0F) % count
+  return a
+end
+
+function VM.dividerPick(vm, count)
+  return bit.band(VM.dividerNext(vm), 0x0F) % count
 end
 
 

@@ -44,5 +44,21 @@ ok(v == 2, "nibble 13 mod 3 picks record 1")
 -- acc $02 -3 = $FF: nibble 15 mod 3 = 0 -> first record
 v = run(0x02, 0x08, 0x00)
 ok(v == 1, "nibble 15 mod 3 picks record 0")
+-- $41 Bank1NibblePhaseCountdown: count = bank-1 byte [ptr + (AddDividerStep & $0F)], then
+-- dispatch on the (count+1)th frame with (counter & 3) == 3.
+do
+  local b1 = string.rep("\0", 0x4000) .. string.rep("\0", 0x100) .. string.char(9, 9, 3, 9)
+  local s2 = b1 .. string.rep("\0", 0x13 * 0x4000 - #b1) .. string.char(0x41, 0x00, 0x41, 0xAC, 0x05, 0xC0, 0x07, 0x94)
+  local rom2 = MnRom.new(s2 .. string.rep("\0", 0x200000 - #s2))
+  local seq = { 0x12, 0x05 }; local i = 0
+  local vm = VM.new(rom2, { div = function() i = i + 1; return seq[i] end, frame = function() return 0x41 end })
+  vm:wr8(0xFFA9, 0x00) -- +2 -> nibble 2 -> table byte 3
+  vm:start(0x13, 0x4000)
+  ok(vm:rd8(0xFFA9) == 0x02, "$41 advances hDividerAccum")
+  -- counter $41: (3 - 1) % 4 + 4 * 3 = 14 frames
+  ok(vm.wait == 14, "$41 waits to phase 3 then 4 per count (got " .. tostring(vm.wait) .. ")")
+  vm:resume()
+  ok(vm:rd8(0xC005) == 7, "$41 then dispatches the next op")
+end
 print(("mn_op47: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
