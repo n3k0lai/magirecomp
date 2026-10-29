@@ -105,8 +105,18 @@ map plane.
 
 ## Not modelled
 
-- Seam palette timing: the attribute pass lands a pass after the tile pass
-  (`$C891` 2 then 1); the port draws both at once.
+- Seam palette timing. StepHorizontalScroll (`07:4CF5`) queues the 8 px tile
+  column entering the view (`$C863`, wrapped to 32) and sets `$C891` = 2; each
+  later step halves it (`sra`). CopyQueuedColumn copies the countdown into
+  wColumnLoadLatch (`$C892`), and FlushQueuedScroll writes rSCX/rSCY and then
+  the strip to VRAM bank (latch & 1): bank 0 (tile ids) on 2, bank 1
+  (attributes: palette, VRAM bank, flips) on 1. StepVerticalScroll does the
+  same for rows through `$C86A`. The new SCX lands with the tile pass, so for
+  one frame the column or row that just scrolled in (the 1-4 px of it on
+  screen) shows the new tile ids with the old slot's attributes. The port
+  draws 16 px metatiles from a baked atlas and has no per-tile attribute
+  plane, so it draws both passes at once; the latches themselves are
+  modelled (`Overworld:stepEdgeLatches`) for the `$7E`/`$7F` stall.
 - A `$65` with the LCD on between maps with different tile sets (see above).
 - Ring slots written while off screen (an Opcode03Continue redraw at a column
   offset of 11-15) are not recorded; only the view is.
