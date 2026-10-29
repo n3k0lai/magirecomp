@@ -381,7 +381,23 @@ function VM:run(bank, ptr)
       if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
       if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       return
-    elseif op == 0x6B then h.glyphCopy(r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)); o = o + n -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest, wGlyphVRAMBank; CopyGlyph moves 16 bytes per count
+    elseif op == 0x6B then
+      -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest,
+      -- wGlyphVRAMBank. Each pass of its .step handler plants CopyGlyph ($2949) at
+      -- wCallback, which moves one 16-byte tile and advances both pointers, and counts
+      -- $FFA6 down; the pass that reaches zero plants INITIAL_SCRIPT_HANDLER and returns,
+      -- so the next op runs one pass later. A count of 0 wraps to 256 passes. With the
+      -- LCD off (map setup) the tiles are all in place before the screen shows.
+      local cnt, bank, src, dest, vb = r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)
+      if cnt == 0 then cnt = 256 end
+      if self.init then h.glyphCopy(cnt, bank, src, dest, vb)
+      else
+        for i = 0, cnt - 1 do
+          h.glyphCopy(1, bank, src + 16 * i, dest + 16 * i, vb, i > 0, cnt)
+          coroutine.yield("wait", 1)
+        end
+      end
+      o = o + n
     elseif op == 0x56 or op == 0x57 or op == 0x58 then
       -- StoreScriptByteAtC6F8/A/C: mailbox post; stall while the box is full.
       -- tickThreads moves C6F8->C6F9 (A->B, C->D) once per frame.

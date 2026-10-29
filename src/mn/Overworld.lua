@@ -425,9 +425,9 @@ function M:host()
     end,
     battleActive = function() return s.battle ~= nil end,
     battleResult = function() return s.battleResult end,
-    glyphCopy = function(count, bank, src, dest, vb)
+    glyphCopy = function(count, bank, src, dest, vb, more, total) -- more: a later per-pass tile
       local r = s.vm.rom; local so = bank * 0x4000 + src - 0x4000
-      s.log[#s.log + 1] = ("glyph %d tiles %02X:%04X -> %d:%04X (map %d)"):format(count, bank, src, vb, dest, s.map)
+      if not more then s.log[#s.log + 1] = ("glyph %d tiles %02X:%04X -> %d:%04X (map %d)"):format(total or count, bank, src, vb, dest, s.map) end
       local base = (vb % 2) * 0x1000 + dest - 0x8000
       for k = 0, count * 16 - 1 do
         local a = base + k

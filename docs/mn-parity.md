@@ -189,7 +189,7 @@ disassembled yet.
 | $68 | CallScriptUnpackIntoWRAM4And6 | call_script_unpack_wram4_and_wram6.asm | 6 | ok | ops/Records:344 |  |
 | $69 | CallScriptPtrThenMapScriptBank | call_script_ptr_then_map_script_bank.asm | 2 | ok | ScriptVM:243 |  |
 | $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 | records past bank $3C (14:6029 -> 7C) read from the full ROM (mn_ops_travel_test) |
-| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | glyph copy over count passes; port copies at once (open) |
+| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | one 16-byte tile per pass (CopyGlyph $2949), the next op one pass after the last; count 0 is 256; all at once with the LCD off (mn_op6b_glyph_passes_test) |
 | $6C | StageColorWordThenCall5C00 | stage_color_word_then_call_5c00.asm | 3 | ok | ops/Panels:583 |  |
 | $6D | SaveScriptPtrAndSplitByte | save_script_ptr_and_split_byte.asm | 1 | ok | ops/Panels:596 |  |
 | $6E | StageScriptByteWordAndSavePtr | stage_script_byte_word_and_save_ptr.asm | 3 | ok | ops/Panels:668 |  |
