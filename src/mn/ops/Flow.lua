@@ -112,13 +112,25 @@ end
 
 -- copy_script_to_d392.asm: A operand bytes to $D392 in WRAM bank 7, then the
 -- caller's bank-2 tail. That tail is a battle-record effect; host.battleOp
--- sees it the same way $2E does. Not applied in this VM.
+-- sees it. Not applied in this VM. Opcodes $26 $28 $2A $2C $2D $2E $2F all
+-- come through here (ScriptVM for the others).
 local function copyToD392(vm, o, op, count)
   vm:wr8(0xC937, 7)
   local args = {}
   for i = 1, count do args[i] = vm.rom:u8(o + i); vm:wr8(0xD391 + i, args[i]) end
   local h = vm.host
   if h and h.battleOp and not vm.init then h.battleOp(op, args) end
+  return args
+end
+M.copyToD392 = copyToD392
+
+-- CopyScriptToD392 plants INITIAL_SCRIPT_HANDLER and every bank-2 tail returns
+-- (2:73AC, 2:73DD, 2:744A, 2:7477, 2:752D, 2:7595 all end in ret): the pass ends
+-- and the next op runs one pass later. With the LCD off (FinishStartup's
+-- RunScriptRecord, e.g. after the $30 wipe of a wild encounter) the passes run
+-- back to back with no frame between them (run_script_record.asm).
+function M.endD392Pass(vm)
+  if not vm.init and not vm.startupPending then coroutine.yield("wait", 1) end
 end
 
 -- opcode_32.asm: $C6D8 = 1, $C6D7 = $FF, first three operands to $C6DB-$C6DD
@@ -244,12 +256,14 @@ end
 -- opcode_2f.asm: four bytes to $D392, then ApplyItemBlockThenDispatch (bank 2 $7595).
 local function copyD392Item(vm, o, n)
   copyToD392(vm, o, 0x2F, 4)
+  M.endD392Pass(vm)
   return o + n
 end
 
 -- opcode_2a.asm: one byte to $D392, then PlantFocusThenCopyD0D9ByOperand (bank 2 $744A).
 local function copyD392Focus(vm, o, n)
   copyToD392(vm, o, 0x2A, 1)
+  M.endD392Pass(vm)
   return o + n
 end
 

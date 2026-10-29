@@ -310,9 +310,11 @@ function VM:run(bank, ptr)
       end
       o = o + n
     elseif op == 0x2E or op == 0x2C or op == 0x2D or op == 0x26 or op == 0x28 then
-      -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant)
-      local args = {}; for i = 1, n - 1 do args[i] = r:u8(o + i) end
-      if h.battleOp and not self.init then h.battleOp(op, args) end
+      -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant):
+      -- CopyScriptToD392 stores the operands at $D392 in WRAM bank 7 ($C937 = 7)
+      local Flow = require("mn.ops.Flow")
+      local args = Flow.copyToD392(self, o, op, n - 1)
+      if op == 0x2D then self:wr8(0xD396, 0) end -- opcode_2d.asm: xor a / ld [$D396], a
       -- $2C Opcode2C (gift a ring): StoreScriptPairThenCall5D19 (2:$7477) puts the
       -- id at $CD51 and the level count at $CD50, then AddSRAMEntryForOperand
       -- (4:$5D19) writes the new ring entry (mn.ops.Forge). Map 59's starter gift
@@ -322,6 +324,7 @@ function VM:run(bank, ptr)
         require("mn.ops.Forge").addEntry(self, r)
       end
       o = o + n
+      Flow.endD392Pass(self)
     elseif op == 0x2B then -- Opcode2B: clear $D3C2; the stream steps again once the battle raises it
       local at = o
       o = o + n

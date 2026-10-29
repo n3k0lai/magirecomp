@@ -120,16 +120,16 @@ disassembled yet.
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
 | $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
 | $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | 04:6416 traced: InitWram7BeforeReset, LoopWhileD0D5, DispatchNonzeroD016, ContinueStartup ($2158); Reset is never reached. Every battle returns through the last $31 record ($D3CD win, $D3D0 loss) and restores [$C923] (mn_battle_director_test) |
-| $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op: asm ends the pass; port battle director (open) |
+| $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73AC; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test). The port collects the op for its battle engine (director: one pass per $D3C2 raise) |
 | $27 | HaltClearD3C2 | opcode_27.asm | 0 | ok | ScriptVM:339 |  |
-| $28 | CopyScriptToD392 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op (open) |
+| $28 | CopyScriptToD392 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73DD; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
 | $29 | JumpScriptBank7449 | opcode_29.asm | - | unused in decomp scripts | - | no port handler; logged (outlier: docs/mn-outliers.md) |
-| $2A | CopyScriptToD392_2A | copy_script_to_d392.asm | 1 | unused in decomp scripts | ops/Flow:408 | battle record op (open) |
+| $2A | CopyScriptToD392_2A | copy_script_to_d392.asm | 1 | unused in decomp scripts | ops/Flow:408 | 2:744A; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
 | $2B | ScriptHandlerUntilD3C2 | script_handler_until_d3c2.asm | 0 | ok | ScriptVM:306 |  |
-| $2C | CopyScriptToD392_2C | copy_script_to_d392.asm | 2 | ok | ScriptVM:293, ScriptVM:301 | battle record op (open) |
-| $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 |  |
-| $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | battle record op (open) |
-| $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | battle record op (open) |
+| $2C | CopyScriptToD392_2C | copy_script_to_d392.asm | 2 | ok | ScriptVM:293, ScriptVM:301 | 2:7477; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) (mn_forge_ring_test) |
+| $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 | clears $D396, then 2:752D; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
+| $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | 2:752D; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
+| $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | 2:7595; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
 | $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); saves $C920 to $C923; the wipe ends in `jp FinishStartup`, applied after the spiral (mn_battle_director_test) |
 | $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:593 |  |
 | $32 | SetThirdScript | opcode_32.asm | 5 | ok | ops/Flow:398 |  |

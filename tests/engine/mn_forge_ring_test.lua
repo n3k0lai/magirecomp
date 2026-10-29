@@ -156,7 +156,10 @@ do -- $2C (gift a ring): id and level count to $CD51/$CD50, then the same entry 
   vm:wr8(0xA025, 0xFF)
   for a = 0xA118, 0xA121 do vm:wr8(a, 0xFF) end
   vm:start(0x12, 0x4000)
-  ok(vm:rd8(0xC800) == 1, "$2C runs on")
+  ok(vm:rd8(0xC800) == 0 and vm:rd8(0xD392) == 0x2A and vm:rd8(0xD393) == 0x01,
+    "$2C copies its operands to $D392 and ends the pass")
+  vm:resume()
+  ok(vm:rd8(0xC800) == 1, "$2C runs on next pass")
   ok(vm:rd8(0xCD51) == 0x2A and vm:rd8(0xCD50) == 1, "$2C stores its operands")
   ok(vm:rd8(0xA025) == 0x2A and vm:rd8(0xA027) == 1, "$2C writes the first free entry")
   ok(vm:rd8(0xA025 + 9) == 0x2A + 4, "$2C entry name bytes come from the bank-4 record")
