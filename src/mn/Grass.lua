@@ -40,12 +40,26 @@ M.FRAME = 0xFFA8  -- hMainLoopCounter
 M.ACCUM = 0xFFA9  -- hDividerAccum
 M.HANDLER = 0x0A66
 
--- GameLoop increments hMainLoopCounter at the start of every pass. MainLoop
--- ($02E6, the only writer of $FFA8) is not running between $93 and the end of
--- FinishStartup's RunScriptLoop, so the counter holds there (finish_startup.asm).
+-- GameLoop increments hMainLoopCounter at the start of every pass (main_loop.asm);
+-- it is the only writer of $FFA8. Every loop that runs frames without returning
+-- to GameLoop leaves the counter where it was:
+--   FinishStartup's RunScriptLoop, between $93 and its end (finish_startup.asm);
+--   a battle (bank 2 $6591 loop, out only through ContinueStartup);
+--   the Start menu (handle_start_press.asm jumps to the $673B loop);
+--   the choice / list windows ($8B, $8C, $8F, $90, ...: each loops on RefreshFrame,
+--   dispatch_armed_choice.asm, service_window_choice.asm, dispatch_*_choice.asm);
+--   the $30 wipe (07:56ED, ends in jp FinishStartup) - the port's ow.overlay;
+--   the $38 bank-4 loop (install_script_record_loop_bank4.asm: control never returns).
+-- The pass that opens one of them has already counted; the port ticks before it
+-- looks at ow.battle / ow.overlay, so that pass counts here too.
+function M.outsideMainLoop(ow)
+  local vm = ow.vm
+  return vm.startupPending or vm.loop38 or ow.battle ~= nil or ow.overlay ~= nil
+end
+
 function M.frame(ow)
   local vm = ow.vm
-  if not vm or vm.startupPending then return end
+  if not vm or M.outsideMainLoop(ow) then return end
   vm:wr8(M.FRAME, band(vm:rd8(M.FRAME) + 1, 0xFF))
 end
 

@@ -47,6 +47,24 @@ do -- the counter ticks once per field pass, and holds in the startup loop
   ok(vm:rd8(0xFFA8) == 2, "after startup: ticks again")
 end
 
+do -- loops outside GameLoop hold the counter: battle, a UI overlay, the $38 bank-4 loop
+  local vm = VM.new(rom, {})
+  local ow = { vm = vm }
+  Grass.frame(ow)
+  ow.battle = {}
+  Grass.frame(ow); Grass.frame(ow)
+  ok(vm:rd8(0xFFA8) == 1, "battle loop: hMainLoopCounter holds")
+  ow.battle = nil; ow.overlay = {}
+  Grass.frame(ow)
+  ok(vm:rd8(0xFFA8) == 1, "Start menu / choice window / wipe loop: holds")
+  ow.overlay = nil; vm.loop38 = true
+  Grass.frame(ow)
+  ok(vm:rd8(0xFFA8) == 1, "$38 bank-4 loop: holds")
+  vm.loop38 = nil
+  Grass.frame(ow)
+  ok(vm:rd8(0xFFA8) == 2, "back in GameLoop: ticks")
+end
+
 do -- $41 in the startup loop, frozen phase 3: same pass, no frame
   local vm
   vm = VM.new(rom, { frame = function() return vm:rd8(0xFFA8) end })

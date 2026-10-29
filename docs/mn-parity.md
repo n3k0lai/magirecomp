@@ -169,7 +169,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $3E | PlantLimitA8At6CB4 | plant_limit_a8_at_6cb4.asm | 0 | unused in decomp scripts | ops/Panels:501 |  |
 | $3F | PlantLimit1DAt6D5C | plant_limit_1d_at_6d5c.asm | 0 | ok | ops/Panels:502 |  |
 | $40 | ScriptByteCountdown | script_byte_countdown.asm | 1 | ok | ScriptVM:674 |  |
-| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:754 | hMainLoopCounter holds during the startup loop (Grass.frame); phase 3 there dispatches with no frame; tests/engine/mn_startup_counter_test.lua |
+| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:754 | hMainLoopCounter holds during the startup loop and every other loop outside GameLoop (Grass.outsideMainLoop); phase 3 there dispatches with no frame; tests/engine/mn_startup_counter_test.lua |
 | $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 |  |
 | $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:705 |  |
 | $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:684 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
