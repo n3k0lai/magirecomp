@@ -916,7 +916,9 @@ end
 local MnMusic = require("mn.MnMusic")
 local musicCache = {}
 function M:playMusic(v)
-  if not (love.audio and love.sound) or os.getenv("MN_NOMUSIC") then return end
+  -- Same mute rule as SfxOut (SDL_AUDIODRIVER=dummy, MN_NOMUSIC, MN_MUTE). love plays
+  -- through OpenAL, so the SDL driver alone never silenced this path.
+  if require("mn.SfxOut").muted() then return end
   local rom = self.vm and self.vm.rom
   if not rom or v >= 41 then return end
   if self.music then self.music:stop() end
