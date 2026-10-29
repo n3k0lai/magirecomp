@@ -100,10 +100,32 @@ function M:host()
         if r:u8(q) == 1 then table.insert(s.initQueue, { r:u8(q + 1), r:u16(q + 2) }) end
       end
     end,
+    -- StoreEThroughWordInWram3 (00:26CC), the shared tail of $A0-$A4: the byte goes
+    -- into the WRAM-3 metatile plane (def.cells) at the word. Only with the LCD off
+    -- (map setup) does the later full BG draw show it. With the LCD on the tail
+    -- redraws one cell: the last A cell SaveCellBelowAndStageThirdScript saved
+    -- (column $C99D, row $C99C, WRAM-3 byte at the word $C99E), whatever the
+    -- stored word was. Any other stored cell keeps its old tiles until a seam
+    -- redraws it from WRAM 3 (bgStale, applied once it is off screen).
     setMetatile = function(addr, mt)
-      local i = addr - 0xD000; local x, y = i % s.def.w, math.floor(i / s.def.w)
-      s.patches[#s.patches + 1] = { x = x, y = y, mt = mt }
+      local d = s.def
+      local i = addr - 0xD000; local x, y = i % d.w, math.floor(i / d.w)
+      if d.cells and i >= 0 and i < d.w * d.h then d.cells[i + 1] = mt end
       s.log[#s.log + 1] = ("metatile (%d,%d) := $%02X"):format(x, y, mt)
+      if not s.vm or s.vm.init then
+        s.patches[#s.patches + 1] = { x = x, y = y, mt = mt }
+        return
+      end
+      s.bgStale = s.bgStale or {}
+      s.bgStale[i] = true
+      local vm = s.vm
+      local ax, ay = vm:rd8(0xC99D), vm:rd8(0xC99C)
+      local aw = vm:rd8(0xC99E) + vm:rd8(0xC99F) * 256
+      local ai = aw - 0xD000
+      if ai >= 0 and ai < d.w * d.h and d.cells and d.cells[ai + 1] then
+        s.patches[#s.patches + 1] = { x = ax, y = ay, mt = d.cells[ai + 1] }
+        if ax + ay * d.w == ai then s.bgStale[ai] = nil end
+      end
     end,
     -- $7E StageEightScriptBytes: copy a w x h rect of map cells (metatile plane,
     -- WRAM 3, and collision plane, WRAM 5) from src to dst. PyBoy map 222 cave-in:
@@ -378,7 +400,7 @@ function M:enterMap(i, x, y)
     Panels.loadPalettes(self.vm, w, false)
   end
   self.x, self.y = x, y; self:snap(); self.moving = nil; self.facing = self.facing or "down"
-  self:settleAList(); self.camOff = nil; self.camFix = nil; self.patches = {}
+  self:settleAList(); self.camOff = nil; self.camFix = nil; self.patches = {}; self.bgStale = nil
   self.atlas = love.graphics.newImage(("%s/maps/%03d_meta.png"):format(Importer.CACHE, i)); self.atlas:setFilter("nearest", "nearest")
   local ai = ("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, i)
   self.atlasIndex = self.def.index and love.filesystem.getInfo(ai) and love.graphics.newImage(ai) or nil
@@ -600,6 +622,7 @@ function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
+  if self.bgStale then self:flushStale() end
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then
     local r = self.overlay:update()
@@ -800,6 +823,11 @@ function M:update()
     -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one
     -- SaveCellBelowAndStageThirdScript: bit 5/6 set, bit 7 clear -> index v-$40
     if v < 0x80 and bit.band(v, 0x60) ~= 0 and self.aList then
+      -- SaveCellBelowAndStageThirdScript (01:4B61): row $C99C, column $C99D, the
+      -- cell's WRAM word $C99E/$C99F and the list index $C9A0
+      local w = 0xD000 + fy * self.def.w + fx
+      self.vm:wr8(0xC99C, fy); self.vm:wr8(0xC99D, fx)
+      self.vm:wr8(0xC99E, w % 256); self.vm:wr8(0xC99F, math.floor(w / 256)); self.vm:wr8(0xC9A0, v)
       local _, b, p = self:listEntry(self.aList, v - 0x40)
       if b then self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil; self.kickSeen = true end -- harness: a cell script ends a ">" goal like a kick
     end
@@ -833,6 +861,24 @@ function M:update()
   end
   if how == "hop" then self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, nx, ny) end
   self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
+end
+
+-- A WRAM-3 store the LCD-on tail did not redraw (setMetatile) shows its old tiles
+-- while on screen; a cell entering the view is drawn by the scroll seam from WRAM 3,
+-- so once a stale cell is off screen its stored metatile is what the BG will show.
+function M:flushStale()
+  local d = self.def
+  local cx, cy = self:cameraXY()
+  local x0, x1 = math.floor(cx / 16), math.floor((cx + 159) / 16)
+  local y0, y1 = math.floor(cy / 16), math.floor((cy + 143) / 16)
+  for i in pairs(self.bgStale) do
+    local x, y = i % d.w, math.floor(i / d.w)
+    if x < x0 or x > x1 or y < y0 or y > y1 then
+      self.patches[#self.patches + 1] = { x = x, y = y, mt = d.cells[i + 1] }
+      self.bgStale[i] = nil
+    end
+  end
+  if next(self.bgStale) == nil then self.bgStale = nil end
 end
 
 function M:slot0Scripted()

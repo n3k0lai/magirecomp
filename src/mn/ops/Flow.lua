@@ -27,7 +27,8 @@ local function parkNow(vm)
 end
 
 -- store_e_through_word.asm: E through the little-endian word, WRAM bank 3.
--- The LCD-on tail (bank 7 $4CA1) rebuilds the metatile; setMetatile is that write.
+-- host.setMetatile is the whole tail: WRAM-3 plane write, then (LCD on) the redraw of
+-- the saved A cell $C99C/$C99E, not of the stored word (Overworld host).
 local function storeCell(vm, addr, mt)
   vm:wr8(0xC937, 3)
   vm:wr8(addr, mt)
