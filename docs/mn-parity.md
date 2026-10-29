@@ -41,12 +41,17 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 A handler that ends in `jp DispatchScriptOpcode` (or `jp INITIAL_SCRIPT_HANDLER`)
 runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
-$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91 match. Open (asm ends
-the pass, port goes on or the tail is untraced): $25, $26-$2F battle record ops
-(run by the port's battle director), $30's FinishStartup tail after the
-spiral (the port's battle return keeps the field), $6B (glyph copy
-spread over count passes). $91's zero path calls 2:4799, which is not
-disassembled yet.
+$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91, $6B (one tile a
+pass), $26-$2F (operands to $D392, then the pass ends) match; $91's zero path
+runs 2:4799. Open: $25.
+
+A pass is not a frame while FinishStartup's RunScriptLoop runs
+(run_script_record.asm): from $93, or the $30 spiral's `jp FinishStartup`, until
+the main record parks or $94 sets wScriptDone, the passes repeat back to back
+with the LCD off, and record threads wait for MainLoop's FinishFrame. The port
+marks that span with `startupPending` and `VM:inStartup()` (main record only).
+Per-pass step handlers that count $FFA6 down and `ret` take no frames there:
+$40, $4C, $4D, $4E, $4F, $6B (`mn_startup_passes_test`).
 
 ## Known divergences (intentional)
 
@@ -189,7 +194,7 @@ disassembled yet.
 | $68 | CallScriptUnpackIntoWRAM4And6 | call_script_unpack_wram4_and_wram6.asm | 6 | ok | ops/Records:344 |  |
 | $69 | CallScriptPtrThenMapScriptBank | call_script_ptr_then_map_script_bank.asm | 2 | ok | ScriptVM:243 |  |
 | $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 | records past bank $3C (14:6029 -> 7C) read from the full ROM (mn_ops_travel_test) |
-| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | one 16-byte tile per pass (CopyGlyph $2949), the next op one pass after the last; count 0 is 256; all at once with the LCD off (mn_op6b_glyph_passes_test) |
+| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | one 16-byte tile per pass (CopyGlyph $2949), the next op one pass after the last; count 0 is 256; all at once with the LCD off: map setup and the startup loop (mn_op6b_glyph_passes_test, mn_startup_passes_test) |
 | $6C | StageColorWordThenCall5C00 | stage_color_word_then_call_5c00.asm | 3 | ok | ops/Panels:583 |  |
 | $6D | SaveScriptPtrAndSplitByte | save_script_ptr_and_split_byte.asm | 1 | ok | ops/Panels:596 |  |
 | $6E | StageScriptByteWordAndSavePtr | stage_script_byte_word_and_save_ptr.asm | 3 | ok | ops/Panels:668 |  |

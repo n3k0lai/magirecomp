@@ -139,6 +139,15 @@ function VM:tickThreads(textOpen)
   end
 end
 
+-- FinishStartup's RunScriptLoop (run_script_record.asm) runs the main record's passes
+-- back to back, handler then callback, until wScriptDone, with the LCD off and no frame
+-- wait; record threads only step from MainLoop's FinishFrame, after it. So while the
+-- main record runs between $93 (or the $30 spiral) and its park or $94, a pass end or a
+-- per-pass step costs no frame. (Map setup, self.init, is the same but has no coroutine.)
+function VM:inStartup()
+  return self.startupPending and self.co ~= nil and coroutine.running() == self.co or false
+end
+
 function VM:rd8(a) return self.mem[a] or 0 end
 -- $C18E/$C18F (slot 0 record $C189 +5/+6): the host's live player cell, else WRAM
 function VM:playerCell()
@@ -393,7 +402,7 @@ function VM:run(bank, ptr)
       -- LCD off (map setup) the tiles are all in place before the screen shows.
       local cnt, bank, src, dest, vb = r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)
       if cnt == 0 then cnt = 256 end
-      if self.init then h.glyphCopy(cnt, bank, src, dest, vb)
+      if self.init or self:inStartup() then h.glyphCopy(cnt, bank, src, dest, vb)
       else
         for i = 0, cnt - 1 do
           h.glyphCopy(1, bank, src + 16 * i, dest + 16 * i, vb, i > 0, cnt)
@@ -495,7 +504,7 @@ function VM:run(bank, ptr)
       local q, tot = o + 1, 0
       while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
       o = q + 1
-      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() and tot > 0 then coroutine.yield("wait", tot) end
     elseif op == 0x4F then
       -- QueueRepeatedOffsetSpriteList ($1643): (count, dx, dy, list) records until a zero count,
       -- like $4C, but each frame clears $C6D2/$C6D3 and adds dx/dy to the object's cell bytes
@@ -504,14 +513,14 @@ function VM:run(bank, ptr)
       while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
       o = q + 1
       if tot > 0 then self:wr8(0xC6D2, 0); self:wr8(0xC6D3, 0) end
-      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() and tot > 0 then coroutine.yield("wait", tot) end
     elseif op == 0x4D then -- StepScriptSpritePointerTable ($15E8): (size, count, b1, b2, size bytes of
       -- list words); each entry is stepped count frames (count 0 wraps to 256), then the script goes on
       local size, cnt = r:u8(o + 1), r:u8(o + 2)
       if cnt == 0 then cnt = 256 end
       o = o + 5 + size
       local tot = math.max(1, math.floor(size / 2)) * cnt
-      if not self.init then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() then coroutine.yield("wait", tot) end
     elseif op == 0x4E then
       -- RepeatTwoScriptBytes ($15AB, repeat_two_script_bytes.asm): count, b1, b2. Zero count
       -- goes straight back to the dispatcher with BC just past the count (n = 2), so b1/b2 run
@@ -520,7 +529,7 @@ function VM:run(bank, ptr)
       local cnt = r:u8(o + 1)
       if cnt > 0 then
         self:wr8(0xC6D2, r:u8(o + 2)); self:wr8(0xC6D3, r:u8(o + 3))
-        if not self.init then coroutine.yield("wait", cnt) end
+        if not self.init and not self:inStartup() then coroutine.yield("wait", cnt) end
       end
       o = o + n
     elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
@@ -711,7 +720,7 @@ function VM:run(bank, ptr)
       if h.got then h.got(cat, id, cnt) end
       o = o + n
     elseif op == 0x40 or op == 0x20 then -- ScriptByteCountdown / Opcode20ArmCountdown: wait n frames
-      o = o + n; coroutine.yield("wait", r:u8(o - 1))
+      o = o + n; if not self:inStartup() then coroutine.yield("wait", r:u8(o - 1)) end
     elseif op == 0x83 then -- AddScriptDeltasUntilZero: (count, dx, dy) camera pixel deltas
       local q = o + 1
       while r:u8(q) ~= 0 do
