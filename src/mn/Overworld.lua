@@ -145,11 +145,7 @@ function M:host()
       if not s.camFix then
         s.camFix = { math.max(0, math.min(W - 160, s.px + 8 - 80)), math.max(0, math.min(H - 144, s.py + 8 - 72)) }
       end
-      local tx = math.max(0, math.min(W - 160, tc * 16)); local ty = math.max(0, math.min(H - 144, tr * 16))
-      local c = s.camFix; spd = math.max(1, spd)
-      local function step(v, t) if v < t then return math.min(t, v + spd) elseif v > t then return math.max(t, v - spd) end; return v end
-      c[1], c[2] = step(c[1], tx), step(c[2], ty)
-      return c[1] == tx and c[2] == ty
+      return M.nudgeStep(s.camFix, tc, tr, spd, W - 160, H - 144)
     end,
     scatter = function(slot)
       local ob = s.objects[slot]; if not ob then return end
@@ -454,6 +450,30 @@ function M:writeSnapshot(file, b, p, to, kind)
 end
 
 -- stored map record for a plane diff (tests swap this out)
+-- One frame of NudgeCameraDeltas (bank 1 $4587) on camera pixels c = {x, y}. Per axis the map
+-- cell (C85F = x // 16, C860 = y // 16) is compared with the target cell: a match, or an edge
+-- that blocks the step, finishes that axis; otherwise spd px is added toward it (StepHorizontal/
+-- VerticalScroll clamp a delta to 4). True once both axes are finished in the same frame, as L
+-- reaching 0 there. Leaving left/up therefore stops as soon as the cell matches, up to 15 px
+-- short of the cell's left/top edge, exactly like the asm.
+function M.nudgeStep(c, tc, tr, spd, maxX, maxY)
+  spd = math.max(1, math.min(4, spd))
+  local function axis(i, t, mx)
+    local v = c[i]; local col = math.floor(v / 16)
+    if col == t then return true end
+    if col < t then
+      if v >= mx then return true end
+      c[i] = math.min(mx, v + spd)
+    else
+      if v <= 0 then return true end
+      c[i] = math.max(0, v - spd)
+    end
+    return false
+  end
+  local a = axis(1, tc, maxX); local b = axis(2, tr, maxY)
+  return a and b
+end
+
 function M.baseMap(i) return Importer.loadMap(i) end
 
 -- flat {i, col, mt, ...} for every cell whose collision or metatile byte
