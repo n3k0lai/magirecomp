@@ -124,11 +124,26 @@ function M.grantSpell(vm, id)
   return true
 end
 
--- Categories opcode $A4 hands to CopyThreeBank7 (spells only for now;
--- category 2 roster chests are a separate job). The chest stores 1 at
--- $C9FE first (LCDOnAfterOffset7Record). Nil means some other category.
+-- AddByteToScanC (copy_name_add_scan_c.asm): the SRAM byte gains $C9FE; a carry
+-- stores $FF and clears $C9FD (the full branch), otherwise $C9FD = 1.
+function M.addScan(vm, addr)
+  local sum = vm:rd8(addr) + vm:rd8(0xC9FE)
+  if sum > 0xFF then vm:wr8(addr, 0xFF); vm:wr8(0xC9FD, 0); return false end
+  vm:wr8(addr, sum); vm:wr8(0xC9FD, 1); return true
+end
+
+-- Categories opcode $A4 hands to DispatchBank7Arg (bank 7 $7350, table $5D7F).
+-- The chest stores 1 at $C9FE first (LCDOnAfterOffset7Record).
+--   1 CopyNameAndAddScanC: SRAM_SCAN_C ($A4A6) + id (forge stones)
+--   2 Bank7CopyIndexedName: sEntryScan ($A019) + id, the relic counts; the name
+--     comes from the bank-7 $13-byte records at $691C
+--   3 StoreIndex3RecordByte: the spell byte
+-- Category 0 (ClampGroupSRAMByte) is the host's item path. Nil means another one.
 function M.grant(vm, cat, id)
   if cat == 3 then return M.grantSpell(vm, id) end
+  if cat == 1 or cat == 2 then
+    return M.addScan(vm, (cat == 1 and 0xA4A6 or 0xA019) + id)
+  end
   return nil
 end
 

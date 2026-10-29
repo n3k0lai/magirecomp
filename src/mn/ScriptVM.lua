@@ -613,10 +613,13 @@ function VM:run(bank, ptr)
         if set then h.setMetatile(cell, 0xFF); o = o + n else return end
       elseif set then jump(0x22, 0x405B)
       else
+        -- LCDOnAfterOffset7Record: sound $11, $C9FC = category, $C9FD = id, $C9FE = 1
+        self:wr8(0xC9FC, cat); self:wr8(0xC9FD, id); self:wr8(0xC9FE, 1)
         local given = h.giveReward(cat, id)
         self.nameBuf = self:recordName(cat, id)
+        h.sound(0x11) -- $C921 = $11 before the dispatch, full or not
         if given then
-          self:wr8(W, bor(self:rd8(W), m)); h.setMetatile(cell, 0xFF); h.sound(0x11)
+          self:wr8(W, bor(self:rd8(W), m)); h.setMetatile(cell, 0xFF)
           jump(0x22, 0x4048)
         else jump(0x22, 0x4074) end
       end -- MarkScriptDone21B2: wScriptDone ends the record
@@ -844,8 +847,11 @@ end
 
 -- 13-byte record name (a leading icon glyph is part of it), trailing spaces trimmed
 function VM:recordName(cat, id)
-  if cat ~= 0 and cat ~= 3 then return "item" end
-  local o, t = self:recordOff(cat, id), {}
+  local o, t
+  if cat == 2 then o = 7 * 0x4000 + 0x691C + id * 0x13 - 0x4000 -- Bank7CopyIndexedName
+  elseif cat == 0 or cat == 3 then o = self:recordOff(cat, id)
+  else return "item" end
+  t = {}
   for i = 0, 12 do t[#t + 1] = string.char(self.rom:u8(o + i)) end
   return (table.concat(t):gsub(" +$", ""))
 end

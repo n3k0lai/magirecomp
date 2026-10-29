@@ -78,6 +78,23 @@ do
   ok(#cells == 0, "the empty branch does not change the cell")
 end
 
+-- Category 2 (Bank7CopyIndexedName -> AddByteToScanC): the relic count at
+-- sEntryScan $A019 + id gains $C9FE = 1; a carry stores $FF and takes 22:4074.
+do
+  local vm, cells = run(0x4010)
+  ok(vm:rd8(0xA01C) == 1, "$A4 category 2 adds one to $A019+id")
+  ok(vm:rd8(0xC9FD) == 1 and vm:rd8(0xC9FE) == 1, "$A4 category 2 leaves $C9FD = 1, $C9FE = 1")
+  ok(vm:rd8(0xA328) == 0x02, "$A4 category 2 sets the flag bit")
+  ok(cells[1] and cells[1][1] == 0xD020 and cells[1][2] == 0xFF, "$A4 category 2 clears the cell")
+  ok(vm:rd8(0xC000) == 0x48, "$A4 category 2 continues at 22:4048")
+  vm, cells = run(0x4020, function(m) m:wr8(0xA01D, 0xFF) end)
+  ok(vm:rd8(0xA01D) == 0xFF and vm:rd8(0xC9FD) == 0, "a full relic count stays $FF and clears $C9FD")
+  ok(vm:rd8(0xA328) == 0 and #cells == 0, "the full branch leaves the flag and the cell")
+  ok(vm:rd8(0xC000) == 0x74, "the full branch continues at 22:4074")
+  vm = run(0x4020, function(m) m:wr8(0xA01D, 0x05) end)
+  ok(vm:rd8(0xA01D) == 0x06, "a held relic count goes up by one")
+end
+
 -- The same helpers serve opcode $87.
 do
   local vm = run(0x4030)
