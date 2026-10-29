@@ -29,6 +29,12 @@ function M:update()
     return { action = "close" }
   end
   if ev == "save" then return Commit.run(self.ctx) end
+  if ev == "use" then
+    -- SetupCommand4D planted $C714; StepSlotPair drops to $43BF and the field runs it
+    local u = self.mach.used
+    self.mach:leave()
+    return { action = "use", bank = u and u.bank, ptr = u and u.ptr, id = u and u.id }
+  end
   return nil
 end
 

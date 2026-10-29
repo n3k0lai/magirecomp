@@ -61,8 +61,7 @@ scripts: implemented.
 
 | What | Trigger | Status |
 |---|---|---|
-| Hidden spot, map 105 (top of the north cave) | `$B0` cell; map-entry fallback 19:4BE0 checks action `$2A` there, sets `$A1AE` bit 6, runs 19:4BFF (replay 19:4C7F) | outlier (action `$2A` not traced) |
-| Lone `$B0` cells, maps 108 and 101 | not traced | outlier |
+| Hidden spots, maps 101, 105, 108 (`$B0` cells) | Use item id `$2A` (the bank-7 record has no script of its own) from the Start menu item list while standing on the `$B0` cell. SetupCommand4D (bank 6 $6DDF) stores the id at `$C724` and the cell byte under the player (wBank5Ptr `$C190`) at `$C725`, then plants the map fallback from `$95` at `$C714`. The fallbacks 19:48F6 / 19:4BE0 / 19:4D5F test `$C724 == $2A` and `$C725 == $B0`: a hit sets `$A1AE` bit 5 / 6 / 7 and runs 19:490D / 19:4BF7 / 19:4D76; a miss enters 22:4006. Map entry replays the opened state from the bit (19:4995 / 19:4C7F / 19:4DFE) | implemented (`mn_command4d_test`) |
 | Chests (247) | `$A4` PlantOffset7ThenStoreFF | tested (`mn_chest_test`) |
 | Gives (66) | `$87`/`$88` | tested (`mn_chest_test`, `mn_ops_travel_test`) |
 | Thunder gauntlet neighbour | 19:6386 (reachable): story `$16` sets `$A2B2` = 1 and `$A3A3` = 5, loads map 283; 19:6477 stores story `$17` | implemented (generic ops); missing from docs/mn-story-graph.md |

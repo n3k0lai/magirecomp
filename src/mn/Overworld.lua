@@ -724,6 +724,10 @@ function M:update()
         -- the planted $C714 record runs through the field script handler, then is consumed
         for a = 0xC714, 0xC718 do self.vm:wr8(a, 0) end
         self:runScript(r.bank, r.ptr, "start menu save")
+      elseif r.action == "use" and r.ptr and r.ptr ~= 0 then
+        -- SetupCommand4D's record (the row's script, else the map fallback from $95)
+        for a = 0xC714, 0xC718 do self.vm:wr8(a, 0) end
+        self:runScript(r.bank, r.ptr, ("start menu use $%02X"):format(r.id or 0))
       end
     end
     return

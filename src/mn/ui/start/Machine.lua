@@ -235,12 +235,55 @@ function M:toggle(nxt)
   end
   self:flush()
   if self.cd81 == 0x24 then return "save" end
-  -- TODO(SetupCommand4D): a latched A on any other slot plants $C714 from the group
-  self.cd81 = nxt
-  self:copySlot()
-  self:flush()
-  return nil
+  local rec = self:setupCommand4D()
+  if self.cc47 == 6 then
+    self:mode6AfterCommand4D()
+    self:copySlot()
+    self:flush()
+    return nil
+  end
+  -- the bank-6 calls ran and the mode is not 6: three words dropped, $43BF leaves the menu
+  self.used = rec
+  return "use"
 end
+
+-- SetupCommand4D (bank 6 $6DDF, setup_command_4d.asm): use the selected group row.
+-- $C723 = 0 on slot 4 else 3; $C725 = the WRAM-5 cell byte at wBank5Ptr ($C190, the
+-- player's cell: D000 + row * stride + column, opcode_00_bank1.asm), which is
+-- World.cell at the player's x/y here; $C724 = $CCA3 = the row's SRAM offset (the item
+-- id). Bank 7 copies the id's $22-byte record to $CD91; its word at +$1D ($CDAE) with the
+-- bank at +$1C ($CDAD) is the script, else the map's fallback ($C9FF/$CA00, opcode $95).
+-- The record's 13 name bytes (+$0C) go to $C949 with a $FC after them.
+function M:setupCommand4D()
+  local vm = self.vm
+  vm:wr8(0xC723, self.cd81 == 4 and 0 or 3)
+  local ow = self.ctx and self.ctx.ow
+  local cell = 0
+  if ow and ow.def and ow.x and ow.y then
+    cell = require("mn.World").cell(ow.def, ow.x, ow.y) or 0
+  end
+  vm:wr8(0xC725, cell)
+  local base = vm:rd8(0xCC82) + 256 * vm:rd8(0xCC83)
+  local i = bit.band(self.cd81 - vm:rd8(0xCC87), 0xFF)
+  local ptr = (self.ptrs and self.ptrs[i + 1]) or base
+  local id = bit.band(ptr - base, 0xFF)
+  vm:wr8(0xCCA3, id)
+  vm:wr8(0xC724, id)
+  local src = bit.band(id * 0x22 + vm:rd8(0xCC84) + 256 * vm:rd8(0xCC85), 0xFFFF)
+  vm:wr8(0xCD8D, src % 256); vm:wr8(0xCD8E, math.floor(src / 256))
+  vm:wr8(0xCD8F, 0x91); vm:wr8(0xCD90, 0xCD)
+  for k = 0, 0x21 do vm:wr8(0xCD91 + k, rom8(self.rom, 7, src + k)) end
+  if self.cc47 == 6 then return nil end
+  local bank, sp = vm:rd8(0xCDAD), vm:rd8(0xCDAE) + 256 * vm:rd8(0xCDAF)
+  if sp == 0 then bank, sp = vm:rd8(0xC9FF), vm:rd8(0xCA00) + 256 * vm:rd8(0xCA01) end
+  vm:wr8(0xC714, bank); vm:wr8(0xC715, sp % 256); vm:wr8(0xC716, math.floor(sp / 256))
+  vm:wr8(0xC717, 0x66); vm:wr8(0xC718, 0x0A) -- INITIAL_SCRIPT_HANDLER
+  vm:wr8(0xC93D, 0x49); vm:wr8(0xC93E, 0xC9)
+  for k = 0, 12 do vm:wr8(0xC949 + k, vm:rd8(0xCD9D + k)) end
+  vm:wr8(0xC956, 0xFC)
+  return { bank = bank, ptr = sp, id = id, cell = cell }
+end
+
 
 -- StepSlotPair compare path. Mode 7 is the ring entry (DrawIndexedEntry),
 -- mode 9 the glyph map, $0B the list. Modes other than the start screen (5), spells (3),
@@ -493,6 +536,24 @@ function M:markArrows(spec)
   self.vm:wr8(0xCC64, above and 1 or 0)
   self.vm:wr8(0xCC59, below and 1 or 0)
   self.vm:wr8(0xCC65, below and 1 or 0)
+end
+
+-- Mode6AfterCommand4D (bank 6 $6530): mode 7, redraw, slot back from $CCA0; the entry
+-- byte at $A022 + $25 * id + $CCA0 in the next SRAM bank becomes $CCA3; a nonzero old
+-- byte gives one back to $A019[old], and $A019[new] gives one up.
+function M:mode6AfterCommand4D()
+  local vm = self.vm
+  self.cc47 = 7
+  self.cc4b = 1
+  self.cd81 = bit.band(self.cca0 + 0x1C, 0xFF)
+  local bank = vm:rd8(0xC727)
+  local nextBank = bit.band(bank + 1, 0xFF)
+  local addr = self:slotByteAddr()
+  local old = sramGet(vm, nextBank, addr)
+  local new = vm:rd8(0xCCA3)
+  sramSet(vm, nextBank, addr, new)
+  if old ~= 0 then sramSet(vm, bank, 0xA019 + old, sramGet(vm, bank, 0xA019 + old) + 1) end
+  sramSet(vm, bank, 0xA019 + new, sramGet(vm, bank, 0xA019 + new) - 1)
 end
 
 return M
