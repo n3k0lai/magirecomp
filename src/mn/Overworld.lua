@@ -759,7 +759,19 @@ function M:update()
   -- $60E7 ride head (boat): the record takes the pad, A docks on a faced $00 cell
   if Ride.tick(self) then return end
   if self.aCool and self.aCool > 0 then self.aCool = self.aCool - 1; self.input("a") end
-  if (not self.aCool or self.aCool <= 0) and self.input("a") then
+  if self.objects[0] then return end -- slot-0 cutscene stand-in owns the player
+  -- a live C71B (talk/cutscene) record holds the player still (real: Tony stays put
+  -- through the cave-in while C71B runs 5EFB; a step trigger there would fire 5BC6)
+  local th = self.vm.threads
+  if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then return end
+  -- a script running in slot 0 walks the player (Opcode09 slot 0, e.g. map 25's
+  -- 1A:674C); the pad is ignored, so no step back onto a trigger mid-scene
+  if self:slot0Scripted() then return end
+  local dir = self.input("dir")
+  -- ResumePlantedHead6167 (01:6167): a held direction ($C9A3 bits 4-7) jumps to its
+  -- plant before anything else; only with no direction held does a newly pressed A
+  -- ($C9A4 bit 0) reach DispatchPressedAOnFacingCell (01:619A). A with a direction is dropped.
+  if not dir and (not self.aCool or self.aCool <= 0) and self.input("a") then
     local f = DIRS[self.facing]; local fx, fy = self.x + f[1], self.y + f[2]
     if os.getenv("MN_ADBG") then print(("[a] map %d at %d,%d facing %s cell $%02X alist %s"):format(self.map, self.x, self.y, tostring(self.facing), World.cell(self.def, fx, fy), tostring(self.aList))) end
     -- talk: the facing cell is the object's cell or the one below it (PyBoy: Evu at 15,5
@@ -793,15 +805,6 @@ function M:update()
     end
     return
   end
-  if self.objects[0] then return end -- slot-0 cutscene stand-in owns the player
-  -- a live C71B (talk/cutscene) record holds the player still (real: Tony stays put
-  -- through the cave-in while C71B runs 5EFB; a step trigger there would fire 5BC6)
-  local th = self.vm.threads
-  if th and th.talk and coroutine.status(th.talk.co) ~= "dead" then return end
-  -- a script running in slot 0 walks the player (Opcode09 slot 0, e.g. map 25's
-  -- 1A:674C); the pad is ignored, so no step back onto a trigger mid-scene
-  if self:slot0Scripted() then return end
-  local dir = self.input("dir")
   if self.layer == 2 then
     -- The $02 layer heads (01:4F0D and siblings) never read the held pad:
     -- the planted bank-$20 walk anim keeps $C6D3/$C6D2 nonzero, so Tony
