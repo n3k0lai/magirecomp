@@ -29,7 +29,7 @@ left/right/below siblings. The cell byte in WRAM bank 5 picks the engine.
 | Talk / use cells | any cell with bit 5 or 6 set (bit 7 clear) -> SaveCellBelowAndStageThirdScript (A list) | `Overworld` A list | tested (`mn_alist_order_test`, `mn_use_record_test`) |
 | Short count / plain cell | high bits clear, bit 7 set, or `$C9A6` too low -> CommitScriptAndRecordHead | `Overworld` | implemented |
 | Hop / run over gaps | CountCellRun, runs of 1 and 2 | `World.hop` | tested (`mn_hop_test`, `mn_standin_hop_test`) |
-| `$02` layer walk | CountCellRun 3+ with `$C9A6 >= 5` swaps to the `$02` layer heads (`$C12A`/`$C12C`) | owned by fix/mn-river-cavein | outlier here (other branch) |
+| `$01`/`$02` layer walks | CountCellRun (01:517C), dispatch 01:51B6 and the ProbeCells rule; 3+ runs with `$C9A6 >= 5` use the layer heads (`$C12A`/`$C12C`) | `World`, `Overworld` (story branch, merged) | tested (`mn_layer_walk_test.lua`, `mn_gates_test.lua`) |
 | Step triggers | cells `$C0`+ run the map's trigger list on entry | `Overworld` triggers | tested (`mn_trigger_live_test`, `mn_down_trigger_wake_test`) |
 | Grass encounters | grass cells -> encounter script with `$47` picks and `$2E` battle | `Grass.lua` | tested (`mn_grass_test`, `mn_op47_test`) |
 | Random record pick | `$47` PickScriptRecordByDividerMod (`$1484`) + AddDividerStep (`$FFA9`) | `ScriptVM` | tested (`mn_op47_test`) |
