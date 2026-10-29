@@ -281,10 +281,9 @@ function M:host()
     slotSleep = function(slot) if s.objects[slot] then s.objects[slot].dormant = true end end,
     slotActive = function(slot) local ob = s.objects[slot] or (s.asleep and s.asleep[slot]); return not (ob and ob.dormant) end,
     pan = function(c, dx, dy, carry)
-      -- walkers that start the same $16 scroll together share it (Tavel Gorge kids 1F:50CD)
-      local p = s.panv
-      if carry and p and p[5] and p[1] == c and p[2] == dx and p[3] == dy then p[5][carry] = true; return end
-      s.panv = { c, dx, dy, nil, carry and { [carry] = true } or nil }
+      -- each $83 / $16 thread has its own pan; their deltas sum per frame (panFrame)
+      s.pans = s.pans or {}
+      s.pans[#s.pans + 1] = { c, dx, dy, nil, carry and { [carry] = true } or nil }
     end,
     spawn = function(slot, x, y, handler, base, abank, aptr, sbank, sptr)
       -- slot 0 with a script record in its anim field is a cutscene stand-in:
@@ -834,28 +833,7 @@ function M:update()
       end
     end
   end
-  if self.panv then
-    local p = self.panv; self.camOff = self.camOff or { 0, 0 }
-    local dx, dy = p[2], p[3]
-    if p[5] then -- $16 scroll: clamped to the map, and it carries its walkers
-      local cx, cy = self:cameraXY()
-      local W, H = self.def.w * 16, self.def.h * 16
-      if W >= 160 then dx = math.max(0, math.min(W - 160, cx + dx)) - cx end
-      if H >= 144 then dy = math.max(0, math.min(H - 144, cy + dy)) - cy end
-      for slot in pairs(p[5]) do
-        local ob = self.objects[slot]
-        if ob then
-          ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
-          while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
-          while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
-          while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end
-          while ob.oy <= -16 do ob.oy = ob.oy + 16; ob.y = ob.y - 1 end
-        end
-      end
-    end
-    self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
-    p[1] = p[1] - 1; if p[1] <= 0 then self.panv = nil end
-  end
+  if self.pans then self:panFrame() end
   -- $9C choice menu: up/down/left/right move the hand (on a fresh press), A picks
   local ch = self.textBox and self.textBox.choice
   if ch and not ch.picked then
@@ -1316,6 +1294,62 @@ end
 
 -- camera top-left in map pixels: follows the player, clamped to the map, unless a
 -- script fixed it ($84) or panned it ($83 / $16)
+-- One frame of $C843/$C844 through StepHorizontalScroll / StepVerticalScroll (bank 7,
+-- step_horizontal_scroll.asm, step_vertical_scroll.asm): each delta is clamped to -4..+4,
+-- and the edge flags ClampMapCamera and the steps keep in $C842 refuse a step past column
+-- 0 fine 0 (row 0 fine 0) or past the limit column $C845 (row $C846) at fine 15, so a
+-- pan stops at the map edge. A stride of 10 sets bit 3 (no sideways steps) and a row
+-- limit of $FF sets bit 7 (no vertical steps). The limits are the map header's bytes 3
+-- and 4 (def.camCol / def.camRow); without them the field's own W - 160 / H - 144 apply.
+-- A camera already past an edge is not pulled back; only steps further out are refused.
+local function edgeStep(v, d, hi)
+  if d < 0 then return math.max(d, math.min(0, -v)) end
+  if d > 0 then return math.min(d, math.max(0, hi - v)) end
+  return 0
+end
+function M:scrollDelta(dx, dy)
+  local def = self.def
+  dx = math.max(-4, math.min(4, dx)); dy = math.max(-4, math.min(4, dy))
+  local cx, cy = self:cameraXY()
+  if def.w == 10 then dx = 0
+  else dx = edgeStep(cx, dx, def.camCol and def.camCol * 16 + 15 or def.w * 16 - 160) end
+  if def.camRow == 0xFF then dy = 0
+  else dy = edgeStep(cy, dy, def.camRow and def.camRow * 16 + 15 or def.h * 16 - 144) end
+  return dx, dy
+end
+
+-- One frame of the $83 / $16 pans (self.pans), after the edge clamp above.
+-- Every thread's handler adds its pair into $C843/$C844 (AddScriptDeltasUntilZero
+-- .resume, Opcode16AddScroll); FinishFrame runs the steps once on the sum and then
+-- clears both bytes. So two threads panning in the same frame move the camera by
+-- their summed delta, clamped once. Port model: a $16 walker rides the camera step
+-- actually taken (PyBoy: Eidon 13:58C2, the Tavel Gorge kids 1F:50CD); with several
+-- pans every carried walker gets that one summed, clamped step.
+function M:panFrame()
+  local pans = self.pans; self.camOff = self.camOff or { 0, 0 }
+  local sx, sy = 0, 0
+  for _, p in ipairs(pans) do sx, sy = sx + p[2], sy + p[3] end
+  local dx, dy = self:scrollDelta(sx, sy)
+  local carried = {}
+  for _, p in ipairs(pans) do
+    if p[5] then for slot in pairs(p[5]) do carried[slot] = true end end
+  end
+  for slot in pairs(carried) do
+    local ob = self.objects[slot]
+    if ob then
+      ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
+      while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
+      while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
+      while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end
+      while ob.oy <= -16 do ob.oy = ob.oy + 16; ob.y = ob.y - 1 end
+    end
+  end
+  self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
+  local left = {}
+  for _, p in ipairs(pans) do p[1] = p[1] - 1; if p[1] > 0 then left[#left + 1] = p end end
+  self.pans = #left > 0 and left or nil
+end
+
 function M:cameraXY()
   local W, H = self.def.w * 16, self.def.h * 16
   local cx = math.max(0, math.min(W - 160, self.px + 8 - 80))
@@ -1353,7 +1387,7 @@ function M:drawField(vw, vh, ux, uy)
   if lp then love.graphics.setShader(lp.obj) end
   for _, o in pairs(self.objects) do
     if o.dirty then Sprites.build(self, o); o.dirty = false end
-    if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.panv and table.concat(self.panv, ",") or "-")) end
+    if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.pans and #self.pans or "-")) end
     -- record byte 0 bit 7 (dormant) objects aren't drawn: PyBoy map 40 slots 5-7
     -- stay $80 and show no OAM until $0B wakes them
     if o.image and not o.hidden and not o.dormant and not o.blank and not o.picking then

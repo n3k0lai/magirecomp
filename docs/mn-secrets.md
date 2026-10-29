@@ -65,6 +65,19 @@ scripts: implemented.
   SpendNewEntryMeasures runs `[$CD50]` - 1 passes and the first `$FF` slot of
   `$A118`-`$A121` gets index + 1. Port: `src/mn/ops/Forge.lua`; tested
   (`mn_forge_ring_test`). The `$CD49` resume after the window is master's.
+- **Forge `$CD50` (traced)**: the ROM has three stores to `$CD50`: `$2C` (02:747F, its
+  second operand), the shop commit (03:7347, `$02`) and RefreshChangedSlotDigits (04:60C9,
+  the highlighted row's +7); the only reader is SpendNewEntryMeasures (02:5B3E). The window
+  loop (04:582C) runs the refresh whenever `$CD81` differs from `$CD3B`, before it reads a
+  choice. DispatchMaskedAction runs one action per pass, so an A press stores the current
+  `$CD81` in `$CCA7` (MaskedActionSlotTable index 4) with no cursor move in that pass.
+  StageCopiedBlockWindow clears `$CD3B` with `$CD81` = 1, a page scroll (choice 0 or
+  4) re-arms `$CD81` = 1 from slot 0 or 4, and the unaffordable notice re-arms the same
+  slot, so at every pick `$CD50` is that row's +7. All seven forge lists (1E:7554, 18:6FD0,
+  1A:531E, 25:6471, 14:7C37, 15:540B, 1B:4BE3; 98 rows) have unique ids and a +7 of 1 to 60,
+  so the pass count never wraps. The port's `Forge.highlight` matches; a cancel leaves the
+  last highlighted row's +7 in the asm and nothing in the port, which nothing reads. Tested
+  on every row with MN_ROM (`mn_forge_ring_test`).
 - **Starter gift (`$2C`)**: `$CD51` = operand 1 (creature id), `$CD50` = operand 2, then
   the same AddSRAMEntryForOperand. Reachable on map 59 at 14:79C6, 14:79E6 and 14:7A06
   (id `$1C`, `$CD50` = 2, 3, 5). It was a no-op in the port; now tested

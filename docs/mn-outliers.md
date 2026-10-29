@@ -196,8 +196,8 @@ Unresolved items from docs/mn-secrets.md and docs/mn-engines.md. None is guessed
 Resolved on fix/mn-secrets2 and removed from this list: Bolt and the other unsummoned ids
 (the ring forge, lifted), the sound test (unreferenced), the hidden `$B0` spots (Start-menu
 use of item `$2A`, SetupCommand4D), the `$11` scatter (PickMapCellFromDiv), `$38`/`$39`,
-`$76`/`$77`/`$7A`, the `$99`/`$9A`/`$9B` slides, `$4F` screen-space motion and the
-post-game (story `$19`/`$1A`).
+`$76`/`$77`/`$7A`, the `$99`/`$9A`/`$9B` slides, `$4F` screen-space motion, the
+post-game (story `$19`/`$1A`) and the forge `$CD50` (traced in docs/mn-secrets.md).
 
 1. **Thunder Hyren (id 71)**: obtainable through the forge, but its battle in
    Unused_Script_19_62AA has no caller. Cut content: nothing in the ROM reaches it.
@@ -210,10 +210,7 @@ post-game (story `$19`/`$1A`).
    the port waits the worst case, 4 x (count + 1).
 5. **Map-40 data runs**: the reachable `$38` (02:4126, 51:5604) and `$9D` (7B:478F) uses and
    species 131 at 51:5614 sit inside map 40 at offsets that look like data read as code.
-6. **Forge `$CD50`**: on the `$8E` path SpendNewEntryMeasures runs `[$CD50]` - 1 passes with
-   whatever `$CD50` holds; the port reproduces that, and which value the game has there at
-   each forge is not traced.
-7. **Startup-loop spins**: FinishStartup's RunScriptLoop ends only on wScriptDone (`$C705`,
+6. **Startup-loop spins**: FinishStartup's RunScriptLoop ends only on wScriptDone (`$C705`,
    set by `$94`; MarkScriptDone `$1141` has no caller). A main record that parks there
    (`$42`, `$12`, LCD-off `$A1`/`$A2`), or reaches `$41` off phase 3 with the counter frozen,
    would spin forever with IdleCallback. The port runs those passes up to a guard
