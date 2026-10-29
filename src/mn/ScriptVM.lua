@@ -375,6 +375,9 @@ function VM:run(bank, ptr)
       local a = 0xC6F9 + (op - 0x60) * 2
       if self.init then return end
       while self:rd8(a) ~= r:u8(o + 1) do coroutine.yield("wait", 1) end
+      -- the match plants INITIAL_SCRIPT_HANDLER and returns (00:MatchScriptByteThen-
+      -- PlantHandler): the next opcode runs on the next frame, not this one
+      coroutine.yield("wait", 1)
       o = o + n
     elseif op == 0x14 then -- Opcode14 (bank, ptr): object anim, non-blocking
       if self.curSlot and h.setAnim then h.setAnim(self.curSlot, { { r:u8(o + 1), r:u16(o + 2), 0 } }) end
@@ -419,6 +422,7 @@ function VM:run(bank, ptr)
       local a = 0xC6F9 + (op - 0x5D) * 2
       if self.init then return end
       while self:rd8(a) == 0 do coroutine.yield("wait", 1) end
+      coroutine.yield("wait", 1) -- plants INITIAL_SCRIPT_HANDLER and returns: next frame
       o = o + n
     elseif op == 0x5C then
       -- StageNextScriptIfByteAtMostC6F7 (phase, n) + DispatchIfC6F6IsZeroElseMarkIt ($1756):

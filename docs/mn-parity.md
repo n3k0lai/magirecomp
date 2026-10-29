@@ -21,6 +21,12 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
   table. Motion heads: `src/mn/LayerHeads.lua` header lists the asm routines
   each head translates.
 
+## Fixed in the sweep
+
+- $5D-$5F, $60-$62: a satisfied wait plants INITIAL_SCRIPT_HANDLER and
+  returns, so the next opcode runs the following frame. The port ran it the
+  same frame; it now yields one frame (`mn_mailbox_wait_test`).
+
 ## Known divergences (intentional)
 
 - Mailboxes ($C6F8-$C6FD). Hardware `AddAndShiftUnknown` copies C6F8 to C6F9
@@ -62,33 +68,33 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 | $04 | SlotWordToWramBanks6And4 | opcode_04.asm | 5 | ok | ops/Records:90 |  |
 | $05 | FillScriptRecord0808 | fill_script_record_0808.asm | 14 | ok | ScriptVM:245 |  |
 | $06 | LookupTwoIndices | opcode_06.asm | 2 | ok | ops/Records:120 |  |
-| $07 | LookupIndexThenTwoBytes | opcode_07.asm | 3 | ok | ScriptVM:587 |  |
+| $07 | LookupIndexThenTwoBytes | opcode_07.asm | 3 | ok | ScriptVM:591 |  |
 | $08 | CopySixScriptBytesFromOffset3 | copy_six_script_bytes.asm | 7 | ok | ops/Records:134 |  |
-| $09 | RunScriptInSlot | opcode_09.asm | 4 | ok | ScriptVM:551 |  |
+| $09 | RunScriptInSlot | opcode_09.asm | 4 | ok | ScriptVM:555 |  |
 | $0A | SetSlotByte9 | opcode_0a.asm | 2 | ok | ops/Records:147 |  |
 | $0B | TestSlotBit6 | opcode_0b.asm | 1 | ok | ScriptVM:351 |  |
-| $0C | SlotIndexThenYield | opcode_0c.asm | 1 | ok | ScriptVM:447 |  |
+| $0C | SlotIndexThenYield | opcode_0c.asm | 1 | ok | ScriptVM:451 |  |
 | $0D | RecordAddAndStore | opcode_0d.asm | 6 | ok | ops/Records:74 |  |
 | $0E | AddWordStoreTwoBytes | opcode_0e.asm | 4 | unused in decomp scripts | ops/Records:97 |  |
 | $0F | CopySlotRecordFields | opcode_0f.asm | 1 | ok | ops/Records:171 |  |
 | $10 | QueueHeadWord | opcode_10.asm | 2 | ok | ops/Records:200 |  |
-| $11 | PickMapCellFromDiv | pick_map_cell_from_div.asm | 1 | ok | ScriptVM:504 |  |
+| $11 | PickMapCellFromDiv | pick_map_cell_from_div.asm | 1 | ok | ScriptVM:508 |  |
 | $12 | InstallParkedScript | install_parked_script.asm | 0 | ok | ScriptVM:361, ScriptVM:362 |  |
 | $13 | SetRecordHeadWord | opcode_13.asm | 2 | ok | ScriptVM:270 |  |
-| $14 | SetSlotSecondScript | opcode_14.asm | 3 | ok | ScriptVM:379 |  |
-| $15 | SlotScriptSequence | opcode_15.asm | rec4 | rec4: records+terminator, ok | ScriptVM:382 |  |
-| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:394 | pan rides the camera (PyBoy: 13:58C2, 1F:50CD) |
+| $14 | SetSlotSecondScript | opcode_14.asm | 3 | ok | ScriptVM:382 |  |
+| $15 | SlotScriptSequence | opcode_15.asm | rec4 | rec4: records+terminator, ok | ScriptVM:385 |  |
+| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:397 | pan rides the camera (PyBoy: 13:58C2, 1F:50CD) |
 | $17 | CopySixScriptBytesFromOffset3_17 | copy_six_script_bytes.asm | 6 | ok | ops/Records:179 |  |
 | $18 | SetSpriteTileBase | opcode_18.asm | 1 | ok | ops/Records:187 |  |
-| $19 | SetHeadBit7AndYield | opcode_19.asm | 0 | ok | ScriptVM:544 |  |
-| $1A | WaitForMatchByte | opcode_1a.asm | 1 | ok | ScriptVM:490 |  |
-| $1B | SetSoundSlotA | opcode_1b.asm | 1 | ok | ScriptVM:448 |  |
-| $1C | SetSoundSlotB | opcode_1c.asm | 1 | ok | ScriptVM:449 |  |
-| $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:606 |  |
+| $19 | SetHeadBit7AndYield | opcode_19.asm | 0 | ok | ScriptVM:548 |  |
+| $1A | WaitForMatchByte | opcode_1a.asm | 1 | ok | ScriptVM:494 |  |
+| $1B | SetSoundSlotA | opcode_1b.asm | 1 | ok | ScriptVM:452 |  |
+| $1C | SetSoundSlotB | opcode_1c.asm | 1 | ok | ScriptVM:453 |  |
+| $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:610 |  |
 | $1E | SoundRequest4 | opcode_1e.asm | 0 | unused in decomp scripts | ops/Flow:404 |  |
-| $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:592 |  |
-| $20 | ArmCountdown | opcode_20.asm | 1 | ok | ScriptVM:667 |  |
-| $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:450 |  |
+| $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:596 |  |
+| $20 | ArmCountdown | opcode_20.asm | 1 | ok | ScriptVM:671 |  |
+| $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:454 |  |
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
 | $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
@@ -104,7 +110,7 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 | $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 |  |
 | $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 |  |
 | $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 |  |
-| $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:589 |  |
+| $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:593 |  |
 | $32 | SetThirdScript | opcode_32.asm | 5 | ok | ops/Flow:398 |  |
 | $33 | PlantRecord30 | plant_record_30.asm | 0 | ok | ops/Panels:497 |  |
 | $34 | StageC9E4ThenCall704B | stage_c9e4_then_call_704b.asm | 1 | ok | ops/Panels:507 |  |
@@ -119,41 +125,41 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 | $3D | PlantLimit54At6C60 | plant_limit_54_at_6c60.asm | 0 | ok | ops/Panels:500 |  |
 | $3E | PlantLimitA8At6CB4 | plant_limit_a8_at_6cb4.asm | 0 | unused in decomp scripts | ops/Panels:501 |  |
 | $3F | PlantLimit1DAt6D5C | plant_limit_1d_at_6d5c.asm | 0 | ok | ops/Panels:502 |  |
-| $40 | ScriptByteCountdown | script_byte_countdown.asm | 1 | ok | ScriptVM:667 |  |
-| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:677 |  |
+| $40 | ScriptByteCountdown | script_byte_countdown.asm | 1 | ok | ScriptVM:671 |  |
+| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:681 |  |
 | $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 |  |
-| $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:698 |  |
-| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:607 |  |
-| $45 | EnterScriptFromLookup | enter_script_from_lookup.asm | 3 | ok | ScriptVM:689 |  |
+| $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:702 |  |
+| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:611 |  |
+| $45 | EnterScriptFromLookup | enter_script_from_lookup.asm | 3 | ok | ScriptVM:693 |  |
 | $46 | FollowScriptWord | follow_script_word.asm | 2 | ok | ScriptVM:360 |  |
-| $47 | PickScriptRecordByDividerMod | pick_script_record_by_divider_mod.asm | pick | pick: via MnRom:insn | ScriptVM:770 |  |
-| $48 | PlantInitialScriptHandler | plant_initial_script_handler.asm | 0 | ok | ScriptVM:485 |  |
-| $49 | SelectScriptByLookupRange | select_script_by_lookup_range.asm | range7 | range7: via MnRom:insn | ScriptVM:705 |  |
+| $47 | PickScriptRecordByDividerMod | pick_script_record_by_divider_mod.asm | pick | pick: via MnRom:insn | ScriptVM:774 |  |
+| $48 | PlantInitialScriptHandler | plant_initial_script_handler.asm | 0 | ok | ScriptVM:489 |  |
+| $49 | SelectScriptByLookupRange | select_script_by_lookup_range.asm | range7 | range7: via MnRom:insn | ScriptVM:709 |  |
 | $4A | InstallScriptFromBC | install_script_from_bc.asm | 3 | ok | ops/Flow:402 |  |
-| $4B | SelectScriptByExactWord | select_script_by_exact_word.asm | exact5 | exact5: via MnRom:insn | ScriptVM:705, ScriptVM:708 |  |
-| $4C | QueueRepeatedSpriteList | queue_repeated_sprite_list.asm | rec5 | rec5: records+terminator, ok | ScriptVM:217, ScriptVM:451 | 20:5C7A locked by mn_layer_heads_test (MN_ROM) |
-| $4D | StepScriptSpritePointerTable | step_script_sprite_pointer_table.asm | tab | tab: via MnRom:insn | ScriptVM:217, ScriptVM:466 |  |
-| $4E | RepeatTwoScriptBytes | repeat_two_script_bytes.asm | repeat2 | repeat2: via MnRom:insn | ScriptVM:217, ScriptVM:473 |  |
-| $4F | QueueRepeatedOffsetSpriteList | queue_repeated_offset_sprite_list.asm | rec5 | rec5: records+terminator, ok | ScriptVM:217, ScriptVM:457 |  |
+| $4B | SelectScriptByExactWord | select_script_by_exact_word.asm | exact5 | exact5: via MnRom:insn | ScriptVM:709, ScriptVM:712 |  |
+| $4C | QueueRepeatedSpriteList | queue_repeated_sprite_list.asm | rec5 | rec5: records+terminator, ok | ScriptVM:217, ScriptVM:455 | 20:5C7A locked by mn_layer_heads_test (MN_ROM) |
+| $4D | StepScriptSpritePointerTable | step_script_sprite_pointer_table.asm | tab | tab: via MnRom:insn | ScriptVM:217, ScriptVM:470 |  |
+| $4E | RepeatTwoScriptBytes | repeat_two_script_bytes.asm | repeat2 | repeat2: via MnRom:insn | ScriptVM:217, ScriptVM:477 |  |
+| $4F | QueueRepeatedOffsetSpriteList | queue_repeated_offset_sprite_list.asm | rec5 | rec5: records+terminator, ok | ScriptVM:217, ScriptVM:461 |  |
 | $50 | FillPointedRecord0C5F | fill_pointed_record_0c5f.asm | 8 | ok | ops/Panels:477 |  |
-| $51 | NoOp | jump_dispatch_script_opcode.asm | 0 | unused in decomp scripts | ScriptVM:484 |  |
+| $51 | NoOp | jump_dispatch_script_opcode.asm | 0 | unused in decomp scripts | ScriptVM:488 |  |
 | $52 | PlantAddend01FFFromScript | plant_addend_01ff_from_script.asm | 1 | unused in decomp scripts | ops/Records:209 |  |
-| $53 | ArmC6F8UnlessSet | arm_c6f8_unless_set.asm | 0 | ok | ScriptVM:413 |  |
-| $54 | ArmC6FAUnlessSet | arm_c6fa_unless_set.asm | 0 | ok | ScriptVM:413 |  |
-| $55 | ArmC6FCUnlessSet | arm_c6fc_unless_set.asm | 0 | ok | ScriptVM:413 |  |
+| $53 | ArmC6F8UnlessSet | arm_c6f8_unless_set.asm | 0 | ok | ScriptVM:416 |  |
+| $54 | ArmC6FAUnlessSet | arm_c6fa_unless_set.asm | 0 | ok | ScriptVM:416 |  |
+| $55 | ArmC6FCUnlessSet | arm_c6fc_unless_set.asm | 0 | ok | ScriptVM:416 |  |
 | $56 | StoreByteAtC6F8 | store_script_byte_at_c6f8.asm | 1 | ok | ScriptVM:366 | mailbox post; box full -> retry next frame (same as asm) |
 | $57 | StoreByteAtC6FA | store_script_byte_at_c6fa.asm | 1 | ok | ScriptVM:366 | mailbox post; box full -> retry next frame |
 | $58 | StoreByteAtC6FC | store_script_byte_at_c6fc.asm | 1 | ok | ScriptVM:366 | mailbox post; box full -> retry next frame |
 | $59 | FillWScriptRecordFromScript | fill_wscript_record_from_script.asm | 3 | ok | ops/Flow:399 |  |
-| $5A | FillScriptRecordC70DFromScript | fill_script_record_c70d_from_script.asm | 3 | ok | ScriptVM:440 |  |
-| $5B | FillScriptRecordC71BUnlessC6EEIs1 | fill_script_record_c71b_unless_c6ee.asm | 3 | ok | ScriptVM:568 |  |
-| $5C | StageNextScriptIfByteAtMostC6F7 | stage_next_script_if_byte_at_most_c6f7.asm | 2 | ok | ScriptVM:423 | rendezvous via C6F5/C6F6/C6F7, same carry rule as AddAndShiftUnknown |
-| $5D | LoadC6F9ThenPlantHandlerUnlessZero | load_c6f9_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:418 |  |
-| $5E | LoadC6FBThenPlantHandlerUnlessZero | load_c6fb_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:418 |  |
-| $5F | LoadC6FDThenPlantHandlerUnlessZero | load_c6fd_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:418 |  |
-| $60 | LoadC6F9ThenMatchScriptByte | load_c6f9_then_match_script_byte.asm | 1 | ok | ScriptVM:373 | reads C6F9; port latches posts (see Mailboxes) |
-| $61 | MatchScriptByteThenPlantHandler | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FB; port latches posts (see Mailboxes) |
-| $62 | MatchScriptByteThenPlantHandler_62 | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FD; port latches posts (see Mailboxes) |
+| $5A | FillScriptRecordC70DFromScript | fill_script_record_c70d_from_script.asm | 3 | ok | ScriptVM:444 |  |
+| $5B | FillScriptRecordC71BUnlessC6EEIs1 | fill_script_record_c71b_unless_c6ee.asm | 3 | ok | ScriptVM:572 |  |
+| $5C | StageNextScriptIfByteAtMostC6F7 | stage_next_script_if_byte_at_most_c6f7.asm | 2 | ok | ScriptVM:427 | rendezvous via C6F5/C6F6/C6F7, same carry rule as AddAndShiftUnknown |
+| $5D | LoadC6F9ThenPlantHandlerUnlessZero | load_c6f9_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame (mn_mailbox_wait_test) |
+| $5E | LoadC6FBThenPlantHandlerUnlessZero | load_c6fb_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame |
+| $5F | LoadC6FDThenPlantHandlerUnlessZero | load_c6fd_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame |
+| $60 | LoadC6F9ThenMatchScriptByte | load_c6f9_then_match_script_byte.asm | 1 | ok | ScriptVM:373 | reads C6F9; next opcode next frame (mn_mailbox_wait_test); latch: see Mailboxes |
+| $61 | MatchScriptByteThenPlantHandler | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FB; next opcode next frame |
+| $62 | MatchScriptByteThenPlantHandler_62 | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FD; next opcode next frame |
 | $63 | CallBankedWordThenResume | call_banked_word_then_resume.asm | 3 | ok | ops/Travel:183 |  |
 | $64 | ReadBank21ByteThenResume | read_bank21_byte_then_resume.asm | 2 | ok | ScriptVM:242 |  |
 | $65 | CallScriptBankedPtrThenResume | call_script_banked_ptr_then_resume.asm | 3 | ok | ScriptVM:238 |  |
@@ -179,55 +185,55 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 | $79 | StoreScriptByteCall481E | store_script_byte_call_481e.asm | 1 | ok | ops/Panels:739 |  |
 | $7A | SetCCA6Countdown1BE4 | set_cca6_countdown_1be4.asm | 3 | unused in decomp scripts | ops/Panels:726 |  |
 | $7B | StoreScriptByteCall48DC | store_script_byte_call_48dc.asm | 1 | unused in decomp scripts | ops/Panels:1086 |  |
-| $7C | StageBiasedCellsForScrollNudge | stage_biased_cells_for_scroll_nudge.asm | 3 | ok | ScriptVM:529, ScriptVM:532 |  |
-| $7D | StageFlooredCellsForScrollNudge | stage_floored_cells_for_scroll_nudge.asm | 3 | ok | ScriptVM:529 |  |
+| $7C | StageBiasedCellsForScrollNudge | stage_biased_cells_for_scroll_nudge.asm | 3 | ok | ScriptVM:533, ScriptVM:536 |  |
+| $7D | StageFlooredCellsForScrollNudge | stage_floored_cells_for_scroll_nudge.asm | 3 | ok | ScriptVM:533 |  |
 | $7E | StageEightScriptBytesCopy | stage_eight_script_bytes.asm | 8 | ok | ops/Records:322 |  |
 | $7F | StageEightScriptBytesCopy_7F | stage_eight_script_bytes.asm | 8 | ok | ops/Records:331 |  |
-| $80 | WriteScriptBytesAcrossWramBanks | write_script_bytes_across_wram_banks.asm | 6 | ok | ScriptVM:486 |  |
+| $80 | WriteScriptBytesAcrossWramBanks | write_script_bytes_across_wram_banks.asm | 6 | ok | ScriptVM:490 |  |
 | $81 | WriteScriptBytesThroughBanks6And4 | write_script_bytes_through_banks_6_and_4.asm | 6 | unused in decomp scripts | ops/Records:106 |  |
 | $82 | CenterFineScrollOnScriptBase | center_fine_scroll_on_script_base.asm | 0 | ok | ScriptVM:349 |  |
-| $83 | AddScriptDeltasUntilZero | add_script_deltas_until_zero.asm | rec3 | rec3: records+terminator, ok | ScriptVM:669 |  |
-| $84 | CenterFineScrollOnScriptWord | center_fine_scroll_on_script_word.asm | 2 | ok | ScriptVM:604 |  |
+| $83 | AddScriptDeltasUntilZero | add_script_deltas_until_zero.asm | rec3 | rec3: records+terminator, ok | ScriptVM:673 |  |
+| $84 | CenterFineScrollOnScriptWord | center_fine_scroll_on_script_word.asm | 2 | ok | ScriptVM:608 |  |
 | $85 | StageScriptByteEnterBank1 | stage_script_byte_enter_bank1.asm | 1 | ok | ops/Flow:401 |  |
 | $86 | SeedCameraAndEnterLoop | seed_camera_loop.asm | 0 | ok | ops/Travel:154 |  |
-| $87 | CopyThreeBytesCallBank7 | copy_three_c9fc_bank7.asm | 3 | ok | ScriptVM:648 |  |
+| $87 | CopyThreeBytesCallBank7 | copy_three_c9fc_bank7.asm | 3 | ok | ScriptVM:652 |  |
 | $88 | CopyThreeBytesCall7465 | copy_three_call_7465.asm | 3 | ok | ops/Travel:217 |  |
-| $89 | LoadSRAMScriptAndDispatch | load_sram_script_dispatch.asm | 0 | ok | ScriptVM:499 |  |
-| $8A | CallBank7ThenLoadSRAMScript | call_bank7_then_load_sram_script.asm | 0 | ok | ScriptVM:499 |  |
+| $89 | LoadSRAMScriptAndDispatch | load_sram_script_dispatch.asm | 0 | ok | ScriptVM:503 |  |
+| $8A | CallBank7ThenLoadSRAMScript | call_bank7_then_load_sram_script.asm | 0 | ok | ScriptVM:503 |  |
 | $8B | CallBank3ThenDispatchScript | call_bank3_then_dispatch.asm | 0 | ok | ops/Travel:238 |  |
 | $8C | RewindCopyThenCall5400 | rewind_copy_then_call_5400.asm | blk0 | blk0: via MnRom:insn | ops/Travel:254 |  |
 | $8D | CallBank3_5AAEThenDispatch | call_bank3_5aae_then_dispatch.asm | 0 | ok | ops/Travel:275 |  |
-| $8E | EnterScriptFromLookup_8E | enter_script_from_lookup.asm | blk8e | blk8e: via MnRom:insn | ScriptVM:777 |  |
+| $8E | EnterScriptFromLookup_8E | enter_script_from_lookup.asm | blk8e | blk8e: via MnRom:insn | ScriptVM:781 |  |
 | $8F | RewindCopyThenCall7025 | rewind_copy_then_call_7025.asm | blk0 | blk0: via MnRom:insn | ops/Travel:297 |  |
 | $90 | CopyPrefixedBlockThenCall66BE | copy_prefixed_then_call_66be.asm | blk3 | blk3: via MnRom:insn | ops/Travel:315 |  |
-| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:603 |  |
+| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:607 |  |
 | $92 | StageSavedScriptPairThenBank7 | stage_saved_script_pair.asm | 1 | ok | ops/Save:125 |  |
 | $93 | FinishStartup | finish_startup.asm | 0 | ok | ScriptVM:220 |  |
 | $94 | MarkScriptDone21B2 | mark_script_done_21b2.asm | 0 | ok | ScriptVM:352 |  |
 | $95 | CopyFallbackScriptRecord | copy_fallback_script_record.asm | 3 | ok | ops/Flow:400 |  |
-| $96 | SaveScriptTripleToSRAM | save_script_triple.asm | 3 | ok | ScriptVM:494 |  |
+| $96 | SaveScriptTripleToSRAM | save_script_triple.asm | 3 | ok | ScriptVM:498 |  |
 | $97 | ReenterReset | reenter_reset.asm | 0 | ok | ops/Flow:403 |  |
 | $98 | FormatPointedSRAMByteThenResume | format_pointed_sram_byte.asm | 2 | ok | ops/Save:155 |  |
 | $99 | FinishWindowYSlide | finish_window_y_slide.asm | 0 | ok | ops/Flow:355 |  |
 | $9A | WaitC6EEZero | opcode_9a.asm | 0 | ok | ops/Flow:366 |  |
 | $9B | Opcode9BContinue | opcode_9b.asm | 2 | ok | ops/Flow:331 |  |
-| $9C | CommitArmedSlotChoice | commit_armed_slot_choice.asm | pick | pick: via MnRom:insn | ScriptVM:741 |  |
+| $9C | CommitArmedSlotChoice | commit_armed_slot_choice.asm | pick | pick: via MnRom:insn | ScriptVM:745 |  |
 | $9D | WaitC6EETwo | opcode_9d.asm | 0 | unused in decomp scripts | ops/Flow:321 |  |
 | $9E | FormatSRAMWord | opcode_9e.asm | 2 | ok | ops/Save:164 |  |
-| $9F | StageStripTextFromScript | stage_strip_text_from_script.asm | strip | strip: via MnRom:insn | ScriptVM:721 |  |
+| $9F | StageStripTextFromScript | stage_strip_text_from_script.asm | strip | strip: via MnRom:insn | ScriptVM:725 |  |
 | $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:395 |  |
 | $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:396 |  |
 | $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:397 |  |
-| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:631 |  |
-| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:609 |  |
-| $A5 | OrSramMaskWhenLookup | or_sram_mask_when_lookup.asm | expr_wb | expr_wb: via MnRom:insn | ScriptVM:718 |  |
-| $A6 | StoreLookupLowIntoSram | store_lookup_low_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:715 |  |
-| $A7 | StoreLookupWordIntoSram | store_lookup_word_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:715, ScriptVM:717 |  |
+| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:635 |  |
+| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:613 |  |
+| $A5 | OrSramMaskWhenLookup | or_sram_mask_when_lookup.asm | expr_wb | expr_wb: via MnRom:insn | ScriptVM:722 |  |
+| $A6 | StoreLookupLowIntoSram | store_lookup_low_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:719 |  |
+| $A7 | StoreLookupWordIntoSram | store_lookup_word_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:719, ScriptVM:721 |  |
 | $A8 | CallScriptBank40B7 | call_script_bank_40b7.asm | 0 | unused in decomp scripts | ops/Panels:1102 |  |
-| $A9 | StoreScriptWordAtA123 | store_script_word_at_a123.asm | 2 | ok | ScriptVM:596 |  |
-| $AA | StoreScriptByteInWramBank | store_script_byte_in_wram_bank.asm | 4 | ok | ScriptVM:690 |  |
-| $AB | StoreScriptWordInWramBank | store_script_word_in_wram_bank.asm | 5 | unused in decomp scripts | ScriptVM:690 |  |
-| $AC | StoreScriptByteInSram | store_script_byte_in_sram.asm | 3 | ok | ScriptVM:697 |  |
+| $A9 | StoreScriptWordAtA123 | store_script_word_at_a123.asm | 2 | ok | ScriptVM:600 |  |
+| $AA | StoreScriptByteInWramBank | store_script_byte_in_wram_bank.asm | 4 | ok | ScriptVM:694 |  |
+| $AB | StoreScriptWordInWramBank | store_script_word_in_wram_bank.asm | 5 | unused in decomp scripts | ScriptVM:694 |  |
+| $AC | StoreScriptByteInSram | store_script_byte_in_sram.asm | 3 | ok | ScriptVM:701 |  |
 | $AD | StoreScriptWordInSram | store_script_word_in_sram.asm | 4 | ok | ops/Save:114 |  |
-| $AE | AndScriptMaskIntoSram | and_script_mask_into_sram.asm | 3 | ok | ScriptVM:585 |  |
-| $AF | OrScriptMaskIntoSram | or_script_mask_into_sram.asm | 3 | ok | ScriptVM:583 |  |
+| $AE | AndScriptMaskIntoSram | and_script_mask_into_sram.asm | 3 | ok | ScriptVM:589 |  |
+| $AF | OrScriptMaskIntoSram | or_script_mask_into_sram.asm | 3 | ok | ScriptVM:587 |  |
