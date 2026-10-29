@@ -1,10 +1,12 @@
 -- $93 (InitPointerList, 01:40D3): every record gets bit 7 set and bit 6 cleared and
 -- the sixteen pointer slots are emptied. Nothing else is touched, so a record's
 -- script position survives and $0B (clear bit 7, TakePointerSlot) resumes it where
--- it stopped (map 40 river scene: 2A:4975's $93 sleeps records 3 and 5, its later
--- $0B 03 / $0B 05 wake them and record 5 hands Tony the pad). The record whose own
--- pass ran the $93 finishes that pass (map 219 2A:4769: $93, then the map-40 load).
--- Talk and stand-in threads start over. Made-up records and threads, no ROM bytes.
+-- it stopped (map 40 river scene: 2A:4975's $93 sleeps the stand-in at slot 0 mid-
+-- $60 49 plus records 3/4/5; $0B 00 resumes slot 0 so the crystal talk can post
+-- $58 46, $0B 03/$0B 04 wake 3/4, and record 3's later $0B 05 lets 5 hand Tony the
+-- pad). The record whose own pass ran the $93 finishes that pass (map 219 2A:4769:
+-- $93, then the map-40 load). Talk threads start over. Made-up records and threads,
+-- no ROM bytes.
 --   luajit tests/engine/mn_scene_sleep_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
 love = love or { math = { random = function(a) return a or 0 end }, graphics = {} } -- luacheck: ignore 111
@@ -40,10 +42,15 @@ local s, h, ob3 = scene()
 ok(next(s.objects) == nil, "no record is linked after $93")
 ok(s.vm.threads[3] and s.vm.threads[5], "slept records keep their script threads")
 ok(s.vm.threads.talk == nil, "the talk thread starts over")
-ok(s.vm.threads[0] == nil, "the stand-in's thread starts over")
+ok(s.vm.threads[0] ~= nil, "the stand-in's thread is kept asleep")
+ok(not h.slotActive(0), "the stand-in does not run while asleep")
 ok(s.vm.threads[7] ~= nil, "the record that ran $93 keeps its thread")
 ok(not h.slotActive(3) and not h.slotActive(5), "slept records do not run")
 ok(h.slotActive(7), "the running record finishes its pass")
+local pc0 = s.vm.threads[0].co
+pcall(h.slotFlag, 0)
+ok(s.objects[0] and not s.objects[0].dormant, "$0B 00 relinks the stand-in")
+ok(h.slotActive(0) and s.vm.threads[0].co == pc0, "and its script resumes where it stopped")
 local pc = s.vm.threads[3].co
 pcall(h.slotFlag, 3)
 ok(s.objects[3] == ob3 and not ob3.dormant, "$0B 03 relinks the same record")

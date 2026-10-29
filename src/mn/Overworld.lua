@@ -92,22 +92,24 @@ function M:host()
     -- InitPointerList (01:40D3) sets bit 7 and clears bit 6 of all $31 records and
     -- touches nothing else: a record's two script records stay where they were, so a
     -- slept record's script resumes where it stopped once $0B wakes it (map 40 river
-    -- scene 2A:4975: its $93 sleeps records 3 and 4 mid-script, $0B 03 / $0B 04 wake
-    -- them, record 3 runs on to 2A:4AC0 $0B 05 and record 5 gives Tony the pad, $07 00
-    -- 81 5D). Other threads (talk, the stand-in's) start over. The running one goes on:
-    -- the ROM runs its pass to the end in one go ($1D/$21 fades and the $64 map load
-    -- block there), and the port's frame-split ops must not strand it (map 219
-    -- 2A:4769 runs $93 then loads map 40 from record 3's own pass with no $0B 03).
+    -- scene 2A:4975: its $93 sleeps every linked record mid-script (incl. the stand-in
+    -- at slot 0 waiting on $60 49), then $0B 00 / $0B 03 / $0B 04 / $0B 07 / $0B 09 wake
+    -- them; record 3 runs on to 2A:4AC0 $0B 05 and record 5 gives Tony the pad via
+    -- $07 00 81 5D. Talk threads start over. The running one goes on: the ROM runs its
+    -- pass to the end in one go ($1D/$21 fades and the $64 map load block there), and
+    -- the port's frame-split ops must not strand it (map 219 2A:4769 runs $93 then
+    -- loads map 40 from record 3's own pass with no $0B 03; a later $05 re-fills slot 0).
     freshScene = function()
       s.asleep = s.asleep or {}
       local co = coroutine.running()
       local self_ = nil
       for k, t in pairs(s.vm.threads or {}) do if t.co == co then self_ = t.slot end end
-      -- (slot 0 is the player; the port keeps only a cutscene stand-in there)
-      for k, ob in pairs(s.objects) do if k ~= 0 and k ~= self_ then ob.dormant = true; s.asleep[k] = ob end end
+      -- sleep every linked record but the runner (stand-in at 0 included: map 40's
+      -- $0B 00 must resume it mid-$60 49 so the crystal talk can post $58 46)
+      for k, ob in pairs(s.objects) do if k ~= self_ then ob.dormant = true; s.asleep[k] = ob end end
       s.objects = {}
       for k, t in pairs(s.vm.threads or {}) do
-        if t.co ~= co and not (type(k) == "number" and k ~= 0 and t.slot == k and s.asleep[k]) then s.vm.threads[k] = nil end
+        if t.co ~= co and not (type(k) == "number" and t.slot == k and s.asleep[k]) then s.vm.threads[k] = nil end
       end
     end,
     setTriggers = function(p)
