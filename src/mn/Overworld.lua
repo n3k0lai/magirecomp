@@ -26,6 +26,7 @@ M.wideAware = true -- Boot passes the logical view to draw() (see mn.Viewport)
 
 local Ride = require("mn.Ride")
 local PixelWalk = require("mn.PixelWalk")
+local LayerHeads = require("mn.LayerHeads")
 local Motion = require("mn.Motion")
 local Walk = require("mn.Walk")
 -- bank-1 record heads that read the pad (5B07: A only): a slot-0 record with one is the player
@@ -78,7 +79,7 @@ function M:host()
     -- $0B wakes one with its cell, handler and scripts intact (2F:46C0 wakes the boat
     -- record slot 4 the 236/258/40 shore spawned, then loads the sea map 281)
     defaultGates = function() -- $93: WriteC12APattern; the walk heads start from the normal family
-      World.seedPattern(s.vm); s.layer, s.layerDir, s.layerHeld = nil, nil, nil
+      World.seedPattern(s.vm); s.layer, s.lw = nil, nil
       s.padHead, s.pw = nil, nil -- the next slot-0 fill picks the head family
       Walk.init(s) -- BuildPointerList (01:40D3): no record linked
     end,
@@ -897,23 +898,14 @@ function M:update()
   -- ResumePlantedHead6167 (01:6167): a held direction ($C9A3 bits 4-7) jumps to its
   -- plant before anything else; only with no direction held does a newly pressed A
   -- ($C9A4 bit 0) reach DispatchPressedAOnFacingCell (01:619A). A with a direction is dropped.
-  if self.padHead == PixelWalk.HEAD and not self.layer then return self:pixelWalk(dir) end
-  if self.padHead == FROZEN_HEAD and not self.layer then return self:frozenPass() end
-  -- The $02 layer heads (ResumeHead03Record 01:4F0D, ResumeHead01Record 4FB7,
-  -- ResumeHead02Record 5061, ResumeHead00Record 510B) replace 6167 as the record
-  -- head and test only the direction bits of $C9A4 (4-7), never bit 0, so A
-  -- does nothing while Tony is on the $02 layer.
-  if not dir and self.layer ~= 2 and (not self.aCool or self.aCool <= 0) and self.input("a") then
+  -- the $01 / $02 layer heads (mn.LayerHeads) replace 6167 as the record head;
+  -- none of them reads A ($C9A4 bit 0), on either layer
+  if self.lw then return self:layerWalk(dir) end
+  if self.layer then return end
+  if self.padHead == PixelWalk.HEAD then return self:pixelWalk(dir) end
+  if self.padHead == FROZEN_HEAD then return self:frozenPass() end
+  if not dir and (not self.aCool or self.aCool <= 0) and self.input("a") then
     self:pressA(); return
-  end
-  if self.layer == 2 then
-    -- The $02 layer heads (01:4F0D and siblings) never read the held pad:
-    -- the planted bank-$20 walk anim keeps $C6D3/$C6D2 nonzero, so Tony
-    -- keeps going. A newly pressed other direction ($C9A4) switches to that
-    -- direction's plant (4EF2 / 4F9C / 5046 / 50F0).
-    if dir and dir ~= self.layerHeld and dir ~= self.layerDir then self.layerDir = dir end
-    self.layerHeld = dir
-    dir = self.layerDir
   end
   if not dir then return end
   -- direction held, including a bump: StepCell82EveryFourthFrame's first
@@ -925,12 +917,14 @@ function M:update()
   local nx, ny, layer, how = World.step(self.def, self.x, self.y, d[1], d[2], self.layer, World.mark(self.vm), self.vm)
   if not nx then return end
   for _, ob in pairs(self.objects) do if World.blocks(self.def, ob, nx, ny) then return end end
-  if layer ~= self.layer then
-    World.applyLayer(self.vm, self.layer, layer)
+  if how == "enter" then
+    -- the blocked step's CountCellRun / Plant*WhenCellIs01 plants the layer
+    -- entry (4ED4.. onto the $02 head, 570D.. under 5DB5); it moves from the next frame
+    local lw = LayerHeads.new(self:script20(), self.x, self.y, self.def.w)
+    LayerHeads.enter(lw, layer, dir, { gates = function(n) World.writeGates(self.vm, n) end })
     self.log[#self.log + 1] = ("layer %s -> %s at %d,%d"):format(tostring(self.layer), tostring(layer), nx, ny)
-    self.layer = layer
-    self.layerDir = (layer == 2) and dir or nil
-    self.layerHeld = (layer == 2) and dir or nil
+    self.lw, self.layer = lw, layer
+    return
   end
   if how == "hop" then self.log[#self.log + 1] = ("hop %d,%d -> %d,%d"):format(self.x, self.y, nx, ny) end
   self.x, self.y = nx, ny; self.moving = dir; self.camFix = nil; self.hidePlayer = nil
@@ -996,6 +990,63 @@ end
 -- $A0-$A7 cells add to the step, 05:682D moves the record, 01:422E fires the
 -- step triggers once per entry. External placements (placePlayer, release) drop
 -- the state, and the next frame restarts it at fine 8,8 of the current cell.
+-- The record's cell plane for 05:682D: the WRAM-5 plane, where MarkZeroMapCell
+-- writes $08 under a record on a $00 cell; gate = $C12A + v.
+function M:recordEnv()
+  local def, objs, vm, w = self.def, self.objects, self.vm, self.def.w
+  return {
+    cell = function(p)
+      if p < 0 or p >= w * def.h then return 0x08 end
+      local x, y = p % w, math.floor(p / w)
+      for _, ob in pairs(objs) do if World.blocks(def, ob, x, y) then return 0x08 end end
+      return def.block[p + 1]
+    end,
+    gate = function(v) return World.walkable(v, vm) and 0 or 0xFF end,
+  }
+end
+
+-- bank-$20 bytes of the player's ROM
+function M:script20()
+  local rom = self.vm.rom
+  return function(a) return rom:u8(0x20 * 0x4000 + a - 0x4000) end
+end
+
+-- The $01 / $02 layer heads (mn.LayerHeads): fine steps every frame from the
+-- head's bank-$20 script, until an exit's $10 hands back the normal head 5D81.
+function M:layerWalk(dir)
+  local lw, vm = self.lw, self.vm
+  if lw.st.cx ~= self.x or lw.st.cy ~= self.y then
+    lw.st = Motion.new(self.x, self.y, self.def.w) -- a script placed the player
+  end
+  local held = self.input("held")
+  if type(held) ~= "number" then held = dir and PixelWalk.BIT[dir] or 0 end
+  local env = self:recordEnv()
+  local r = LayerHeads.tick(lw, {
+    held = held, frame = vm:rd8(Grass.FRAME), env = env,
+    gates = function(n) World.writeGates(vm, n) end,
+    trigger = function(st)
+      if not self.triggerPtr then return false end
+      local b, p = Motion.trigger(st, env, vm, function(i) return self:listEntry(self.triggerPtr, i) end, vm:rd8(0xC716) ~= 0)
+      if not b then return false end
+      self.x, self.y = st.cx, st.cy; self.px, self.py = LayerHeads.pixel(lw)
+      self:snapshot(b, p); self:runScript(b, p, "step trigger"); return true
+    end,
+  })
+  if self.lw ~= lw then return end
+  local st = lw.st
+  if st.cx ~= self.x or st.cy ~= self.y then self.camFix = nil; self.hidePlayer = nil end
+  self.x, self.y = st.cx, st.cy
+  self.px, self.py = LayerHeads.pixel(lw)
+  self.facing = LayerHeads.FACE[lw.hb]
+  self.layer = lw.layer
+  if st.ox ~= 0 or st.oy ~= 0 or r == "run" then self.anim = (self.anim or 0) + 1 end
+  if r == "normal" or r == "unknown" then
+    self.log[#self.log + 1] = ("layer head -> $%04X at %d,%d fine %d,%d"):format(lw.head, st.cx, st.cy, st.fx, st.fy)
+    self.lw, self.layer = nil, nil
+  end
+  Ride.sync(self)
+end
+
 function M:pixelWalk(dir)
   local w, vm = self.def.w, self.vm
   local function frames(b, p) return Sprites.frames(vm.rom, b, p) end
@@ -1007,16 +1058,7 @@ function M:pixelWalk(dir)
   if type(held) ~= "number" then held = dir and PixelWalk.BIT[dir] or 0 end
   local a = (not self.aCool or self.aCool <= 0) and self.input("a") or false
   local def, objs = self.def, self.objects
-  local env = {
-    -- the WRAM-5 plane: MarkZeroMapCell writes $08 under a record on a $00 cell
-    cell = function(p)
-      if p < 0 or p >= w * def.h then return 0x08 end
-      local x, y = p % w, math.floor(p / w)
-      for _, ob in pairs(objs) do if World.blocks(def, ob, x, y) then return 0x08 end end
-      return def.block[p + 1]
-    end,
-    gate = function(v) return World.walkable(v, vm) and 0 or 0xFF end,
-  }
+  local env = self:recordEnv()
   local r = PixelWalk.tick(pw, {
     frames = frames, held = held, a = a, frame = vm:rd8(Grass.FRAME), env = env,
     grass = function() return Grass.walk(self) end,

@@ -166,11 +166,17 @@ Also settled on fix/mn-secrets2, from the code:
   doesn't move Tony. So during a ride the roll is against the cell Tony boarded from, not the boat.
   Port: `ow.rec0` (mn.Ride), used by the step-on check. Test: mn_ride_mode_test.
 
-1. **5C7A entry-anim timing** (layer-2 heads, the story worker's area; report only). The table gives
-   dy -2,-2,-1,-1, 0 x4, +2 x6, +3 x4, +4 x2, then +1 x3: net 35 px over 23 frames. The 5CB3 slide
-   that follows moves 4 px a frame; the port slides 1.
-2. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
-3. **The layer-1 pixel heads** are not implemented in the port yet.
+Resolved: **5C7A entry-anim timing** and **the layer-1 pixel heads**. The `$01`/`$02` layers now
+run as fine-step records (mn.LayerHeads), with the script bytes read from bank $20 at run time:
+the layer-2 heads 4F0D/4FB7/5061/510B (pressed-direction switch, 5E65, the 682D/422E move, the
+commit tests and the `$02`/`$00`/other cell beyond), the layer-1 idle 56DC and the 5798/5936/5818/58A7
+walks (release to the idle script plus 56C9, the cross-axis drift on odd hMainLoopCounter, the `$00`
+exits), the 5DB5 run head, and the `$4C`/`$4D` script frames. 5C7A's `$4C` table is dy -2,-2,-1,-1,
+0 x4, +2 x6, +3 x4, +4 x2, then +1 x3: net 29 px over 23 frames, then the `$4D` slide at 4 px a
+frame. A no longer dispatches on layer 1 (no layer-1 head reads `$C9A4` bit 0). Test:
+mn_layer_heads_test.
+
+1. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
 
 ## Secrets and engines (fix/mn-secrets)
 
