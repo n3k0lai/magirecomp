@@ -207,6 +207,8 @@ function M:host()
     placePlayer = function(x, y) if s.riding then s.rec0 = { x, y } end; s.x, s.y = x, y; s:snap(); s.moving = nil; s.pw = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
     -- $93 turns the LCD off; DrawMetatileWindow redraws the view before it is on again
     lcdOff = function() s.fullDraw = true end,
+    -- hMainLoopCounter ($FFA8) for $41's 4-frame phase (Grass.frame ticks it)
+    frame = function() return s.vm:rd8(0xFFA8) end,
     -- $82 CenterFineScrollOnScriptBase ($1E30): wMapColumn/Row = $C18E/F - 5 and
     -- both fine bytes = 8, absolute, so an earlier $16/$83 scroll (camOff) is gone
     centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply() end,
@@ -704,6 +706,7 @@ function M.load(file, input)
   local s = M.new(snap.map, snap.x, snap.y, input)
   if snap.planes then s:applyPlanes(snap.planes) end
   for a, v in pairs(snap.mem) do s.vm.mem[a] = v end
+  s.vm.mem[0xC936] = 0xE3 -- a field snapshot: the LCD is on
   s.tonyEnergy = snap.tony; s.facing = snap.facing
   if snap.trig then s.triggerPtr = snap.trig end
   if snap.alist then s.aList = snap.alist end
@@ -760,6 +763,7 @@ end
 function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
+  self:musicFadeFrame()
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
   self:stepEdgeLatches()
   if self.bgStale then self:flushStale() end
@@ -1155,10 +1159,11 @@ function M:shownAt(x, y)
   return v
 end
 
--- The LCD is off during map setup (vm.init) and from $93 until RunScriptLoop parks.
+-- The modelled wLCDC ($C936): 0 during map setup (vm.init) and from $93 until
+-- RunScriptLoop parks (ScriptVM).
 function M:lcdOn()
   local vm = self.vm
-  return vm ~= nil and not vm.init and not vm.startupPending
+  return vm ~= nil and not vm:lcdOff()
 end
 
 -- The on-screen cell range (the 160 x 144 view), clamped to the map.
@@ -1373,6 +1378,21 @@ function M:drawField(vw, vh, ux, uy)
   if self.textBox then self:classicFrame(wide, ux, uy, function() Font.drawTyped(self.textBox, self.def.pal7, self.vm.rom) end) end
 end
 
+
+-- $24 (opcode_20.asm) fades the music out in the driver: SoundSelectBit0 steps $C92C down
+-- and, at 0 or 1, clears wSoundSelect and drops the music gate ($57A0). The field music
+-- (MnMusic, not the driver) stops there too. A $1F in between cancels the fade instead
+-- (wSoundSelect 0 with $C92C = $0F), so only a clear with $C92C = 0 ends it.
+function M:musicFadeFrame()
+  local d = self.sfx
+  if not d then return end
+  if d:rd(0xC92A) % 2 == 1 then self.musicFading = true; return end
+  if not self.musicFading then return end
+  self.musicFading = nil
+  if d:rd(0xC92C) ~= 0 then return end
+  self.log[#self.log + 1] = "music fade end"
+  if self.music then self.music:stop(); self.music = nil end
+end
 
 -- $1F music: decode the song from the cached ROM banks and loop it.
 local MnMusic = require("mn.MnMusic")

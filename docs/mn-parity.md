@@ -43,7 +43,15 @@ runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
 $48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91, $6B (one tile a
 pass), $26-$2F (operands to $D392, then the pass ends) match; $91's zero path
-runs 2:4799. Open: $25.
+runs 2:4799. $96 ends in `jp INITIAL_SCRIPT_HANDLER`, which is $0A66
+DispatchScriptOpcode itself, so its next op runs in the same pass; the port had
+yielded a frame (fixed, `mn_startup_passes_test`). Open: $25.
+$20 (opcode_20_arm_countdown.asm) and $24 (opcode_20.asm) are sound-selector
+setups that end in `jp DispatchScriptOpcode`; the port had waited operand frames
+for both. They now run in the same pass and arm the driver: $24 a music fade-out
+(SoundSelectBit0), $20 the SoundCountdown sound or, with $C924 already set,
+Opcode21's request (`mn_sound_ops_test`). $1F now also writes the driver's
+$C92A/$C92C, so a fade starts from $0F.
 
 A pass is not a frame while FinishStartup's RunScriptLoop runs
 (run_script_record.asm): from $93, or the $30 spiral's `jp FinishStartup`, until
@@ -55,6 +63,12 @@ $40, $4C, $4D, $4E, $4F, $6B; nor do the pass ends $48, $13, $A9, $91, $4A, $80,
 $81, $03, $0D, $78 and $7E/$7F's cell steps, whose LCD-off path also skips the
 edge check (`mn_startup_passes_test`, `mn_edge_stall_test`). Polls that wait on
 another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a frame.
+
+wLCDC ($C936) is modelled in the VM: $E3 (LCDC_PLAY) from VM.new, 0 at $93
+(FinishStartup's TurnOffLCD), $E3 again where the port ends the startup loop ($94,
+$42/$12), and 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it.
+$44, $A0-$A4, the $D392 pass tail and Overworld:lcdOn read it, so a startup script
+takes the LCD-off branches as the asm does, not only map setup.
 
 ## Known divergences (intentional)
 
@@ -122,11 +136,11 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:613 |  |
 | $1E | SoundRequest4 | opcode_1e.asm | 0 | unused in decomp scripts | ops/Flow:404 |  |
 | $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:596 |  |
-| $20 | ArmCountdown | opcode_20.asm | 1 | ok | ScriptVM:674 |  |
+| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1) (mn_sound_ops_test) |
 | $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:454 |  |
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
-| $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
+| $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ops/Flow:460 | no frame: $C929 = hi nibble + 1, $C928 = 0, wSoundSelect = 1; the selector writes wSoundIndex $FF and SoundSelectBit0 fades $C92C down every $C929 frames, then drops the music gate; field music stops there (mn_sound_ops_test) |
 | $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | 04:6416 traced: InitWram7BeforeReset, LoopWhileD0D5, DispatchNonzeroD016, ContinueStartup ($2158); Reset is never reached. Every battle returns through the last $31 record ($D3CD win, $D3D0 loss) and restores [$C923] (mn_battle_director_test) |
 | $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73AC; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test). The port collects the op for its battle engine (director: one pass per $D3C2 raise) |
 | $27 | HaltClearD3C2 | opcode_27.asm | 0 | ok | ScriptVM:339 |  |
@@ -155,10 +169,10 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $3E | PlantLimitA8At6CB4 | plant_limit_a8_at_6cb4.asm | 0 | unused in decomp scripts | ops/Panels:501 |  |
 | $3F | PlantLimit1DAt6D5C | plant_limit_1d_at_6d5c.asm | 0 | ok | ops/Panels:502 |  |
 | $40 | ScriptByteCountdown | script_byte_countdown.asm | 1 | ok | ScriptVM:674 |  |
-| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:684 |  |
+| $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:754 | hMainLoopCounter holds during the startup loop and every other loop outside GameLoop (Grass.outsideMainLoop); phase 3 there dispatches with no frame; tests/engine/mn_startup_counter_test.lua |
 | $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 |  |
 | $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:705 |  |
-| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:614 |  |
+| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:684 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $45 | EnterScriptFromLookup | enter_script_from_lookup.asm | 3 | ok | ScriptVM:696 |  |
 | $46 | FollowScriptWord | follow_script_word.asm | 2 | ok | ScriptVM:360 |  |
 | $47 | PickScriptRecordByDividerMod | pick_script_record_by_divider_mod.asm | pick | pick: via MnRom:insn | ScriptVM:777 |  |
@@ -250,11 +264,11 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $9D | WaitC6EETwo | opcode_9d.asm | 0 | unused in decomp scripts | ops/Flow:321 |  |
 | $9E | FormatSRAMWord | opcode_9e.asm | 2 | ok | ops/Save:164 |  |
 | $9F | StageStripTextFromScript | stage_strip_text_from_script.asm | strip | strip: via MnRom:insn | ScriptVM:728 |  |
-| $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:395 |  |
-| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:396 |  |
-| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:397 |  |
-| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:638 |  |
-| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:616 |  |
+| $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:449 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:450 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:451 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:708 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:686 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $A5 | OrSramMaskWhenLookup | or_sram_mask_when_lookup.asm | expr_wb | expr_wb: via MnRom:insn | ScriptVM:725 |  |
 | $A6 | StoreLookupLowIntoSram | store_lookup_low_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:722 |  |
 | $A7 | StoreLookupWordIntoSram | store_lookup_word_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:722, ScriptVM:724 |  |

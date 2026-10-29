@@ -1,5 +1,6 @@
--- Script control-flow and record-install opcodes. vm.init stands in for wLCDC == 0
--- (the LCD-off map-setup run), the same convention as $A3/$A4 in ScriptVM.
+-- Script control-flow and record-install opcodes. The LCD-off ops read the
+-- modelled wLCDC ($C936) through vm:lcdOff(), as $44/$A3/$A4 in ScriptVM: 0 in
+-- map setup and in FinishStartup's loop, $E3 once the LCD is back on.
 -- A parked record returns nil so that run stops. Nothing here keeps ROM bytes.
 local bit = require("bit")
 local band, bor, bxor, lshift, rshift = bit.band, bit.bor, bit.bxor, bit.lshift, bit.rshift
@@ -58,7 +59,7 @@ local function branchWhenLCDOff(vm, o, n, cur)
     plant(vm, INITIAL, cur.bank, p)
     return o + n
   end
-  if vm.init then
+  if vm:lcdOff() then
     if set then storeCell(vm, cell, tileSet); return go(bank, ptr) end
     return cont(tileClr)
   elseif set then
@@ -75,7 +76,7 @@ end
 -- the set byte when the mask hits, the clear byte otherwise (StageBytePastFour).
 -- LCD on is BranchRecordBitsAfterParkedPlant, the same OR/XOR split as $A0.
 local function plantParkedWhenLCDOff(vm, o, n, cur)
-  if not vm.init then return branchWhenLCDOff(vm, o, n, cur) end
+  if not vm:lcdOff() then return branchWhenLCDOff(vm, o, n, cur) end
   local r = vm.rom
   local addr, mask = r:u16(o + 1), r:u8(o + 3)
   local tileSet, tileClr, cell = r:u8(o + 7), r:u8(o + 8), r:u16(o + 9)
@@ -95,7 +96,7 @@ local function branchParkedWhenLCDOff(vm, o, n, cur)
   local bank, ptr = r:u8(o + 4), r:u16(o + 5)
   local tile, cell = r:u8(o + 7), r:u16(o + 8)
   local set = masked(vm, addr, mask)
-  if vm.init then
+  if vm:lcdOff() then
     if not set then parkNow(vm); return nil end
     storeCell(vm, cell, tile)
     plant(vm, INITIAL, cur.bank, ptrOf(o + n))
@@ -130,7 +131,7 @@ M.copyToD392 = copyToD392
 -- RunScriptRecord, e.g. after the $30 wipe of a wild encounter) the passes run
 -- back to back with no frame between them (run_script_record.asm).
 function M.endD392Pass(vm)
-  if not vm.init and not vm.startupPending then coroutine.yield("wait", 1) end
+  if not vm:lcdOff() then coroutine.yield("wait", 1) end
 end
 
 -- opcode_32.asm: $C6D8 = 1, $C6D7 = $FF, first three operands to $C6DB-$C6DD
@@ -250,6 +251,45 @@ local function soundSelect2(vm, o, n)
   vm:wr8(0xC92A, 2)
   local h = vm.host
   if h and h.sfxSelect then h.sfxSelect(2, 0, lim, 0) end
+  return o + n
+end
+
+-- opcode_20.asm (opcode $24, labelled Opcode20): high nibble plus one to $C929,
+-- $C928 cleared, wSoundSelect ($C92A) = 1, then jp DispatchScriptOpcode, so the next op
+-- runs in the same pass (no frame). $C92C is left alone. At the next FinishFrame,
+-- SelectSoundCommand writes wSoundIndex := $FF and arms SoundSelectBit0 ($0684): every
+-- $C929 selector calls it steps $C92C down; at 0 or 1 it clears the select and drops
+-- the music gate ($57A0), i.e. a music fade-out. The driver (mn.sfx.Driver) runs it.
+local function soundSelect1(vm, o, n)
+  local e = vm.rom:u8(o + 1)
+  local lim = band(rshift(e, 4), 0x0F) + 1
+  vm:wr8(0xC929, lim)
+  vm:wr8(0xC928, 0)
+  vm:wr8(0xC92A, 1)
+  local h = vm.host
+  if h and h.sfxSelect then h.sfxSelect(1, 0, lim, nil) end -- nil: keep the driver's $C92C
+  return o + n
+end
+
+-- opcode_20_arm_countdown.asm (opcode $20): the operand is read either way. With
+-- wSoundCountdown ($C924) clear it sets $C924 = 2 and $C925 = operand: SelectSoundCommand
+-- then arms SoundCountdown ($072D), which saves the driver state and installs sound index
+-- $C925, and SoundCountdownIdle ($074F) restores it once that sound stops. With $C924 set,
+-- the jr lands inside `jp DispatchScriptOpcode` (ld h,[hl] / ld a,[bc]) and falls into
+-- Opcode21 ($0EBD): wSoundRequest ($C91F) = 1. Both paths dispatch the next op in the same
+-- pass (no frame). $C924 is the driver's (it counts it down), so it is read from there.
+local function armCountdown(vm, o, n)
+  local e = vm.rom:u8(o + 1)
+  local h = vm.host
+  local cd = (h and h.sfxByte) and h.sfxByte(0xC924) or vm:rd8(0xC924)
+  if cd == 0 then
+    vm:wr8(0xC924, 2)
+    vm:wr8(0xC925, e)
+    if h and h.sfxCountdown then h.sfxCountdown(e) end
+  else
+    vm:wr8(0xC91F, 1)
+    if h and h.sfx then h.sfx(1) end
+  end
   return o + n
 end
 
@@ -418,6 +458,8 @@ M.handlers[0x97] = reenterReset
 M.handlers[0x1E] = soundRequest4
 M.handlers[0x22] = soundSelect4
 M.handlers[0x23] = soundSelect2
+M.handlers[0x24] = soundSelect1
+M.handlers[0x20] = armCountdown
 M.handlers[0x2F] = copyD392Item
 M.handlers[0x2A] = copyD392Focus
 
