@@ -623,10 +623,15 @@ function VM:run(bank, ptr)
         else jump(0x22, 0x4074) end
       end -- MarkScriptDone21B2: wScriptDone ends the record
     elseif op == 0xA3 then
-      -- PlantParkedHandlerThenStage: SRAM flag word, mask, (bank, ptr), metatile,
-      -- WRAM-3 cell word. LCD off: flag set -> cell := metatile; park either way.
-      -- LCD on (A press): flag set -> (bank, ptr) ("nothing else here"); else
-      -- flag |= mask, cell := metatile, continue (PyBoy map 60 fireplace, 2B:403F).
+      -- PlantParkedHandlerThenStage ($25B4): SRAM flag word, mask, (bank, ptr),
+      -- metatile, WRAM-3 cell word. PlantScriptPtrReadSramByte (HL = 9) plants
+      -- hScriptPtr = record + 9 with INITIAL_SCRIPT_HANDLER. LCD off: flag clear ->
+      -- InstallParkedScript; set -> parked handler, StageBytePastThree stores the
+      -- metatile. LCD on (LCDOnBCSplitAfterParkedHandler $25D0): flag set ->
+      -- EnterScriptFromLookup on (bank, ptr); clear -> OrBCIntoSramBeforeStage
+      -- ($2674) ORs the mask in, StageBytePastThree stores the metatile (the
+      -- StoreEThroughWordInWram3 tail redraws the A cell, h.setMetatile), and the
+      -- script goes on at record + 9. tests/engine/mn_a3_parked_stage_test.lua.
       local W, m, b, p, mt, cell = r:u16(o + 1), r:u8(o + 3), r:u8(o + 4), r:u16(o + 5), r:u8(o + 7), r:u16(o + 8)
       local set = band(self:rd8(W), m) ~= 0
       if self.init then
