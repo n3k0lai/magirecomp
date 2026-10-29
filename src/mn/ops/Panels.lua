@@ -862,6 +862,88 @@ M.handlers[0x72] = function(vm, o, n, cur)
   return o + n
 end
 
+-- SetCCA6Countdown1C17 / 1C4A / 1BE4 ($76 $1C05, $77 $1C38, $7A $1BD2). Each sets
+-- $CCA6 to 1, plants its .stepCount handler and splits byte 1 (SaveScriptPtrAndSplitByte).
+-- .stepCount decrements $FFA6 and returns while it is nonzero; at zero the tail runs and
+-- joins StepBank7CallbackCountdown ($19E8), the same countdown as $72.
+local function cca6Countdown(vm, o, tail)
+  vm:wr8(0xCCA6, 1)
+  splitCountdown(vm, vm.rom:u8(o + 1), tail)
+end
+
+-- $76 tail ReloadFFA6StoreC9D8ApplyPanelRow ($1C1D): $C9D8 = byte 2, $C9DC = 1, then
+-- bank 7 ApplyPanelRowWords ($489D): the row $80 past $C72B + 8 * high nibble steps one
+-- channel unit toward the row itself, 4 * (low nibble + 1) words. A $6F fill followed by
+-- $76 is how the field fades back in from a colour.
+M.handlers[0x76] = function(vm, o, n, cur)
+  cca6Countdown(vm, o, function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    vm:wr8(0xC9DC, 1)
+    applyPanelRowWords(vm)
+    local h = vm.host
+    if h and h.panelRowStep then h.panelRowStep(0x76, vm:rd8(0xC9D8)) end
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- $77 tail ReloadWordThenStepEighty ($1C50): $C9D8 = byte 2, CopyNextScriptWordOrC9E5
+-- (bytes 3-4, or the $C9E5 word when bit 7 of byte 4 is set) into $C9DA, $C9DC = 1, then
+-- bank 7 StepStagedColorEightyPastRow ($48FD): $C831 = 0, the row $80 past the panel row
+-- steps toward the $C9DA word (StepColorWords), $C831 = 1. Nothing else: no $C9D8 rewrite,
+-- no $C7DB copy, no $C9E5 slot writes.
+M.handlers[0x77] = function(vm, o, n, cur)
+  cca6Countdown(vm, o, function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    takeColorWord(vm, vm.rom:u8(o + 3), vm.rom:u8(o + 4))
+    vm:wr8(0xC9DC, 1)
+    vm:wr8(0xC831, 0)
+    local row, words = panelGeom(vm)
+    stepColorWords(vm, row + 0x80, rd16(vm, 0xC9DA), words)
+    vm:wr8(0xC831, 1)
+    local h = vm.host
+    if h and h.panelRowStep then h.panelRowStep(0x77, vm:rd8(0xC9D8), rd16(vm, 0xC9DA)) end
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
+-- RotatePaletteColors ($07:45B2). Palette e of the 8-byte palettes at `base`.
+-- mode 3: colors 1,2,3 <- old 3,1,2. mode 4: colors 0,1,2,3 <- old 3,0,1,2.
+-- anything else swaps colors 2 and 3.
+local function rotatePalette(vm, base, e, mode)
+  local p = base + 8 * e
+  local c0, c1, c2, c3 = rd16(vm, p), rd16(vm, p + 2), rd16(vm, p + 4), rd16(vm, p + 6)
+  if mode == 4 then c0, c1, c2, c3 = c3, c0, c1, c2
+  elseif mode == 3 then c1, c2, c3 = c3, c1, c2
+  else c2, c3 = c3, c2 end
+  wr16(vm, p, c0); wr16(vm, p + 2, c1); wr16(vm, p + 4, c2); wr16(vm, p + 6, c3)
+end
+
+-- $7A tail StoreScriptBytePanelCall4870 ($1BEA): $C9D8 = byte 2, wPanelSlot ($C9D9) =
+-- byte 3, then bank 7 RotatePalettesEightyPastRow ($4870): $C831 = 0, $C9DA = low nibble
+-- + 1, and palettes count-1 down to 0 of the row $80 past the panel row rotate with mode
+-- wPanelSlot; $C831 = 1.
+M.handlers[0x7A] = function(vm, o, n, cur)
+  cca6Countdown(vm, o, function()
+    vm:wr8(0xC9D8, vm.rom:u8(o + 2))
+    vm:wr8(0xC9D9, vm.rom:u8(o + 3))
+    vm:wr8(0xC831, 0)
+    local row = panelGeom(vm) + 0x80
+    local count = band(vm:rd8(0xC9D8), 0x0F) + 1
+    vm:wr8(0xC9DA, count)
+    for e = count - 1, 0, -1 do
+      rotatePalette(vm, row, e, vm:rd8(0xC9D9))
+      vm:wr8(0xC9DA, e)
+    end
+    vm:wr8(0xC831, 1)
+    local h = vm.host
+    if h and h.panelRowStep then h.panelRowStep(0x7A, vm:rd8(0xC9D8)) end
+  end)
+  savePtr(vm, cur.ptr + n)
+  return o + n
+end
+
 -- StagePairPtrPanelThenCall35F1 ($1B3E). Slot 0 copies twelve words at
 -- $C72B; a nonzero slot copies them $18 bytes later. visual: not drawn yet.
 M.handlers[0x73] = function(vm, o, n, cur)
