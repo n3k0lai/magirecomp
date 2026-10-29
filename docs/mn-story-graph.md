@@ -108,8 +108,15 @@ Other 187 entries:
 | $19 | 15:6058 | 191-195: 15:5F5E |
 | $1A | 15:604A | 191-195: 15:5F5E |
 
-Selections on the story word (`4B`/`49`) for $0F-$1A: 134 12:7183, 135 17:6B34 / 1E:5B90 / 1E:69D9 ($0F, $10);
-255/277/278 1B:4E6E ($12-$14); 223/225 1D:489A ($17); 2/70 13:53D9, 35 23:7C2B / 28:53EF, 40 16:62E1 ($18-$1A).
+Selections on the story word (`4B`/`49`, and `43` with expr `0F 04 05 v`, story == v) for $0F-$1A: 134 12:7183,
+135 17:6B34 / 1E:5B90 / 1E:69D9 ($0F, $10); 255/277/278 1B:4E6E ($12-$14); 288 1A:4970 and 290 19:638C ($16);
+223/225 1D:489A ($17); 2/70 13:53D9, 35 23:7C2B / 28:53EF, 40 16:62E1, 61 14:50C8 ($18-$1A).
+
+- **Gauntlet neighbour 19:6386** (map 290's `$45` target from trigger `$C1` 1A:4B10): it sets `$A2B2` = 1 and,
+  when story == `$16` (the `43` at 19:638C), jumps to 19:63BF, which sets `$A3A3` = 5 and stages the gauntlet;
+  19:6477 then stores `$17`. Its sibling Unused_Script_19_62AA (the Thunder battle) has no caller.
+- **Post-game** is `$19`/`$1A` (15:5F5E, the stay choice on 191-195): `$A1A5` bit 1 (Orwin not cured) picks
+  `$19`, cured picks `$1A`. Nothing stores a later word.
 
 ## Unresolved
 

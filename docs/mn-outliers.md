@@ -120,27 +120,23 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
 ## Secrets and engines (fix/mn-secrets)
 
 Unresolved items from docs/mn-secrets.md and docs/mn-engines.md. None is guessed in the port.
+Resolved on fix/mn-secrets2 and removed from this list: Bolt and the other unsummoned ids
+(the ring forge, lifted), the sound test (unreferenced), the hidden `$B0` spots (Start-menu
+use of item `$2A`, SetupCommand4D), the `$11` scatter (PickMapCellFromDiv), `$38`/`$39`,
+`$76`/`$77`/`$7A`, the `$99`/`$9A`/`$9B` slides, `$4F` screen-space motion and the
+post-game (story `$19`/`$1A`).
 
-1. **Thunder Hyren (id 71)** is only summoned in Unused_Script_19_62AA, a bank-19 gauntlet no
-   map root reaches. Is it cut content, or entered from bank code still INCBIN?
-2. **Bolt Hyren (id 9)** has no `$2E` anywhere. Creatures can also come from bank-4 `$8E`
-   (CallBank4_5494, INCBIN); ids 55, 69, 84, 86-108 are in the same position.
-3. **Map 167** (Cave/Mush Hyren room) has no script warp in. Its only references are an
+1. **Thunder Hyren (id 71)**: obtainable through the forge, but its battle in
+   Unused_Script_19_62AA has no caller. Cut content: nothing in the ROM reaches it.
+2. **Map 167** (Cave/Mush Hyren room) has no script warp in. Its only references are an
    unused run at 10:4B2A-4B42 and word references at 15:6E0B and 59:5CC2.
-4. **Sound test** (bank 7 `$5997`/`$59CA`): the caller is INCBIN, so the way in is unknown.
-5. **Hidden `$B0` spots** (maps 101, 105, 108): what action `$2A` is has not been traced.
-6. **`$11` cave-in scatter** (`$0C7E` -> `$0C8F`, SC_PickMapCellFromDiv) is INCBIN; the port's
-   `Overworld.scatter` comes from PyBoy observation, not the asm.
-7. **`$29`, `$38`, `$39`, `$67`** hand off to INCBIN code; the port logs them. Reachable uses
-   of `$38` (02:4126, 51:5604) and `$9D` (7B:478F) sit inside map 40 at offsets that look like
-   data read as code (species 131 at 51:5614 too).
-8. **`$76`/`$77`/`$7A`** count `$FFA6` down and fall into an INCBIN tail; the port waits on the
-   last operand byte.
-9. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
+3. **`$29` and `$67`** have no use in any decoded script. `$29` is `jp $7449` in the current
+   script bank (a lone `ret` in bank 2, arbitrary bytes elsewhere); `$67` calls `$2F37`,
+   still INCBIN. The port logs both.
+4. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
    the port waits the worst case, 4 x (count + 1).
-10. **`$99`/`$9A`/`$9B` window slides**: the bank-7/bank-1 targets are INCBIN; the port uses its own
-    text-box timing. (`$6E`/`$6F` fades are no longer open: see Resolved 8.)
-11. **`$4F` offset lists** add dx/dy to the object cell each frame; the port's sprite model
-    applies them as cell steps, not fine-pixel motion. `Sprites.firstImage` takes the first
-    list image as the initial frame (assumption).
-12. **Post-game**: content gated after story `$1A` was not inventoried.
+5. **Map-40 data runs**: the reachable `$38` (02:4126, 51:5604) and `$9D` (7B:478F) uses and
+   species 131 at 51:5614 sit inside map 40 at offsets that look like data read as code.
+6. **Forge `$CD50`**: on the `$8E` path SpendNewEntryMeasures runs `[$CD50]` - 1 passes with
+   whatever `$CD50` holds; the port reproduces that, and which value the game has there at
+   each forge is not traced.

@@ -37,8 +37,8 @@ left/right/below siblings. The cell byte in WRAM bank 5 picks the engine.
 | Wait for a cell value | `$1A` Opcode1A polls WRAM3 `[[FF93]]` | `ScriptVM` | tested (`mn_standin_hop_test`) |
 | Chests | `$A4` PlantOffset7ThenStoreFF (247 reachable) | `ScriptVM` | tested (`mn_chest_test`) |
 | Item gives | `$87`/`$88` (66 reachable) | `ScriptVM`, `ops/Travel` | tested (`mn_chest_test`, `mn_energy_refill_test`, `mn_ops_travel_test`) |
-| Cave-in scatter | `$11` Opcode11 (`$0C7E`) -> `$0C8F` (INCBIN, SC_PickMapCellFromDiv) | `Overworld.scatter` (PyBoy-derived) | outlier |
-| Hidden `$B0` spots | map-entry fallback 19:4BE0 checks action `$2A` on a `$B0` cell (map 105); lone `$B0` cells on maps 101, 108 | none | outlier |
+| Cave-in scatter | `$11` Opcode11 (`$0C7E`) -> PickMapCellFromDiv: a cell from rDIV inside the camera view, matched against its WRAM-5 byte (MatchWRAM5ScriptByte) | `ScriptVM`, `Overworld.scatter` | tested (`mn_op11_test`) |
+| Hidden `$B0` spots | Start-menu use of item `$2A` on a `$B0` cell: SetupCommand4D (6:`$6DDF`) stores `$C724`/`$C725` and plants the `$95` fallback; 19:48F6 / 19:4BE0 / 19:4D5F (maps 101, 105, 108) | `ui/start/Machine`, `Overworld` | tested (`mn_command4d_test`) |
 
 The dispatcher's own comment leaves what `$C9A6` counts open. The port treats it as the
 upgrade level the story stores at `$A3A3` (docs/mn-story-graph.md); the thresholds 1, 2
@@ -56,10 +56,10 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Countdowns | `$20`/`$24` ArmCountdown, `$40` ScriptByteCountdown | `ScriptVM` | tested (`mn_kick_test`, `mn_op47_test`) |
 | Random idle pause | `$41` Bank1NibblePhaseCountdown: table[AddDividerStep & `$0F`], phase `(hMainLoopCounter & 3) == 3` | `ScriptVM` | tested (`mn_op47_test`); phase needs `h.frame` (outlier when absent) |
 | Split-byte countdowns | `$70`/`$71`/`$74` ($FFA7 low 6 x ($FFA6 high 2 + 1)) | `ScriptVM` | implemented |
-| `$CCA6` countdowns | `$76`/`$77`/`$7A` (`$1C17`/`$1C4A`/`$1BE4`): countdown then INCBIN tail | `ScriptVM` waits the last byte | outlier |
+| `$CCA6` countdowns | `$76`/`$77`/`$7A` (`$1C17`/`$1C4A`/`$1BE4`): SetCCA6 countdown, then the bank-7 tails | `ops/Panels` | tested (`mn_panel_tails_test`) |
 | Sprite list animation | `$4C` QueueRepeatedSpriteList, `$4D` StepScriptSpritePointerTable | `Sprites`, `ScriptVM` | tested (`mn_op4c4d_test`) |
 | Fine-step motion | `$4E` RepeatTwoScriptBytes (`$15AB`): count frames of (`$C6D2`, `$C6D3`) | `ScriptVM`, `Sprites.frames` | tested (`mn_op4e_test`) |
-| Offset sprite lists | `$4F` QueueRepeatedOffsetSpriteList (`$1643`) | `ScriptVM`, `Sprites` | tested (`mn_op4e_test`); cell vs fine motion is an outlier note |
+| Offset sprite lists | `$4F` QueueRepeatedOffsetSpriteList (`$1643`) | `ScriptVM`, `Sprites` | tested (`mn_op4e_test`, `mn_offset_list_test`): steps are raw screen X/Y with no wall test, first list drawn on the op's frame |
 | Object dormancy | `$05`, `$0C` set record bit 7, `$0B` clears it | `ScriptVM`, `Overworld` | tested (`mn_record_carry_test`, `mn_down_trigger_wake_test`) |
 | Thread sync (posts and waits) | `$53`-`$62` (C6F8-C6FD) | `ScriptVM` | tested (`mn_use_record_test`) |
 | Camera to the script base | `$82` CenterFineScrollOnScriptBase (`$1E30`): column/row = base - 5, fine = 8 | `h.centerCamera` | tested (`mn_door_rebase_test`, `mn_grass_test`) |
@@ -69,7 +69,7 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Camera seed | `$86` SeedCameraAndEnterLoop (`$20` camera box) | `ops/Travel` | tested (`mn_ops_travel_test`) |
 | Fades | `$6E` (bank 7 `$4850`), `$6F` (`$4837`) to/from a BGR555 colour; targets INCBIN | `h.fade` | outlier (fade curve) |
 | Palette colour | `$6C` StageColorWordThenCall5C00 | `ops/Panels` | tested (`mn_ops_panels_test`) |
-| Window | `$9B` open (proceeds when `$C6EE == 2`), `$9A` wait `$C6EE == 0`, `$99` FinishWindowYSlide, `$9D` wait `$C6EE == 2` | `ScriptVM`, `ops/Flow` | `$9D` tested (`mn_op9d_test`); `$99`/`$9A`/`$9B` implemented (box model; slide continuations INCBIN: outlier) |
+| Window | `$9B` open (proceeds when `$C6EE == 2`), `$9A` wait `$C6EE == 0`, `$99` FinishWindowYSlide, `$9D` wait `$C6EE == 2` | `ScriptVM`, `ops/Flow` | tested (`mn_op9d_test`, `mn_window_slide_test`): `$C6EE` 0/1/2, WY from the slide table, exact frame counts |
 | Music and sound | `$1B`/`$1C` slots, `$1D`/`$1E`/`$21` requests, `$1F` index, `$22`/`$23`/`$30` | `ScriptVM`, `SfxOut` | tested (`mn_sfx_test`, `mn_sfx_out_test`) |
 | Input lock | scripts run with the player frozen while the main record runs; `PollScriptLoopButtons` only toggles `$C9C7` on Start | `Overworld` | implemented |
 | Screen shake | none: no shake routine exists in the lifted asm (`scratch_through_shake_records.asm` is a move-name table) | n/a | none found |
@@ -84,6 +84,6 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Battle entry | `$25` LoadMapRecord, `$2E` creature setup, `$27` halt | `ScriptVM`, `battle/` | tested (`mn_battle_engine_test`, `mn_battle_director_test`) |
 | Startup / reset | `$93` FinishStartup, `$97` ReenterReset | `ScriptVM`, `ops/Flow` | tested (`mn_ops_flow_test`) |
 | LCD-off branches | `$A0`-`$A2` | `ops/Flow` | tested (`mn_ops_flow_test`) |
-| Unpack header + block | `$67` (`$2F37` INCBIN) | not implemented; 0 reachable uses | outlier |
-| Bank jump | `$29` `jp $7449` (INCBIN) | logged | outlier |
-| Record loop / `$1126` | `$38`, `$39` (targets INCBIN) | logged | outlier |
+| Unpack header + block | `$67` (`$2F37` INCBIN) | logged; no use in any decoded script | outlier (unused) |
+| Bank jump | `$29` `jp $7449` in the script bank (bank 2: a lone `ret`) | logged; no use in any decoded script | outlier (unused) |
+| Record loop / `$1126` | `$38` (C706 record, `$C9C6`/`$C9C7`-gated loop), `$39` pair countdown | `ops/Panels` | tested (`mn_record_loop_test`) |

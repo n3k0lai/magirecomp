@@ -234,6 +234,13 @@ def decode(rom, o):
             e["cases"] = cases
         if op == 0x43:
             e["to"] = "%02X:%04X" % targets[0] if targets else None
+            # `43` jumps when its expression is non-zero; kind 15 (LookupIndex15) is word
+            # equality and kind 4 (LookupIndex4) reads the story word at $A123, so
+            # `0F 04 05 v` / `0F 05 v 04` select story == v (e.g. the gauntlet entry 19:6386)
+            if e["to"] and len(r) == 3 and r[0] == ("cmp", 15) and ("story",) in r[1:]:
+                c = [x for x in r[1:] if x[0] == "const"]
+                if c:
+                    e["cases"] = [{"eq": c[0][1], "to": e["to"]}]
     elif op in (0xA0, 0xA1):
         e["flagtest"] = {"addr": u16(o + 1), "mask": u8(o + 3), "to": "%02X:%04X" % (u8(o + 4), u16(o + 5))}
         e["cell"] = {"addr": u16(o + 9), "set": u8(o + 7), "clr": u8(o + 8)}

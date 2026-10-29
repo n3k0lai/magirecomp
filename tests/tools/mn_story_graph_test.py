@@ -87,5 +87,20 @@ put(r, 0x33, 0x4600, [0x42])
 eff, bad = M.walk(M.Rom(bytes(r)), 0x33, 0x4000)
 ok(any(e.get("story_store") == 0x0D for e in eff), "8E pick path walks past its list")
 
+# `43` with expr 0F 04 05 v (LookupIndex15 equality of the story word, LookupIndex4, and a
+# byte) is a story selection: jump to 34:4700 when story == $16
+put(r, 0x34, 0x4000, [0x43, 0x0F, 0x04, 0x05, 0x16, 0x34, 0x00, 0x47, 0x42])
+put(r, 0x34, 0x4700, [0x42])
+eff, bad = M.walk(M.Rom(bytes(r)), 0x34, 0x4000)
+sel = [e for e in eff if e.get("cases")]
+ok(len(sel) == 1 and sel[0]["cases"] == [{"eq": 0x16, "to": "34:4700"}], "43 story equality is a selection")
+_, sels = M.story_chain({"maps": {9: {"scripts": {"34:4000": eff}, "entries": []}}})
+ok(sels.get(0x16) == [(9, sel[0]["at"], "34:4700")], "story chain lists the 43 selection")
+# a `43` on a flag is not a story selection
+put(r, 0x35, 0x4000, [0x43, 0x0F, 0x01, 0x26, 0xA1, 0x05, 0x16, 0x35, 0x00, 0x47, 0x42])
+put(r, 0x35, 0x4700, [0x42])
+eff, bad = M.walk(M.Rom(bytes(r)), 0x35, 0x4000)
+ok(not any(e.get("cases") for e in eff), "43 on a byte is not a story selection")
+
 print("mn_story_graph: %d failed" % fails)
 sys.exit(1 if fails else 0)
