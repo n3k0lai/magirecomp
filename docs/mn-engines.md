@@ -66,7 +66,7 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
   00 FF FF 00 FF FF FF FF back at $C12A. That is what ends a ride when a step trigger such as 2F:466C
   (C6 on 281) lands Tony back on 236 through 25:7129. The port does the same and also clears its own
   layer state.
-- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41`, `$5D47` or `$5B07` read the pad, so they are the
+- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41` or `$5B07` read the pad, so they are the
   player. 2F:466C fills slot 0 with `$5B41`. `$5B07` (21:78EB, 19:7D92) reads only A: no walk, and A
   always tests the cell above (4C6E). It still runs the `$82` countdown (4212).
 

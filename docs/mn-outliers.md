@@ -176,7 +176,13 @@ exits), the 5DB5 run head, and the `$4C`/`$4D` script frames. 5C7A's `$4C` table
 frame. A no longer dispatches on layer 1 (no layer-1 head reads `$C9A4` bit 0). Test:
 mn_layer_heads_test.
 
-1. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
+Resolved: **5D47** (mid ResumeOtherLeftCellScript). Planted as a slot-0 head with a sprite
+anim (16:7CF5, 19:7DA9, 1B:7B08), but bit 6 of $C9A3 with a stale hRecordHead/hScriptPtr
+always takes `.noSide`, so the dispatcher is not lifted. Port: drop the stand-in, hide Tony,
+hold him (turn, A, grass; no pad walk); `Walk.screenY` is nil. Test: mn_stale_head_test.
+
+1. **5D47 stale double commit.** After the hold above, a later commit can still fire twice
+   on the leftover head/script pair. Narrowed; not lifted.
 
 ## Secrets and engines (fix/mn-secrets)
 

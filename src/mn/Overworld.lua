@@ -29,10 +29,17 @@ local PixelWalk = require("mn.PixelWalk")
 local LayerHeads = require("mn.LayerHeads")
 local Motion = require("mn.Motion")
 local Walk = require("mn.Walk")
--- bank-1 record heads that read the pad (5B07: A only): a slot-0 record with one is the player
+-- bank-1 record heads that read the pad (5B07: A only; 5D47: stale mid-routine): a slot-0
+-- record with one is the player
 local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5D47] = true, [0x5B07] = true }
 -- 01:5B07: the player record held in place (no pad walk; A tests the cell above)
 local FROZEN_HEAD = 0x5B07
+-- 01:5D47: mid ResumeOtherLeftCellScript (bit 6 of $C9A3). Planted as slot-0 head with a
+-- sprite anim (16:7CF5, 19:7DA9, 1B:7B08), but hRecordHead/hScriptPtr are whatever the
+-- prior head left. The bit-6 path then always takes .noSide on that stale state, so the
+-- dispatcher is not lifted: hold Tony (turn, A, grass), hide him, screenY nil. The
+-- remaining outlier is a stale double commit (docs/mn-outliers.md).
+local STALE_HEAD = 0x5D47
 local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
 
 function M.new(mapIndex, x, y, input)
@@ -278,17 +285,21 @@ function M:host()
       -- the map 25 guardian duel, record $00,$5D81,5,5 with 20:50FB). $5B1E is the other
       -- pad head (bank 1 direction dispatch): 2F:44F9 plants it with 20:4F73 when the
       -- Ogar duel tail drops Tony on 279, and the duel's stand-in must go then too.
-      -- $5B41 (SelectSRAMBankThenDownMark, falls into ResumeDownClearHead $5B6E) and
-      -- $5D47 (inside ResumeOtherLeftCellScript: reads $C9A3 and plants the up / left /
-      -- right heads) are pad heads too: 2F:466C plants $5B41 with 20:5BCF when the boat
-      -- lands on 236 (sea trigger $C6), and Tony walks off it. $5B07 (21:78EB, 19:7D92
-      -- with 20:5BDF) is the player too, held in place: M:frozenPass
+      -- $5B41 (SelectSRAMBankThenDownMark, falls into ResumeDownClearHead $5B6E) is a
+      -- pad head: 2F:466C plants it with 20:5BCF when the boat lands on 236 (sea trigger
+      -- $C6), and Tony walks off it. $5B07 (21:78EB, 19:7D92 with 20:5BDF) is the player
+      -- held in place: M:frozenPass. $5D47 is mid ResumeOtherLeftCellScript: drop the
+      -- stand-in, hide Tony, hold him (M:stalePass).
       if slot == 0 and PAD_HEADS[handler] and anim then
         if s.objects[0] or s.hidePlayer then s.log[#s.log + 1] = ("player record at %d,%d"):format(s.x, s.y) end
-        s.objects[0] = nil; s.hidePlayer = false
+        s.objects[0] = nil
+        if handler == STALE_HEAD then
+          s.hidePlayer = true; s.padHead, s.pw = STALE_HEAD, nil
+        else
+          s.hidePlayer = false; s.padHead, s.pw = handler, nil
+        end
         -- the record's handler picks the head family; $5B41 is the conveyor family
         -- (mn.PixelWalk), started at fine 8,8 (FillScriptRecord0808) on first use
-        s.padHead, s.pw = handler, nil
         return
       end
       if slot ~= 0 or s.hidePlayer then
@@ -917,6 +928,7 @@ function M:update()
   if self.layer then return end
   if self.padHead == PixelWalk.HEAD then return self:pixelWalk(dir) end
   if self.padHead == FROZEN_HEAD then return self:frozenPass() end
+  if self.padHead == STALE_HEAD then return self:stalePass() end
   if not dir and (not self.aCool or self.aCool <= 0) and self.input("a") then
     self:pressA(); return
   end
@@ -982,8 +994,9 @@ end
 -- A pad head picks the head family; $5E10 (Opcode12) is the normal family.
 function M:setTonyHead(w)
   self.tonyHead = w ~= 0 and w or nil
-  if w == Walk.COMMIT then self.padHead, self.pw = nil, nil
-  elseif PAD_HEADS[w] then self.padHead, self.pw = w, nil end
+  if w == Walk.COMMIT then self.padHead, self.pw = nil, nil; self.hidePlayer = false
+  elseif w == STALE_HEAD then self.padHead, self.pw = STALE_HEAD, nil; self.hidePlayer = true
+  elseif PAD_HEADS[w] then self.padHead, self.pw = w, nil; self.hidePlayer = false end
 end
 
 -- 01:5B07 (slot-0 records 21:78EB and 19:7D92, script 20:5BDF): the player held in
@@ -997,6 +1010,19 @@ function M:frozenPass()
   self.bHeld = bh
   if started then return end
   if (not self.aCool or self.aCool <= 0) and self.input("a") then self:pressA("up") end
+end
+
+-- 01:5D47 (mid ResumeOtherLeftCellScript): no pad walk. A held direction turns Tony,
+-- A tests the cell he faces, grass still runs. He stays hidden (spawn set hidePlayer;
+-- Walk.screenY is nil), so WalkPointerSlots never ranks him by screen Y.
+function M:stalePass()
+  local dir = self.input("dir")
+  if dir and dir ~= self.facing then self.facing = dir end
+  local bh = self.bHeld; self.bHeld = nil
+  local started = Grass.walk(self)
+  self.bHeld = bh
+  if started then return end
+  if (not self.aCool or self.aCool <= 0) and self.input("a") then self:pressA(self.facing or "down") end
 end
 
 -- The conveyor head family ($5B41, mn.PixelWalk): fine steps every frame, the
