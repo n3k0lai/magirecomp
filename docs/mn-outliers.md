@@ -213,3 +213,9 @@ post-game (story `$19`/`$1A`).
 6. **Forge `$CD50`**: on the `$8E` path SpendNewEntryMeasures runs `[$CD50]` - 1 passes with
    whatever `$CD50` holds; the port reproduces that, and which value the game has there at
    each forge is not traced.
+7. **`rDIV` reads**: AddDividerStep (add_divider_step.asm, behind `$47` PickScriptRecordByDividerMod)
+   and PickMapCellFromDiv (01:4456) read the free-running divider. The port has no cycle counter, so
+   with no `h.div` the reads come from love.math.random (seeded by MN_SEED in the harness). The
+   arithmetic after the reads follows the asm. Any timing change shifts which record a `$47` picks:
+   after the f40dee7c merge, seed 4 picks 1A:45D9 (1 in 6) on map 156's 1A:45C5 step trigger, and
+   the road leg lands in 157 instead of 158.
