@@ -29,6 +29,7 @@ local PixelWalk = require("mn.PixelWalk")
 local LayerHeads = require("mn.LayerHeads")
 local Motion = require("mn.Motion")
 local Walk = require("mn.Walk")
+local MapCamera = require("mn.MapCamera")
 -- bank-1 record heads that read the pad (5B07: A only; 5D47/5B6E: PixelWalk idle family):
 -- a slot-0 record with one is the player
 local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5B6E] = true, [0x5D47] = true, [0x5B07] = true }
@@ -211,7 +212,14 @@ function M:host()
     frame = function() return s.vm:rd8(0xFFA8) end,
     -- $82 CenterFineScrollOnScriptBase ($1E30): wMapColumn/Row = $C18E/F - 5 and
     -- both fine bytes = 8, absolute, so an earlier $16/$83 scroll (camOff) is gone
-    centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply() end,
+    centerCamera = function()
+      -- logical camera (MapCamera): wMapColumn/Row = $C18E/F - 5, fine 8; the visible one
+      -- below is unchanged until the split lands (docs/mn-transitions.md)
+      local c, r -- $C18E/$C18F via the VM (the host's player cell); bare test worlds have none
+      if s.vm then c, r = s.vm:playerCell() end
+      if c and r then s.mapCam = MapCamera.center(c - 5, r - 5) end
+      s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply()
+    end,
     -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
     -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER (15 px in
@@ -219,6 +227,7 @@ function M:host()
     -- camera, so they move by (unclamped - clamped). Tavel Gorge: row 3 ->
     -- clamped 0, i.e. the kids' y=12 spawns land 3 rows up (emulator OAM).
     cameraCell = function(c, r)
+      s.mapCam = MapCamera.center(c, r) -- what $84 stores; the visible camera is still the port's below
       local W, H = s.def.w * 16, s.def.h * 16
       local ux, uy = c * 16, r * 16
       local cx = math.max(0, math.min(ux, (s.def.camCol or 99) * 16 + 15, W - 160))
@@ -487,6 +496,7 @@ function M:loadArea(i)
   local oldAtlas = lcdOn and self.map and love.filesystem.read(("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, self.map))
   if lcdOn then self:ringRecord() end
   self.def = Importer.loadMap(i); self.map = i
+  self.mapCam = MapCamera.origin() -- the $2F37 header unpack zeroes wMapColumn/Row and the fine bytes
   self.shown = {}; self.orig = {}
   for k, v in ipairs(self.def.cells or {}) do self.orig[k] = v end
   -- $65 LoadFiveBankedMapSources -> FillC72BFromBCThenBank7 ($2EC3): slot 0's
@@ -1345,6 +1355,7 @@ function M:panFrame()
     end
   end
   self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
+  if self.mapCam then MapCamera.step(self.mapCam, dx, dy) end -- the steps move $C85D-$C860 too
   local left = {}
   for _, p in ipairs(pans) do p[1] = p[1] - 1; if p[1] > 0 then left[#left + 1] = p end end
   self.pans = #left > 0 and left or nil

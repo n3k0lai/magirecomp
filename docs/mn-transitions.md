@@ -91,6 +91,108 @@ and those two store the column, row and fine bytes outright. So the port
 keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
 (test: mn_bg_ring_test).
 
+## Camera split (`$82`/`$84`, ClampMapCamera) - in progress on fix/mn-cam-split
+
+### What the asm keeps
+
+Two cameras, not one:
+
+- **Logical camera**: wMapColumn/wMapRow (`$C85F`/`$C860`) plus the fine bytes
+  `$C85D`/`$C85E` (0-15). `$82` (CenterFineScrollOnScriptBase, `$1E30`, from
+  `$C18E`/`$C18F`) and `$84` (CenterFineScrollOnScriptWord, `$1E8E`, from its
+  word) store cell - 5 (StoreMapCellFromDEMinus5, byte wrap) and fine 8
+  (FINE_SCROLL_CENTER) and nothing else. The `$2F37` header unpack (`$65`,
+  `$67`) zeroes all four.
+- **Visible scroll**: wCameraPixelX/Y (`$C935`/`$C934`, 8-bit), copied to
+  rSCX/rSCY by FlushQueuedScroll at VBlank. Overworld writers: ClampMapCamera
+  (rebuilds both as cell * 16 + fine) and the two scroll steps (add the
+  clamped delta, the same delta they add to the fine bytes). The bank 4
+  screens write their own values; they are not the field.
+- **Map pointer / seam address**: `$C861` and `$C863`/`$C864` are built only
+  by ClampMapCamera and moved by the steps. `$82`/`$84` leave them.
+
+ClampMapCamera (`clamp_map_camera.asm`) runs only from DrawMetatileWindow
+(FinishStartup, `$93`, LCD off) and SeedCameraAndEnterLoop. It pins: width 10
+-> column 0 fine 0 (bit 3); column 0 or >= width -> column 0 fine 0 (bit 2);
+column >= `$C845` -> `$C845` fine 15 (bit 1); `$C846` = `$FF` -> row 0 fine 0
+(bit 7); row 0 or >= `$C846` + 10 -> row 0 fine 0 (bit 6); row >= `$C846` ->
+`$C846` fine 15 (bit 5). A pin at limit 0 sets both bits of its axis. Fine 8
+survives only strictly inside the limits.
+
+QueueSpriteList draws an object at cell * 16 + fine - `$C935` (+8) and
+cell * 16 + fine - `$C934` (+16), 8-bit; it culls with the logical camera
+(cell in column-2..column+11, row-2..row+10). So with the LCD on, an `$82` or
+`$84` moves neither the BG nor the sprites; it moves the cull window, the next
+`$93` redraw, and where the steps' edge tests stop (they test the fine bytes
+and the `$C842` flags, not the pixels).
+
+### What the port does today
+
+`h.cameraCell` (`$84`) clamps at once, with fine 0 (cell * 16, capped at
+`camCol` * 16 + 15 and W - 160, `camRow` = 0 forced to pixel 0), sets the
+visible `camFix` at once, and moves every object but slot 0 by (unclamped -
+clamped) cells ("camera clamp shift", PyBoy-calibrated: Tavel Gorge kids
+row 3 -> 0, map 220 Tony keeps his cell). `h.centerCamera` (`$82`) unpins the
+camera so it follows Tony. `mapView` (`$11`) and `nudge` (`$7C`/`$7D`) read
+the visible `camFix`; `scrollDelta` edge tests read `cameraXY`. With the LCD
+on, `$82`/`$84` apply the BG ring ("BG map ring" above), which models a
+visible jump the asm reading above says does not happen.
+
+### Step 1 (done on the branch)
+
+`src/mn/MapCamera.lua`: `center` (`$82`/`$84` store), `origin` (`$2F37`),
+`step` (fine crossings into the column/row, byte wrap), `clamp`
+(ClampMapCamera with the `$C842` flags and the 8-bit pixel bytes), `limits`
+(def.w / camCol / camRow as `$C847`/`$C845`/`$C846`). Overworld records
+`self.mapCam`: `$84` (`cameraCell`), `$82` (`centerCamera`, from
+`vm:playerCell()`), `loadArea` (origin), `panFrame` (the applied step).
+Nothing reads it yet, so no output changes. Test: `mn_map_camera_test`.
+
+### Next steps
+
+1. Visible scroll as its own value (`camPix`, the `$C935`/`$C934` analogue):
+   only the `$93` redraw (`lcdOff` -> DrawMetatileWindow) sets it, from
+   `MapCamera.clamp(limits, mapCam)`, which also writes back the pinned
+   `mapCam`; the steps add to it. `$82`/`$84` with the LCD on stop touching
+   `camFix`/the ring. Keep the port's follow camera for walking (the walk
+   path sets the logical camera through the steps in the asm; check
+   `$2F37`/walk code before replacing `cameraXY`'s follow).
+2. `scrollDelta` edge tests against `mapCam` and the flags (`$C842`) instead
+   of the visible pixels.
+3. Sprite cull from `mapCam`; `mapView` from the `$C861` analogue (clamp or
+   steps only), `nudge` from `mapCam`.
+4. Drop the "camera clamp shift" and the `camRow == 0` override once the
+   check below agrees.
+
+### Calibration impact
+
+- **Tavel Gorge kids (`1F:500C`/`50CD`, map 219)**: today the port moves the
+  kids 3 rows up and keeps the view at row 0. By the asm reading, `$84
+  $0807` stores row 3 fine 8; a later `$93` would clamp it to row 0 fine 15
+  (row limit 0), i.e. `$C934` = 15, not 0, and the kids would keep their
+  cells. That does not by itself give PyBoy's picture (kids 3 rows up, on
+  screen), so before step 4: read `$C85F`/`$C860`/`$C85D`/`$C85E`/
+  `$C934`/`$C935`, the kids' records and LCDC in PyBoy (headless) right after
+  the `$84` and again after the next `$93`/`$94`. Until then the shift stays.
+  The `$16` carry model (kids stay on row 3, `mn_scroll_edge_test`) does not
+  depend on this: the camera is at the map top and the summed steps clamp
+  to 0 (checked in a headless intro run: no camera offset on map 219).
+- **Map 220 Tony** (row 25 after a 3-row walk from 28): slot 0 is exempt from
+  the shift; with the split nothing moves, so this needs the same PyBoy read.
+- **Eidon `13:58C2`** (8 cells right): the carry rides the applied step; if
+  step 2 changes which steps are refused, re-check the arrival cell.
+- **`mn_bg_ring_test`**: `cameraCell(10, 4)` -> `cameraXY` 160,64 and
+  `cameraCell(16, 0)` showing old ring slots encode the LCD-on jump; step 1
+  would make them `$84` stores with no visible move (fine 8 at the next
+  redraw: 168,72 with that test's fallback limits, `mn_map_camera_test`).
+- **`mn_scroll_edge_test`**, **`mn_nudge_test`**, **`mn_op11_test`**,
+  `mn_load65_test`, `mn_door_rebase_test`, `mn_pixelwalk_test`,
+  `mn_standin_pair_test`, `mn_pair_wram_test`, `mn_motion_test`: they set
+  or read `camFix`/`cameraXY`; each needs a look when the visible camera
+  changes owner.
+- **Seeds**: the default (map 2 -> 277) and chase (map 4) routes; run both
+  on the tree before any of steps 1-4 reaches master.
+
 ## Edge reload stall (`$7E`/`$7F`)
 
 StagedByteEdgeCheck runs Opcode03Continue (`01:4617`) on each staged cell. With
@@ -142,3 +244,5 @@ decoded script uses `$67`, so the difference is never reached.
 - The port camera follows the player (`cameraXY`); the ROM's absolute
   wMapColumn/wMapRow plus fine scroll are not reproduced pixel for pixel, so
   the latches come from 8 px crossings of the port camera.
+  `MapCamera` (see "Camera split") records the logical camera alongside;
+  nothing reads it yet.
