@@ -294,6 +294,14 @@ function VM:run(bank, ptr)
       -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant)
       local args = {}; for i = 1, n - 1 do args[i] = r:u8(o + i) end
       if h.battleOp and not self.init then h.battleOp(op, args) end
+      -- $2C Opcode2C (gift a ring): StoreScriptPairThenCall5D19 (2:$7477) puts the
+      -- id at $CD51 and the level count at $CD50, then AddSRAMEntryForOperand
+      -- (4:$5D19) writes the new ring entry (mn.ops.Forge). Map 59's starter gift
+      -- (14:79C6, 14:79E6, 14:7A06) is the reachable use.
+      if op == 0x2C and not self.init then
+        self:wr8(0xCD51, args[1]); self:wr8(0xCD50, args[2])
+        require("mn.ops.Forge").addEntry(self, r)
+      end
       o = o + n
     elseif op == 0x2B then -- Opcode2B: clear $D3C2; the stream steps again once the battle raises it
       local at = o
@@ -758,25 +766,39 @@ function VM:run(bank, ptr)
         -- A forge commits through CommitOtherChoiceFive (04:5CB3: $CD49 = 1) and
         -- AddSRAMEntryForOperand (counts it, id at $C726); the op returns and the
         -- planted pointer runs the bytes after the list.
-        -- The animite cost (the $A3A5 difference word) is not modelled.
+        -- A pick first runs TryAffordOtherChoice (04:5A5B) against the animite word
+        -- at $A3A5 and the stock bytes at $A4A6; a short pick shows the unaffordable
+        -- notice (04:5DF5, h.forgeDenied) and the window stays open. The commit pays
+        -- the costs and writes the SRAM ring entry and its $A118 slot (mn.ops.Forge).
+        -- MN_FORGE="2A" picks that ring id once (a short pick then cancels).
         if self.init then return end
         if self:rd8(0xA122) >= 0xD0 then jump(r:u8(o + 1), r:u16(o + 2))
         else
+          local Forge = require("mn.ops.Forge")
           local len, list = r:u16(o + 7), o + 9
           self:wr8(0xC726, 0xFF)
           self:wr8(0xCD49, 0)
-          -- MN_FORGE="2A": forge that ring id when the list offers it
-          local want = tonumber(os.getenv("MN_FORGE") or "", 16)
-          if not want and h.forge then want = h.forge(list, len) end
-          local id
-          for i = 0, r:u8(list) - 1 do
-            if r:u8(list + 1 + 8 * i) == want then id = want end
+          local env = tonumber(os.getenv("MN_FORGE") or "", 16)
+          local done, tries = false, 0
+          while not done do
+            local want
+            if env then want = tries == 0 and env or nil
+            elseif h.forge then want = h.forge(list, len) end
+            tries = tries + 1
+            local e
+            for i = 0, r:u8(list) - 1 do
+              if want ~= nil and r:u8(list + 1 + 8 * i) == want then e = Forge.entry(r, list, i) end
+            end
+            if not e then break end
+            if Forge.tryAfford(self, e) then
+              Forge.commit(self, r, e)
+              done = true
+            else
+              if h.forgeDenied then h.forgeDenied(e.id) end
+              if tries > 64 then break end
+            end
           end
-          if id then
-            self:wr8(0xCD49, 1)
-            self:wr8(0xC726, id)
-            self:wr8(0xA122, self:rd8(0xA122) + 1)
-            o = list + len
+          if done then o = list + len
           else jump(r:u8(o + 4), r:u16(o + 5)) end
         end
       else self:note(op); return end
