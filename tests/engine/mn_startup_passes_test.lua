@@ -5,6 +5,7 @@
 -- repeat_two_script_bytes.asm $4E, queue_repeated_offset_sprite_list.asm $4F,
 -- arm_copy_glyph_from_script.asm $6B) therefore costs no frame between $93 and the park.
 -- Record threads step from MainLoop's FinishFrame only, so they keep their passes.
+-- The same holds for handlers that end the pass (below).
 -- Synthetic bytes only.
 --   luajit tests/engine/mn_startup_passes_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
@@ -68,6 +69,40 @@ for i, sc in ipairs(scripts) do
   v3:spawnThread(2, 0x12, 0x4000 + 0x40 * i)
   v3:tickThreads(false)
   ok(v3:rd8(0xC6F8) == 0 and v3.startupPending, sc[2] .. ": a record thread still waits")
+end
+
+-- Pass ends: a handler that plants INITIAL_SCRIPT_HANDLER (or DispatchScriptOpcode) and
+-- rets ends the pass (plant_initial_script_handler.asm $48, opcode_13.asm $13,
+-- store_script_word_at_a123.asm $A9, branch_bank1_on_script_byte.asm $91,
+-- install_script_from_bc.asm $4A, write_script_bytes_across_wram_banks.asm $80 and
+-- opcode_0d.asm $0D through Opcode03Continue). In the startup loop the next pass is
+-- immediate.
+local ends = {
+  { "$48", { 0x48 } },
+  { "$13", { 0x13, 0x00, 0x50 } },
+  { "$A9", { 0xA9, 0x01, 0x00 } },
+  { "$91", { 0x91, 0x01 } },
+  { "$80", { 0x80, 0x00, 0x00, 0x00, 0xD0, 0x01, 0x02 } },
+  { "$0D", { 0x0D, 0x00, 0x00, 0x00, 0xD0, 0x01, 0x02 } },
+  { "$4A", { 0x4A, 0x12, 0x00, 0x48 } }, -- installs 12:4800 (post, park)
+}
+local at2 = { [0x4800] = { 0x56, 0x09, 0x42 } }
+for i, e in ipairs(ends) do
+  local b = {}
+  for _, v in ipairs(e[2]) do b[#b + 1] = v end
+  b[#b + 1] = 0x56; b[#b + 1] = 0x09; b[#b + 1] = 0x42
+  at2[0x5000 + 0x40 * i] = b
+end
+local rom2 = image(at2)
+for i, e in ipairs(ends) do
+  local vm = VM.new(rom2, {})
+  vm.startupPending = true
+  local live = vm:start(0x12, 0x5000 + 0x40 * i)
+  ok(not live and vm:rd8(0xC6F8) == 0x09 and not vm.startupPending, e[1] .. ": the next pass follows at once in the startup loop")
+  local v2 = VM.new(rom2, {})
+  ok(v2:start(0x12, 0x5000 + 0x40 * i) and v2:rd8(0xC6F8) == 0, e[1] .. ": with the LCD on the pass ends the frame")
+  v2.wait = nil; v2:resume()
+  ok(v2:rd8(0xC6F8) == 0x09, e[1] .. ": and the next op runs on the next pass")
 end
 
 print(("mn_startup_passes: %d checks, %d failures"):format(checks, failures))

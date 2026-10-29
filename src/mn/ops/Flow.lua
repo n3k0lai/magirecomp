@@ -200,7 +200,7 @@ local function installFromBC(vm, o, n)
   local b, p = vm.rom:u8(o + 1), vm.rom:u16(o + 2)
   vm:wr8(0xC6F4, 1)
   plant(vm, INITIAL, b, p)
-  if not vm.init then coroutine.yield("wait", 1) end
+  if not vm.init and not vm:inStartup() then coroutine.yield("wait", 1) end
   return off(p, b)
 end
 

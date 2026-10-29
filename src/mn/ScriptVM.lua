@@ -293,7 +293,7 @@ function VM:run(bank, ptr)
         -- $5D81 is the player-control handler: slot 0 hands control back to the pad
         if self.curSlot and h.setHandler then h.setHandler(self.curSlot, r:u16(o - 2)) end
         if self.curSlot == 0 and r:u16(o - 2) == 0x5D81 and h.release then h.release(0); return end
-        coroutine.yield("wait", 1)
+        if not self:inStartup() then coroutine.yield("wait", 1) end
       end
     elseif op == 0x30 then -- Opcode30: C840/C841 := b1,b2; b3 = sound index ($FF keeps)
       self:wr8(0xC840, r:u8(o + 1)); self:wr8(0xC841, r:u8(o + 2))
@@ -533,11 +533,11 @@ function VM:run(bank, ptr)
       end
       o = o + n
     elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
-    elseif op == 0x48 then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
+    elseif op == 0x48 then o = o + n; if not self.init and not self:inStartup() then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
     elseif op == 0x80 then -- WriteScriptBytesAcrossWramBanks: word, addr, bank-5 byte (collision), bank-3 byte (metatile)
       local a, col, mt = r:u16(o + 3), r:u8(o + 5), r:u8(o + 6)
       if h.setCell then h.setCell(a, col, mt) end
-      o = o + n; if not self.init then coroutine.yield("wait", 1) end
+      o = o + n; if not self.init and not self:inStartup() then coroutine.yield("wait", 1) end
     elseif op == 0x1A then -- Opcode1A: proceed once WRAM3[[FF93]] == byte (polls)
       local want, g = r:u8(o + 1), 0
       while h.cellByte and self:rd16(0xFF93) >= 0xD000 and h.cellByte(self:rd16(0xFF93)) ~= want and g < 600 and not self.init do g = g + 1; coroutine.yield("wait", 1) end
@@ -652,10 +652,10 @@ function VM:run(bank, ptr)
       for a = 0xA224, 0xA224 + 0x7E do self.mem[a] = nil end
       -- store_script_word_at_a123.asm plants INITIAL_SCRIPT_HANDLER and rets after
       -- the clear: the next op runs on the next pass
-      if not self.init then coroutine.yield("wait", 1) end
+      if not self.init and not self:inStartup() then coroutine.yield("wait", 1) end
     elseif op == 0x91 then -- BranchBank1OnScriptByte: plants INITIAL_SCRIPT_HANDLER, the fill, ret
       VM.fillSRAM(self, r:u8(o + 1)); o = o + n
-      if not self.init then coroutine.yield("wait", 1) end -- next op on the next pass
+      if not self.init and not self:inStartup() then coroutine.yield("wait", 1) end -- next op on the next pass
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
