@@ -19,18 +19,33 @@ local function firstList(rom, bank, ptr)
   end
 end
 
+-- First drawn image of a sequence: $4E steps carry no list, so a sequence that opens
+-- with one shows the image of its first list record.
+function M.firstImage(seq)
+  for _, f in ipairs(seq) do if f.img then return f.img end end
+end
+
 -- Full anim sequence: $4C/$4F records (count, b1, b2, list) until a $00
 -- count, $4D tables (n, count, b1, b2, n list words), $46 loops back.
 -- Returns { {n=frames, dx, dy, list}... }, loops
 function M.frames(rom, bank, ptr)
   local o = bank * 0x4000 + ptr - 0x4000
-  local out, seen, rep = {}, {}, nil
+  local out, seen = {}, {}
   for _ = 1, 32 do
     if seen[o] then return out, true end
     seen[o] = true
     local op = rom:u8(o)
-    if op == 0x4E then -- RepeatTwoScriptBytes (count, 2 bytes): the next record repeats count times
-      rep = rom:u8(o + 1); o = o + 4
+    if op == 0x4E then
+      -- RepeatTwoScriptBytes ($15AB): count frames of the fine step (b1 -> $C6D2 X,
+      -- b2 -> $C6D3 Y) with no new sprite list; a zero count is only the count byte
+      local c = rom:u8(o + 1)
+      if c == 0 then o = o + 2
+      else
+        local a, b = rom:u8(o + 2), rom:u8(o + 3)
+        if a >= 128 then a = a - 256 end; if b >= 128 then b = b - 256 end
+        out[#out + 1] = { n = c, dx = a, dy = b } -- list nil: the image already shown stays
+        o = o + 4
+      end
     elseif op == 0x4C or op == 0x4F then
       local q = o + 1
       while rom:u8(q) ~= 0 and #out < 64 do
@@ -39,7 +54,7 @@ function M.frames(rom, bank, ptr)
         -- b1/b2 go to $C6D2/$C6D3, the fine X/Y deltas (ApplyFineXThenFineY). PyBoy: Tony's
         -- inn get-up 20:5B0B (FE,F8 / FE,01 / ...) moves him one cell left, 17,5 -> 16,5
         local dx, dy = a, b
-        out[#out + 1] = { n = rom:u8(q) * (rep or 1), dx = dx, dy = dy, list = rom:u16(q + 3) }; rep = nil
+        out[#out + 1] = { n = rom:u8(q), dx = dx, dy = dy, list = rom:u16(q + 3) }
         q = q + 5
       end
       o = q + 1
@@ -122,11 +137,13 @@ function M.build(ow, o)
   seq.once = not loops
   o.seq, o.imgs, o.fi, o.ft, o.ox, o.oy, o.spent = seq, o.imgs or {}, 1, 0, o.ox or 0, o.oy or 0, nil
   for _, f in ipairs(seq) do
-    local key = abank * 65536 + f.list
-    if not o.imgs[key] then o.imgs[key] = M.drawList(ow, rom, abank, f.list, base) end
-    f.img = o.imgs[key]
+    if f.list then
+      local key = abank * 65536 + f.list
+      if not o.imgs[key] then o.imgs[key] = M.drawList(ow, rom, abank, f.list, base) end
+      f.img = o.imgs[key]
+    end
   end
-  o.image = seq[1].img
+  o.image = M.firstImage(seq) or o.image
   if o.sched then
     o.seqs, o.si, o.st = {}, 1, 0
     for k, e in ipairs(o.sched) do
@@ -134,15 +151,15 @@ function M.build(ow, o)
       if #sq == 0 then local lp = firstList(rom, e[1], e[2]); sq = lp and { { n = 1, dx = 0, dy = 0, list = lp } } or seq
       else sq.once = not lo end
       for _, f in ipairs(sq) do
-        local key = e[1] * 65536 + f.list
-        if not f.img then
+        local key = e[1] * 65536 + (f.list or 0)
+        if not f.img and f.list then
           if not o.imgs[key] then o.imgs[key] = M.drawList(ow, rom, e[1], f.list, base) end
           f.img = o.imgs[key]
         end
       end
       o.seqs[k] = sq
     end
-    o.seq = o.seqs[1]; o.image = o.seq[1].img or o.image
+    o.seq = o.seqs[1]; o.image = M.firstImage(o.seq) or o.image
   end
   return o
 end

@@ -451,6 +451,15 @@ function VM:run(bank, ptr)
       while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
       o = q + 1
       if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+    elseif op == 0x4F then
+      -- QueueRepeatedOffsetSpriteList ($1643): (count, dx, dy, list) records until a zero count,
+      -- like $4C, but each frame clears $C6D2/$C6D3 and adds dx/dy to the object's cell bytes
+      -- itself; the script goes on after the sum of the counts (the zero count runs this pass)
+      local q, tot = o + 1, 0
+      while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
+      o = q + 1
+      if tot > 0 then self:wr8(0xC6D2, 0); self:wr8(0xC6D3, 0) end
+      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
     elseif op == 0x4D then -- StepScriptSpritePointerTable ($15E8): (size, count, b1, b2, size bytes of
       -- list words); each entry is stepped count frames (count 0 wraps to 256), then the script goes on
       local size, cnt = r:u8(o + 1), r:u8(o + 2)
@@ -458,6 +467,17 @@ function VM:run(bank, ptr)
       o = o + 5 + size
       local tot = math.max(1, math.floor(size / 2)) * cnt
       if not self.init then coroutine.yield("wait", tot) end
+    elseif op == 0x4E then
+      -- RepeatTwoScriptBytes ($15AB, repeat_two_script_bytes.asm): count, b1, b2. Zero count
+      -- goes straight back to the dispatcher with BC just past the count (n = 2), so b1/b2 run
+      -- as opcodes. Otherwise b1 -> $C6D2 and b2 -> $C6D3 (the record's fine X/Y step) once a
+      -- frame for count frames, the first in this frame; the script goes on past b2 after that.
+      local cnt = r:u8(o + 1)
+      if cnt > 0 then
+        self:wr8(0xC6D2, r:u8(o + 2)); self:wr8(0xC6D3, r:u8(o + 3))
+        if not self.init then coroutine.yield("wait", cnt) end
+      end
+      o = o + n
     elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
     elseif op == 0x48 then o = o + n; if not self.init then coroutine.yield("wait", 1) end -- PlantInitialScriptHandler: resume next pass
     elseif op == 0x80 then -- WriteScriptBytesAcrossWramBanks: word, addr, bank-5 byte (collision), bank-3 byte (metatile)
