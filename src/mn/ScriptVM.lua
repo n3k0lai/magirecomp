@@ -729,8 +729,11 @@ function VM:run(bank, ptr)
         if h.boxClose then h.boxClose() end
         if c > 0 then jump(r:u8(o + 2 + 3 * k), r:u16(o + 3 + 3 * k)) else return end
       elseif op == 0x47 then
-        -- $47 PickScriptRecordByDividerMod: hardware divider mod count (random)
-        local c = r:u8(o + 1); local k = (c > 0 and self.curSlot and not self.init) and love.math.random(0, c - 1) or 0
+        -- $47 PickScriptRecordByDividerMod ($1484): AddDividerStep mixes two rDIV samples
+        -- into hDividerAccum ($FFA9, step -3..+4); the record is (accum & $0F) mod count.
+        -- rDIV is the free-running divider: h.div() when the host has one, else random.
+        local c = r:u8(o + 1); local k = 0
+        if c > 0 and not self.init then k = VM.dividerPick(self, c) end
         if c > 0 then jump(r:u8(o + 2 + 3 * k), r:u16(o + 3 + 3 * k)) else return end
       elseif op == 0x8E then
         -- $8E CallBank4_5494ThenEnterScript (ring forge): (full record, cancel record,
@@ -777,5 +780,24 @@ function VM:recordName(cat, id)
   for i = 0, 12 do t[#t + 1] = string.char(self.rom:u8(o + i)) end
   return (table.concat(t):gsub(" +$", ""))
 end
+
+-- AddDividerStep ($FFA9 += ((swap(DIV1) sra 1) + DIV2) & 7 - 3) then the low nibble
+-- mod count, as pick_script_record_by_divider_mod.asm / add_divider_step.asm.
+function VM.dividerStep(acc, div1, div2)
+  local sw = bit.bor(bit.rshift(div1, 4), bit.band(bit.lshift(div1, 4), 0xF0))
+  local e = bit.bor(bit.rshift(sw, 1), bit.band(sw, 0x80)) -- sra a
+  local step = (bit.band(e + div2, 7) - 3) % 256
+  return (acc + step) % 256
+end
+
+function VM.dividerPick(vm, count)
+  local h = vm.host or {}
+  local div = h.div or function() return love.math.random(0, 255) end
+  local a = VM.dividerStep(vm:rd8(0xFFA9), div(), div())
+  vm:wr8(0xFFA9, a)
+  return bit.band(a, 0x0F) % count
+end
+
+
 
 return VM
