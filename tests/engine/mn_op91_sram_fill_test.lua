@@ -53,5 +53,16 @@ v2:start(0x12, 0x4010)
 ok(v2:rd8(0xA118) == 0x5A and v2:rd8(0xA122) == 0x5A, "a nonzero byte keeps the rings")
 ok(v2:rd8(0xA123) == 0 and v2:rd8(0xA6A3) == 0 and v2:rd8(0xA6A4) == 0x5A, "a nonzero byte clears $A123-$A6A3")
 ok(v2.sramBanks[1] == string.rep("\7", 0x2000), "a nonzero byte leaves the next bank alone")
+
+-- a new game without a save image: the next bank is still a separate bank, so the
+-- 02:4799 copy and the $A025 fill land there and not in the live bank
+local v3 = VM.new(rom, {})
+v3:wr8(0xA000, 0x5A); v3:wr8(0xA025, 0x5A); v3:wr8(0xA6A4, 0x5A)
+v3:start(0x12, 0x4000)
+ok(v3.sramBanks ~= nil and v3.sramBank == 2, "an image-less VM gets its SRAM banks (wSRAMBank 2)")
+local i3 = v3.sramBanks and v3.sramBanks[3] or ""
+ok(i3:byte(1) == 0x40 and i3:byte(0x1F) == 0x5E, "image-less: 02:7646 goes to $A000 of bank 3")
+ok(i3:byte(0x26) == 0xFF and i3:byte(0x25 + 0x1E10) == 0xFF, "image-less: $A025-$BE34 of bank 3 are $FF")
+ok(v3:rd8(0xA000) == 0x5A and v3:rd8(0xA025) == 0 and v3:rd8(0xA6A4) == 0x5A, "image-less: the live bank only gets its own fills")
 print(("mn_op91_sram_fill: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)

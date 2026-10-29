@@ -856,7 +856,7 @@ function VM:run(bank, ptr)
 end
 
 -- $91 BranchBank1OnScriptByte (branch_bank1_on_script_byte.asm). The live SRAM bank is
--- vm.mem; bank wSRAMBank + 1 is the vm.sramBanks image when there is one.
+-- vm.mem; bank wSRAMBank + 1 is the vm.sramBanks image (Save.banks makes one if needed).
 -- Zero (FillSRAMAfterZeroScriptByte, 01:466D): $00 over $068B bytes at $A019, $FF over
 -- the ten sEntryIds at $A118, $FF over $1E10 bytes at $A025 in the next bank, then
 -- Copy7646IntoNextSRAMBank (02:4799): the $1F bytes at 02:7646 go to sEntryBase
@@ -867,9 +867,12 @@ function VM.fillSRAM(vm, b)
   if b ~= 0 then fill(0xA123, 0x0581, 0); return end
   fill(0xA019, 0x068B, 0)
   fill(0xA118, 0x000A, 0xFF)
-  local nb = (vm.sramBank or 0) + 1
-  local img = vm.sramBanks and vm.sramBanks[nb]
-  if img then
+  -- the next bank is always a separate bank on the cartridge, so a new game without a
+  -- save image gets one here instead of skipping 02:4799 and the $A025 fill
+  Save.banks(vm)
+  local nb = vm.sramBank + 1
+  local img = vm.sramBanks[nb] or ""
+  do
     local t = {}
     for i = 0, 0x1E do t[#t + 1] = string.char(vm.rom:u8(off(0x7646 + i, 2))) end
     local head = table.concat(t)
