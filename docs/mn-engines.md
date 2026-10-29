@@ -98,6 +98,9 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Door / warp | `$02` pair (new = old - lo + hi), `$00` copies it, `$65` loads the map (LoadFiveBankedMapSources) | `ScriptVM`, `Overworld` | tested (`mn_door_rebase_test`, `mn_trigger_live_test`) |
 | Map records | `$69`, `$6A` CallScriptMapRecordsThenFillC72B, `$68` unpack to WRAM 4/6 | `ScriptVM`, `ops/Records` | tested (`mn_ops_travel_test`, `mn_ops_records_test`) |
 | Travel / ferry menus | `$8B`, `$8C`, `$8D`, `$8F`, `$90` | `ops/Travel` | tested (`mn_ops_travel_test`, `mn_ui_shop_test`) |
+| Battle entry | `$25` -> bank 4 `$6416`: TurnOffLCD (a cut, no fade), the intro record runs until `$C708` clears, then bank 2 `$5E6D` | `Battle.new` | implemented: no fade on entry |
+| Battle exit | DispatchNonzeroD016 (02:6316): a loss (`$D016` = 3) fills all 16 palettes' target with `$7FFF` ($07:4850, `$C9D8` = `$0F`) and runs `$20` passes of ApplyPanelRowWords at one channel unit a pass, a frame each; a win, an escape or any other code goes straight to TurnOffLCD; then the `$D3CD` (or `$D3D0` on a loss) script continues | `Battle:finish` | tested (`mn_battle_exit_fade_test`): the old 20-frame alpha fade was a guess |
+| Battle animations | move and summon animations are bank `$4C` scripts staged by StagePointerUnlessD0B6Matches and run by RunStagedPointerScript (04:71ED, LCD off first; B skips through HandleScriptLoopB) | none | outlier: the port does not run them; the 8-frame white on a summon is a stand-in |
 | Battle entry | `$25` LoadMapRecord, `$2E` creature setup, `$27` halt | `ScriptVM`, `battle/` | tested (`mn_battle_engine_test`, `mn_battle_director_test`) |
 | Startup / reset | `$93` FinishStartup, `$97` ReenterReset | `ScriptVM`, `ops/Flow` | tested (`mn_ops_flow_test`) |
 | LCD-off branches | `$A0`-`$A2` | `ops/Flow` | tested (`mn_ops_flow_test`) |

@@ -424,8 +424,18 @@ function M:script()
   self:finish(s.result == "escape" and "run" or s.result)
 end
 
+-- DispatchNonzeroD016 (02:6316): only a loss ($D016 = 3) fades. FillPanelWordsFromC9DA
+-- ($07:4850) puts $7FFF in all sixteen palettes ($C9D8 = $0F), then $20 passes of
+-- ApplyPanelRowWords ($07:489D) step every channel one unit toward white ($C9DC = 1),
+-- a frame each. A win, an escape or any other code goes straight to TurnOffLCD.
+-- One unit per channel is a saturating add of k/31, so the overlay is drawn additively.
+M.LOSS_WHITE_PASSES = 0x20
+function M:whiteSteps(n)
+  for k = 1, n do self.whiteAdd = math.min(k, 31) / 31; coroutine.yield() end
+end
+
 function M:finish(result)
-  self:fade(20)
+  if result == "loss" then self:whiteSteps(M.LOSS_WHITE_PASSES) end
   local s = self.state
   if not M.GOD then
     self.ow.tonyEnergy = math.max(1, s.tonyEnergy or Engine.rw(s, 0xD14E))
@@ -513,6 +523,10 @@ end
 
 function M:drawWhite()
   if self.white then love.graphics.setColor(1, 1, 1, self.white); love.graphics.rectangle("fill", 0, 0, 160, 144); love.graphics.setColor(1, 1, 1, 1) end
+  if self.whiteAdd then
+    love.graphics.setBlendMode("add"); love.graphics.setColor(self.whiteAdd, self.whiteAdd, self.whiteAdd, 1)
+    love.graphics.rectangle("fill", 0, 0, 160, 144); love.graphics.setColor(1, 1, 1, 1); love.graphics.setBlendMode("alpha")
+  end
 end
 
 return M
