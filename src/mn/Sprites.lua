@@ -20,7 +20,9 @@ local function firstList(rom, bank, ptr)
 end
 
 -- First drawn image of a sequence: $4E steps carry no list, so a sequence that opens
--- with one shows the image of its first list record.
+-- with one shows the image of its first list record. $4C/$4F queue their first record's
+-- list in the op's own frame (the count is read and .step falls through), so that list
+-- is what shows first.
 function M.firstImage(seq)
   for _, f in ipairs(seq) do if f.img then return f.img end end
 end
@@ -54,7 +56,12 @@ function M.frames(rom, bank, ptr)
         -- b1/b2 go to $C6D2/$C6D3, the fine X/Y deltas (ApplyFineXThenFineY). PyBoy: Tony's
         -- inn get-up 20:5B0B (FE,F8 / FE,01 / ...) moves him one cell left, 17,5 -> 16,5
         local dx, dy = a, b
-        out[#out + 1] = { n = rom:u8(q), dx = dx, dy = dy, list = rom:u16(q + 3) }
+        -- $4F (queue_repeated_offset_sprite_list.asm) is different: it clears $C6D2/$C6D3
+        -- and adds dx/dy to hObjectCellX/Y itself, then QueueSpriteListAtCell ($0610 ->
+        -- $0618) uses those bytes as raw screen X/Y: dx/dy px a frame in screen space,
+        -- with no cell window and no wall test. The first step (and its list) is drawn on
+        -- the op's own frame, so the first list is the start image.
+        out[#out + 1] = { n = rom:u8(q), dx = dx, dy = dy, list = rom:u16(q + 3), screen = op == 0x4F or nil }
         q = q + 5
       end
       o = q + 1
@@ -225,7 +232,7 @@ function M.tick(o, canEnter)
       -- objects stop at blocked cells (Tavel Gorge kids halt at the cave wall)
       local tx = o.x + (nx >= 16 and 1 or nx <= -16 and -1 or 0)
       local ty = o.y + (ny >= 16 and 1 or ny <= -16 and -1 or 0)
-      if (tx ~= o.x or ty ~= o.y) and canEnter and not canEnter(tx, ty) then nx, ny = o.ox, o.oy end
+      if (tx ~= o.x or ty ~= o.y) and canEnter and not f.screen and not canEnter(tx, ty) then nx, ny = o.ox, o.oy end
       o.ox, o.oy = nx, ny
     end
     while o.ox >= 16 do o.ox = o.ox - 16; o.x = o.x + 1 end
