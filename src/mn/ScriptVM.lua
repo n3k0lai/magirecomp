@@ -163,6 +163,35 @@ function VM:inStartup()
   return self.startupPending and self.co ~= nil and coroutine.running() == self.co or false
 end
 
+-- $41 off phase 3 inside FinishStartup's RunScriptLoop, pass by pass as the asm runs it:
+-- hScriptHandler is .resume, which returns while (hMainLoopCounter & 3) ~= 3; then the
+-- callback at wCallback runs; the loop ends only when wScriptDone ($C705) is nonzero.
+-- No pass ticks $FFA8 (only MainLoop's $02E9 store does) and IdleCallback ($29A4) only
+-- plants itself again, so with the idle callback the asm never leaves this loop.
+-- The port has no callback interpreter here, so each pass re-reads the counter and
+-- $C705 (the only state the asm loop tests) and stops after VM.SPIN41_GUARD passes so
+-- a headless run cannot hang; it then logs the outlier and keeps the field wait.
+-- Returns the count left for the caller's wait, or nil when the spin ended by the phase.
+VM.SPIN41_GUARD = 4096
+function VM:startupSpin41(h, cnt)
+  local passes = 0
+  while passes < VM.SPIN41_GUARD do
+    passes = passes + 1
+    if band(h.frame(), 3) == 3 then
+      -- .resume passes on this pass; the count runs down one pass each, back to back
+      self.spin41 = passes; return nil
+    end
+    if self:rd8(0xC705) ~= 0 then self.spin41 = passes; return cnt end
+  end
+  self.spin41 = passes
+  local cb = self:rd8(0xC6E4) + 256 * self:rd8(0xC6E5)
+  local m = ("[vm] $41 in the startup loop off phase 3: counter %d frozen, callback $%04X, wScriptDone 0;"
+    .. " the asm spins here (outlier); guard released after %d passes, port waits")
+    :format(h.frame(), cb, passes)
+  self.log[#self.log + 1] = m; print(m)
+  return cnt
+end
+
 function VM:rd8(a) return self.mem[a] or 0 end
 -- $C18E/$C18F (slot 0 record $C189 +5/+6): the host's live player cell, else WRAM
 function VM:playerCell()
@@ -764,10 +793,7 @@ function VM:run(bank, ptr)
       if not self.init then
         local cnt = r:u8(off(base + bit.band(VM.dividerNext(self), 0x0F), 1))
         if self:inStartup() and h.frame and band(h.frame(), 3) == 3 then cnt = nil
-        elseif self:inStartup() then
-          local m = ("[vm] $41 in the startup loop off phase 3: the asm spins here (outlier), port waits")
-          self.log[#self.log + 1] = m; print(m)
-        end
+        elseif self:inStartup() and h.frame then cnt = self:startupSpin41(h, cnt) end
         local w = cnt and (h.frame and ((3 - h.frame()) % 4 + 4 * cnt) or 4 * (cnt + 1)) or 0
         if w > 0 then coroutine.yield("wait", w) end
       end
