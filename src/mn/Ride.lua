@@ -23,9 +23,10 @@
 -- them), and the $65A4 step-on gate compares records against that cell (ow.rec0).
 -- With no direction held the head's idle tail is picked by hRecordHead & 3, the
 -- boat record's opening byte. Opcode05 skips that byte, so the first idle facing
--- is whatever the slot last held; the port does not mirror record byte 0.
+-- is whatever the slot last held (ow.recByte0, see mn.Walk.take).
 local World = require("mn.World")
 local Sprites = require("mn.Sprites")
+local Walk = require("mn.Walk")
 
 local M = {}
 
@@ -37,18 +38,8 @@ M.FACING = { up = 0, left = 1, right = 2, down = 3 }
 M.ANIM = { up = { 0x11, 0x780A }, left = { 0x11, 0x7822 }, right = { 0x11, 0x782E }, down = { 0x11, 0x7816 } }
 local DIRS = { up = { 0, -1 }, down = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
 
--- GateCellNearFirstRecord (01:641D): b,c the record's cell, d,e the
--- player's, facing 0 up / 1 left / 2 right / 3 down. The same cell always
--- passes; otherwise the player stands on the record's column (up / down) or
--- next to it within a row either way (left / right).
-function M.near(facing, b, c, d, e)
-  if d == b and e == c then return true end
-  if facing == 0 then return d == b and (e == c or e == c + 1) end
-  if facing == 3 then return d == b and (e == c - 1 or e == c) end
-  if facing == 1 then return (d == b or d == b + 1) and e >= c - 1 and e <= c + 1 end
-  if facing == 2 then return (d == b - 1 or d == b) and e >= c - 1 and e <= c + 1 end
-  return false
-end
+-- GateCellNearFirstRecord (01:641D) window, byte arithmetic included (mn.Walk).
+M.near = Walk.near
 
 -- The awake record whose head is $60E7, if any.
 function M.rider(ow)
@@ -66,10 +57,26 @@ function M.sync(ow)
   ob.hx, ob.hy = nil, nil
 end
 
+local NAMES = { [0] = "up", "left", "right", "down" }
+
+-- Record byte 0 bits 0-1 (hRecordHead & 3): the direction heads write the facing back.
+function M.setByte0Facing(ow, slot, dir)
+  ow.recByte0 = ow.recByte0 or {}
+  local b = ow.recByte0[slot] or 0
+  ow.recByte0[slot] = b - b % 4 + M.FACING[dir]
+end
+
+-- The facing the record's byte 0 holds, nil when the port never saw the slot linked.
+function M.byte0Facing(ow, slot)
+  local b = ow.recByte0 and ow.recByte0[slot]
+  return b and NAMES[b % 4] or nil
+end
+
 -- A direction head replaces the record's script with its anim.
 local function face(ow, slot, ob, dir)
   if ob.rideFacing == dir and ob.anim then return end
   ob.rideFacing = dir
+  M.setByte0Facing(ow, slot, dir)
   if ow.vm.threads then ow.vm.threads[slot] = nil end
   local a = M.ANIM[dir]
   ob.anim, ob.sched = { a[1], a[2] }, nil
@@ -87,7 +94,11 @@ function M.tick(ow)
     ow.rec0 = { ow.x, ow.y } -- $C18E/$C18F as the mount finds them
     ow.riding = slot; ob.driven = true
     ow.x, ow.y = ob.x, ob.y; ow:snap(); ow.moving = nil; ow.hidePlayer = true; ow.camFix = nil
-    if ob.rideFacing then ow.facing = ob.rideFacing end
+    -- the idle tail is picked by byte 0 & 3: $40 from TakePointerSlot (up) for a newly
+    -- linked record, else what the slot held last
+    local res = M.byte0Facing(ow, slot)
+    if res then ow.facing = res
+    elseif ob.rideFacing then ow.facing = ob.rideFacing end
     ow.log[#ow.log + 1] = ("ride slot %d at %d,%d"):format(slot, ob.x, ob.y)
   end
   local dir = ow.input("dir")
@@ -116,36 +127,6 @@ function M.tick(ow)
   M.sync(ow); return true
 end
 
--- GateCellNearFirstRecord (01:641D) for every parked boat, in slot order (records run
--- in slot order; $6405 does not set wRecordState, so it does not block a later one).
--- The $FFAB bit 2 latch comes from any A dispatch: the faced cell is not tested.
-function M.find(ow)
-  local vm = ow.vm
-  if vm:rd8(0xC6EE) ~= 0 or vm:rd8(0xC716) ~= 0 then return nil end
-  local fa = M.FACING[ow.facing or "down"]
-  local slots = {}
-  for slot in pairs(ow.objects) do if type(slot) == "number" then slots[#slots + 1] = slot end end
-  table.sort(slots)
-  for _, slot in ipairs(slots) do
-    local ob = ow.objects[slot]
-    if ob.handler == M.PARKED and not ob.dormant and ob.tail and M.near(fa, ob.x, ob.y, ow.x, ow.y) then return slot end
-  end
-end
-
--- PlantHeadWord64D1 then RunTailScriptThenPlantTwoScripts: the record's tail script.
-function M.board(ow, slot)
-  local ob = ow.objects[slot]
-  if not ob or ob.handler ~= M.PARKED then return false end
-  if ow.vm:rd8(0xC6EE) ~= 0 or ow.vm:rd8(0xC716) ~= 0 then return false end
-  ob.handler = M.TAIL
-  ow.log[#ow.log + 1] = ("board slot %d -> %02X:%04X"):format(slot, ob.tail[1], ob.tail[2])
-  ow.vm:spawnThread(slot, ob.tail[1], ob.tail[2])
-  return true
-end
-
-function M.try(ow)
-  local slot = M.find(ow)
-  return slot ~= nil and M.board(ow, slot)
-end
-
+-- The $6405 gate, the $64D1 tail and the walk order that decides which record answers
+-- an A are in mn.Walk.
 return M

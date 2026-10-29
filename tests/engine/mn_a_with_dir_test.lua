@@ -15,6 +15,7 @@ end
 local MnRom = require("mn.MnRom")
 local VM = require("mn.ScriptVM")
 local Overworld = require("mn.Overworld")
+local Walk = require("mn.Walk")
 
 local ROM = MnRom.new(string.rep("\0", 0x200000))
 
@@ -27,30 +28,31 @@ local function fake(keys)
     talks = {},
   }, { __index = Overworld })
   s.vm = VM.new(ROM, {})
-  s.input = function(k) return keys[k] end
-  -- an NPC on the faced cell (2,1) with a talk script
-  s.objects[3] = { x = 2, y = 1, talk = { 0x12, 0x4000 } }
+  s.input = function(k) if s.frame == 1 then return keys[k] end end
+  -- an NPC on the faced cell (2,1): head $63ED, a talk script, linked by $0B
+  s.objects[3] = { x = 2, y = 1, talk = { 0x12, 0x4000 }, handler = Walk.TALK }
+  Walk.take(s, 3)
   s.runScript = function(self, b, p, why) self.talks[#self.talks + 1] = why end
   return s
 end
 
 do -- A alone: the faced record talks
   local s = fake({ a = true })
-  s:update()
-  ok(#s.talks == 1 and s.talks[1] == "talk to slot 3", "A with no direction dispatches on the faced cell")
+  for f = 1, 3 do s.frame = f; s:update() end
+  ok(#s.talks == 1 and s.talks[1] == "talk to slot 3", "A with no direction dispatches on the faced cell (gate N+1, tail N+2)")
   ok(not s.moving, "A alone does not step")
 end
 
 do -- A while right is held: the direction plant runs, the A is dropped
   local s = fake({ a = true, dir = "right" })
-  s:update()
+  for f = 1, 3 do s.frame = f; s:update() end
   ok(#s.talks == 0, "A while a direction is held is dropped")
   ok(s.moving == "right" and s.x == 3, "the held direction is handled")
 end
 
 do -- A while the faced direction (up, toward the NPC) is held: a bump, still no talk
   local s = fake({ a = true, dir = "up" })
-  s:update()
+  for f = 1, 3 do s.frame = f; s:update() end
   ok(#s.talks == 0, "A while holding toward the record is still dropped")
 end
 

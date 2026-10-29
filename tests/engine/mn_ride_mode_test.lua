@@ -80,23 +80,41 @@ ok(ow.vm.mem[0xC12A] == 0x00 and ow.vm.mem[0xC12B] == 0x01, "docking writes the 
 local sp = ow.vm.spawned[#ow.vm.spawned]
 ok(sp and sp[1] == 4 and sp[2] == 0x22 and sp[3] == 0x40AD, "the boat record gets script 22:40AD")
 ok(not Ride.tick(ow), "a parked boat does not ride")
--- re-mount: the boat is at 2,1, below the shore row
+-- re-mount: the boat is at 2,1, below the shore row. The A latches $FFAB bit 2; the
+-- boat's own pass next frame runs 641D (mn.Walk) and plants $64D1.
+local Walk = require("mn.Walk")
+Walk.init(ow); ow.linked[4] = true; ow.ptrPos[1] = 4
+local function gate641D(o) Walk.pass(o, true); return o.objects[4].handler == Walk.TAIL end
 ow.facing = "up"; ow.x, ow.y = 2, 0
-ok(not Ride.try(ow), "facing away (up) is outside the window")
+ok(not gate641D(ow), "facing away (up) is outside the window")
 ow.facing = "down"; ow.x = 3
-ok(not Ride.try(ow), "one column off is outside the down window")
+ok(not gate641D(ow), "one column off is outside the down window")
 ow.facing = "left"; ow.x, ow.y = 1, 0
-ok(not Ride.try(ow), "left from 1,0 is outside the left window (columns 2-3)")
+ok(not gate641D(ow), "left from 1,0 is outside the left window (columns 2-3)")
 ow.facing = "down"; ow.x = 2
-ow.vm.mem[0xC6EE] = 1; ok(not Ride.try(ow), "$C6EE nonzero blocks the gate"); ow.vm.mem[0xC6EE] = 0
-ok(Ride.try(ow) and bt.handler == Ride.TAIL, "A facing the boat runs $64D1")
+ow.vm.mem[0xC6EE] = 1; ok(not gate641D(ow), "$C6EE nonzero blocks the gate"); ow.vm.mem[0xC6EE] = 0
+-- 641D facing 3: (c - 2) & $FF < e <= c. A boat on row 1 gives $FF < e: never, so
+-- from the shore row only the exact cell would pass (the byte wrap the ROM has)
+ok(not gate641D(ow) and bt.handler == Ride.PARKED, "facing down from row 0 at a row-1 boat: c-2 wraps, no pass")
+ok(N(3, 2, 2, 2, 1) and not N(3, 2, 1, 2, 0), "down window: row 2 boat from row 1 passes, row 1 from row 0 does not")
+ok(not N(0, 5, 255, 5, 0) and N(0, 5, 254, 5, 255), "up window: c+1 wraps at row $FF")
+ok(not N(2, 1, 5, 0, 5) and N(2, 2, 5, 1, 5), "right window: b-2 wraps at column 1")
+ow.x, ow.y = 2, 1 -- made-up: Tony's record on the boat's cell (the exact match)
+ok(gate641D(ow) and bt.handler == Ride.TAIL, "an exact cell match plants $64D1")
+Walk.pass(ow, nil)
 sp = ow.vm.spawned[#ow.vm.spawned]
 ok(sp[1] == 4 and sp[2] == 0x22 and sp[3] == 0x40C2, "the tail script (22:40C2) runs in the boat's slot")
 bt.handler = Ride.HANDLER -- its $13 $60E7
 ok(Ride.tick(ow) and ow.x == 2 and ow.y == 1 and ow.hidePlayer, "the next frame rides again from the boat's cell")
-ok(ow.rec0 and ow.rec0[1] == 2 and ow.rec0[2] == 0, "Tony's record cell ($C18E/$C18F) stays where he boarded")
+ok(ow.facing == "up", "the idle facing is the boat's byte 0 (last ridden up), not Tony's (down)")
+Walk.take(ow, 5)
+ok(Ride.byte0Facing(ow, 5) == "up" and ow.recByte0[5] == 0x40, "TakePointerSlot: byte 0 := $40, facing 0 (up)")
+Walk.take(ow, 4)
+ok(Ride.byte0Facing(ow, 4) == "up", "an already linked record keeps its byte 0")
+Ride.setByte0Facing(ow, 4, "left"); ok(ow.recByte0[4] % 4 == 1, "a direction head writes bits 0-1")
+ok(ow.rec0 and ow.rec0[1] == 2 and ow.rec0[2] == 1, "Tony's record cell ($C18E/$C18F) stays where he boarded")
 pad.dir = "down"; Ride.tick(ow); ow.moving = nil; ow:snap()
-ok(ow.y == 2 and ow.rec0[1] == 2 and ow.rec0[2] == 0, "the boat moves, Tony's record cell does not")
+ok(ow.y == 2 and ow.rec0[1] == 2 and ow.rec0[2] == 1, "the boat moves, Tony's record cell does not")
 
 -- $93 FinishStartup -> SetupDefaultState -> WriteC12APattern (05:6C08): a script that
 -- reloads the scene ends the ride's gates (2F:466C -> 25:7129 lands Tony back on foot).

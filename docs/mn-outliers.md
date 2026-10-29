@@ -138,24 +138,39 @@ Also settled on fix/mn-secrets2, from the code:
   faced cell is never tested for the latch). FinishFrame copies it to `$FFAB`, and the parked boat's
   `$6405` runs 01:641D in its own pass on the next frame, needing wRecordState = 0, `$C6EE` = 0 and
   `$C716` = 0. So a list script staged by the A press blocks the re-board, while a push or kick does
-  not. Talk records use the same gate (StageScratchThenPlantHeadWord64D1, 01:63ED) in slot order; one
-  that fires sets wRecordState and blocks later slots, while `$6405` does not. The port keeps its talk
-  hit-test first (exact when the talker's slot is the lower one), runs push/kick/list next, and then
-  the boat. The port's old "blocked faced cell" condition is gone. Test: mn_frozen_head_test.
+  not. Test: mn_frozen_head_test.
+- **Talk is the walk, not a hit-test** (mn.Walk). Only `$63ED` (325 records) and `$6405` (28) read the
+  latch. WalkPointerSlots (01:407D) visits the 16 pointer positions once a frame in their order, which
+  is `$0B` link order bubbled one swap a frame toward descending screen Y (`$FF97`/`$FF98`). The first
+  `$63ED` record in that order inside 641D's window copies itself to the scratch (wRecordState = 1),
+  which blocks every later gate until Opcode12 (wRecordState = 3, Tony's head `$5E10`) and the
+  next walk's RestoreScratchRecord put the pre-talk record back (cell, head, anim). `$64D1` runs the
+  tail on the record's following pass (A in frame N, gate N+1, tail N+2) and freezes Tony
+  (`$4A6B`, FillFirstRecordScriptSlots). 641D works on bytes: `c - 1`, `c - 2`, `b - 1`, `b - 2` wrap,
+  so a record on row 0 or 1 (column 0 or 1 for left / right) is reachable only from its exact cell.
+  `$07` on slot 0 now writes Tony's head (`$4A6B` 210 uses holds him, `$5D81` 200 frees him); on other
+  slots it writes the head word. Tests: mn_talk_walk_test, mn_a_with_dir_test, mn_ride_mode_test.
+  Port assumptions, not outliers in the ROM: one sprite list per record for the `$FF97` metric, the
+  port's `oy` as the fine Y, and `$C716` modelled as "the A-cell or step-trigger script is still
+  running" (c714Live). Records that talk without a `$12` (15:565A, 15:584B, 15:58E2, 1A:6619, nine
+  at 2B:6E04-6EA2, 13:5477) leave wRecordState at 1 and Tony at `$4A6B` until something else writes
+  them, as the ROM does. `$12` with no talk in progress restores nothing in the port (the ROM would
+  copy the stale `$C1A4` scratch over the record saved last).
+- **The boat's first facing** is record byte 0 & 3. TakePointerSlot writes `$40` (facing up) when
+  `$0B` links the record; an already linked one keeps what its last head wrote. Port: `ow.recByte0`
+  per slot, written by Walk.take and the ride heads (Ride.setByte0Facing); mount reads it. Heads other
+  than the ride's don't write it in the port yet (a slot whose previous occupant was a turning NPC).
+  Test: mn_ride_mode_test.
 - **`$65A4` while riding** compares the record's cell with `$C18E`/`$C18F`, slot 0's record. Only
   Opcode00 (01:4426) and slot 0's own commit write those, and 22:40C2 (`$0C`, `$1F`, `$13`, `$45`)
   doesn't move Tony. So during a ride the roll is against the cell Tony boarded from, not the boat.
   Port: `ow.rec0` (mn.Ride), used by the step-on check. Test: mn_ride_mode_test.
 
-1. **The boat's first facing.** With no direction held, `$60FD` picks the idle tail from
-   hRecordHead & 3, which is the boat record's opening byte. Opcode05 skips that byte, so the value is
-   whatever the slot's last occupant left (InitPointerList only sets bit 7 and clears bit 6). The port
-   doesn't mirror record byte 0 across occupants and keeps Tony's facing until the first direction.
-2. **5C7A entry-anim timing** (layer-2 heads, the story worker's area; report only). The table gives
+1. **5C7A entry-anim timing** (layer-2 heads, the story worker's area; report only). The table gives
    dy -2,-2,-1,-1, 0 x4, +2 x6, +3 x4, +4 x2, then +1 x3: net 35 px over 23 frames. The 5CB3 slide
    that follows moves 4 px a frame; the port slides 1.
-3. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
-4. **The layer-1 pixel heads** are not implemented in the port yet.
+2. **5D47** (inside ResumeOtherLeftCellScript) is treated as a pad head, but its dispatcher isn't lifted.
+3. **The layer-1 pixel heads** are not implemented in the port yet.
 
 ## Secrets and engines (fix/mn-secrets)
 

@@ -27,6 +27,7 @@ M.wideAware = true -- Boot passes the logical view to draw() (see mn.Viewport)
 local Ride = require("mn.Ride")
 local PixelWalk = require("mn.PixelWalk")
 local Motion = require("mn.Motion")
+local Walk = require("mn.Walk")
 -- bank-1 record heads that read the pad (5B07: A only): a slot-0 record with one is the player
 local PAD_HEADS = { [0x5D81] = true, [0x5B1E] = true, [0x5B41] = true, [0x5D47] = true, [0x5B07] = true }
 -- 01:5B07: the player record held in place (no pad walk; A tests the cell above)
@@ -79,6 +80,7 @@ function M:host()
     defaultGates = function() -- $93: WriteC12APattern; the walk heads start from the normal family
       World.seedPattern(s.vm); s.layer, s.layerDir, s.layerHeld = nil, nil, nil
       s.padHead, s.pw = nil, nil -- the next slot-0 fill picks the head family
+      Walk.init(s) -- BuildPointerList (01:40D3): no record linked
     end,
     freshScene = function() -- record threads start over (the running script survives)
       s.asleep = s.asleep or {}
@@ -240,7 +242,9 @@ function M:host()
     slotFlag = function(slot)
       if not s.objects[slot] and s.asleep and s.asleep[slot] then s.objects[slot] = s.asleep[slot] end
       if s.asleep then s.asleep[slot] = nil end
-      if s.objects[slot] then s.objects[slot].shown = true; s.objects[slot].dormant = nil end end,
+      if s.objects[slot] then s.objects[slot].shown = true; s.objects[slot].dormant = nil end
+      Walk.take(s, slot) -- TakePointerSlot (00:0C07) unless the record is already linked
+    end,
     slotSleep = function(slot) if s.objects[slot] then s.objects[slot].dormant = true end end,
     slotActive = function(slot) local ob = s.objects[slot]; return not (ob and ob.dormant) end,
     pan = function(c, dx, dy, carry)
@@ -253,6 +257,7 @@ function M:host()
       -- slot 0 with a script record in its anim field is a cutscene stand-in:
       -- the real game shows no player sprite there until control returns
       local anim = Sprites.isAnim(s.vm.rom, abank, aptr)
+      if slot == 0 then s.tonyHead = handler ~= 0 and handler or nil end
       if slot == 0 and not anim then s.hidePlayer = true end
       -- slot 0 with a sprite anim and the $5D81 pad handler is the player itself, not a
       -- stand-in: drop a leftover stand-in so the pad works (1A:6841 into room 10 after
@@ -318,15 +323,30 @@ function M:host()
       local ob = slot and s.objects[slot]
       if slot == 0 and ob then
         s.x, s.y = ob.x, ob.y; s.objects[0] = nil; s.hidePlayer = false; s.moving = nil; s.camFix = nil; s.pw = nil; s:snap()
+        s.tonyHead = nil -- port: the stand-in's hand-back is the pad
         s.log[#s.log + 1] = ("player control at %d,%d"):format(s.x, s.y)
       end
     end,
-    slotFields = function(slot, a, b) local ob = s.objects[slot]; if ob then ob.f1, ob.f2 = a, b end end,
+    -- opcode_07.asm: record bytes 1-2, the head word. Slot 0 is Tony's head: $4A6B
+    -- (RunTwoScriptsFromRecord) holds him, a pad head gives the pad back (210 / 200 uses)
+    slotFields = function(slot, a, b)
+      local w = a + b * 256
+      if slot == 0 and not s.objects[0] then s:setTonyHead(w); return end
+      local ob = s.objects[slot]; if ob then ob.handler = w ~= 0 and w or nil end
+    end,
+    -- Opcode12: wRecordState = 3, Tony's head $5E10 (DispatchHeldDirectionFromHead)
+    commitRecord = function()
+      s.vm:wr8(0xC188, 3); s.vm:wr8(0xC18A, 0x10); s.vm:wr8(0xC18B, 0x5E)
+      s:setTonyHead(Walk.COMMIT)
+    end,
     music = function(v) s.log[#s.log + 1] = ("music $%02X"):format(v); s:playMusic(v) end,
     -- record handler word ($13): $65A4 = "start my tail script when the player stands on me"
     -- $00 copies the door pair into slot 0's record: a stand-in (hidePlayer) stands there too
     moveStandIn = function(x, y) local ob = s.objects[0]; if ob and s.hidePlayer then ob.x, ob.y, ob.ox, ob.oy = x, y, 0, 0 end end,
-    setHandler = function(slot, w) local ob = s.objects[slot]; if ob then ob.handler = w end end,
+    setHandler = function(slot, w)
+      if slot == 0 and not s.objects[0] then s:setTonyHead(w); return end
+      local ob = s.objects[slot]; if ob then ob.handler = w end
+    end,
     battleBegin = function(a)
       s.battleSetup = { args = a, ops = {} }
       s.log[#s.log + 1] = ("battle setup C9E4=%02X D391=%02X D36D=%02X script %02X:%04X"):format(a[1], a[2], a[3], a[4], a[5])
@@ -717,6 +737,8 @@ function M:update()
     self:runScript(m[1], m[2], "duel tail")
   end
   self.vm:tickThreads(self.textBox ~= nil and not self.textBox.done)
+  -- WalkPointerSlots (mn.Walk): FinishFrame copied last frame's $FFAA bit 2 to $FFAB
+  do local latch = self.aPress; self.aPress = nil; Walk.pass(self, latch) end
   if self.textBox or self.scriptWaiting or self.vm.wait or self.objects[0] then self.ctlBusy = true end
   -- encounter records: a $65A4 handler fires the record's tail script when Tony shares its cell.
   -- Only a taken slot (Opcode0B) runs its handler: 277's init (2F:41F4) takes the Shadow
@@ -826,7 +848,10 @@ function M:update()
       local k, b, p
       if v >= 0xC0 and self.triggerPtr then k, b, p = self:listEntry(self.triggerPtr, bit.band(v, 0x3F)) end
       if os.getenv("MN_ADBG") and v >= 0xC0 then print(("[step] map %d %d,%d cell %02X d %d,%d t=%s tp=%s"):format(self.map, self.x, self.y, v, dx, dy, tostring(k), tostring(self.triggerPtr))) end
-      if b and World.gate(k, dx, dy) then self:snapshot(b, p); self:runScript(b, p, "step trigger") end
+      if b and World.gate(k, dx, dy) then
+        self:snapshot(b, p); self:runScript(b, p, "step trigger")
+        self.c714Live = self.scriptWaiting and true or nil -- StageThirdScriptFromMarkedCell: $C714
+      end
     end
     return
   end
@@ -866,6 +891,8 @@ function M:update()
   -- a script running in slot 0 walks the player (Opcode09 slot 0, e.g. map 25's
   -- 1A:674C); the pad is ignored, so no step back onto a trigger mid-scene
   if self:slot0Scripted() then return end
+  -- Tony's head $4A6B (FillFirstRecordScriptSlots, $07 00 6B 4A): only his two scripts run
+  if self.tonyHead == Walk.FROZEN then return end
   local dir = self.input("dir")
   -- ResumePlantedHead6167 (01:6167): a held direction ($C9A3 bits 4-7) jumps to its
   -- plant before anything else; only with no direction held does a newly pressed A
@@ -910,44 +937,21 @@ function M:update()
 end
 
 -- cellFacing: the facing whose A dispatch runs. 01:619A picks it from hRecordHead & 3;
--- the $5B07 head always calls DispatchCellAboveOnButtonA (01:4C6E), so "up". Talk and
--- the parked-boat gate keep self.facing: GateCellNearFirstRecord (01:641D) reads the
--- first list record's opening byte, which 4C6E does not rewrite.
+-- the $5B07 head always calls DispatchCellAboveOnButtonA (01:4C6E), so "up".
+-- Every A dispatch (4C6E and its left / right / below siblings) sets $FFAA bit 2 before
+-- it reads the cell, whatever the cell is (self.aPress; FinishFrame latches it into
+-- $FFAB). Talk is not here: the $63ED / $6405 records gate on that latch in the next
+-- frame's walk (mn.Walk), after the list script this dispatch stages has had its first
+-- slice ($C716). The gate reads self.facing, which a $5B07 dispatch does not rewrite.
 function M:pressA(cellFacing)
-  local f = DIRS[self.facing]; local fx, fy = self.x + f[1], self.y + f[2]
-  if os.getenv("MN_ADBG") then print(("[a] map %d at %d,%d facing %s cell $%02X alist %s"):format(self.map, self.x, self.y, tostring(self.facing), World.cell(self.def, fx, fy), tostring(self.aList))) end
-  -- talk: the facing cell is the object's cell or the one below it (PyBoy: Evu at 15,5
-  -- answers from 15,6 up, 14,5 / 14,6 right, 16,6 left, 15,4 down; only 15,5 blocks)
-  for slot, ob in pairs(self.objects) do
-    local hit = ob.x == fx and (ob.y == fy or ob.y + 1 == fy)
-    -- a record script that only plants its talk ($5B ..., $42) is the talk itself; one that
-    -- carries on after the $5B (257 boatman 1B:509A waits on C6FD for the talk's $58 01
-    -- post, then 1B:50ED) has to run as the slot's thread
-    if hit and ob.beh and M.useRunsRecord(self.vm.rom, ob.beh[1], ob.beh[2])
-      and not (self.vm.threads and self.vm.threads[slot]) then
-      -- the record's own script (sbank:sptr) runs as the slot's thread when used
-      self.log[#self.log + 1] = ("use slot %d -> %02X:%04X"):format(slot, ob.beh[1], ob.beh[2])
-      self.vm:spawnThread(slot, ob.beh[1], ob.beh[2]); return
-    end
-    if hit and ob.talk then
-      self:runScript(ob.talk[1], ob.talk[2], ("talk to slot %d"):format(slot)); return
-    end
-  end
-  -- Every A dispatch (4C6E and its left / right / below siblings) sets $FFAA bit 2
-  -- before it reads the cell, whatever the cell is; FinishFrame latches that into
-  -- $FFAB. A parked boat ($6405) runs GateCellNearFirstRecord in its own pass on the
-  -- next frame: it needs that latch, wRecordState = 0, $C6EE = 0, $C716 = 0 and Tony's
-  -- record cell in its window. So the cell action runs first; a list script it stages
-  -- ($C716) blocks the re-board, a push or kick (a new Tony head) does not. The window
-  -- is taken before the push or kick moves anything.
-  local boat = Ride.find(self)
+  if os.getenv("MN_ADBG") then local f = DIRS[self.facing]; print(("[a] map %d at %d,%d facing %s cell $%02X alist %s"):format(self.map, self.x, self.y, tostring(self.facing), World.cell(self.def, self.x + f[1], self.y + f[2]), tostring(self.aList))) end
+  self.aPress = true
   local keep = self.facing
   if cellFacing then self.facing = cellFacing end
   local cf = DIRS[self.facing]; local cx, cy = self.x + cf[1], self.y + cf[2]
   -- DispatchPressedAOnFacingCell (01:619A): $09 is the gloves push, $0B the kick
   local acted = Push.try(self) or Kick.try(self)
   if cellFacing and self.facing == cellFacing then self.facing = keep end -- hRecordHead is not rewritten
-  local staged = false
   local v = World.cell(self.def, cx, cy)
   -- DispatchPressedAOnFacingCell (01:619A) reads only the faced cell; list
   -- cells are $20-$7F, which ProbeCells keeps solid, so Tony never stands on one
@@ -959,9 +963,20 @@ function M:pressA(cellFacing)
     self.vm:wr8(0xC99C, cy); self.vm:wr8(0xC99D, cx)
     self.vm:wr8(0xC99E, w % 256); self.vm:wr8(0xC99F, math.floor(w / 256)); self.vm:wr8(0xC9A0, v)
     local _, b, p = self:listEntry(self.aList, v - 0x40)
-    if b then staged = true; self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil; self.kickSeen = true end -- harness: a cell script ends a ">" goal like a kick
+    if b then
+      self.vm.fromA = true; self:runScript(b, p, ("A on cell $%02X"):format(v)); self.vm.fromA = nil
+      self.c714Live = self.scriptWaiting and true or nil -- the $C714 record ($C716) until it ends
+      self.kickSeen = true -- harness: a cell script ends a ">" goal like a kick
+    end
   end
-  if boat and not staged then Ride.board(self, boat) end
+end
+
+-- Tony's head word (record bytes 1-2, $C18A/$C18B) from $05 / $07 / $12 / $13 / $64D1.
+-- A pad head picks the head family; $5E10 (Opcode12) is the normal family.
+function M:setTonyHead(w)
+  self.tonyHead = w ~= 0 and w or nil
+  if w == Walk.COMMIT then self.padHead, self.pw = nil, nil
+  elseif PAD_HEADS[w] then self.padHead, self.pw = w, nil end
 end
 
 -- 01:5B07 (slot-0 records 21:78EB and 19:7D92, script 20:5BDF): the player held in

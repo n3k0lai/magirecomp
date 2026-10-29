@@ -359,6 +359,7 @@ function VM:run(bank, ptr)
     elseif op == 0x24 then o = o + n; coroutine.yield("wait", r:u8(o - 1)) -- Opcode20 alias: countdown
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
+      if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
       if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       return
     elseif op == 0x6B then h.glyphCopy(r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)); o = o + n -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest, wGlyphVRAMBank; CopyGlyph moves 16 bytes per count

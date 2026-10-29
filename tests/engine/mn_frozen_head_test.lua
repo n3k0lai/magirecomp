@@ -77,22 +77,33 @@ o.vm.mem[Grass.FRAME] = 2; o:frozenPass()
 ok(o.vm.mem[Grass.COUNT] == 4, "other passes do not tick")
 
 -- A order with a parked boat in the window (record at 3,4 below Tony, facing down)
+local Walk = require("mn.Walk")
 local function withBoat(cellBelow)
   local f = field(); f.padHead = nil; f.facing = "down"
+  f.runScript = function(self, b, p, why) ran[#ran + 1] = { b, p, why }; self.scriptWaiting = true end
   f.objects[4] = { x = 3, y = 4, handler = Ride.PARKED, tail = { 0x22, 0x40C2 } }
+  Walk.take(f, 4)
   set(3, 4, cellBelow)
   return f
 end
+local function frame(f) local l = f.aPress; f.aPress = nil; Walk.pass(f, l) end
 ran = {}
-o = withBoat(0x41); o:pressA()
-ok(#ran == 1 and o.objects[4].handler == Ride.PARKED, "a list script staged by the A dispatch blocks the re-board ($C716)")
+o = withBoat(0x41); o:pressA(); frame(o); frame(o)
+ok(#ran == 1 and o.objects[4].handler == Ride.PARKED and #o.vm.spawned == 0,
+  "a list script staged by the A dispatch blocks the re-board ($C716)")
 ran = {}
 o = withBoat(0x01); o:pressA()
-ok(#ran == 0 and o.objects[4].handler == Ride.TAIL, "no list script: the parked boat runs its tail")
+ok(o.objects[4].handler == Ride.PARKED, "the A frame itself does not gate")
+frame(o)
+ok(o.objects[4].handler == Ride.TAIL and #o.vm.spawned == 0, "next frame: 641D passes, $64D1 planted")
+frame(o)
+ok(#ran == 0 and #o.vm.spawned == 1 and o.vm.spawned[1][2] == 0x22 and o.vm.spawned[1][3] == 0x40C2,
+  "the frame after: the tail script runs")
+ok(o.objects[4].handler == Walk.FROZEN and o.tonyHead == Walk.FROZEN, "$64D1: record head and Tony's head $4A6B")
 -- the latch is set by any A: the faced cell is not tested (diagonal left window)
-o = withBoat(0x01); o.facing = "left"; o.x, o.y = 4, 3; set(3, 3, 0x00)
-ok(Ride.find(o) == 4, "left window from 4,3 (faced cell open land) still passes 641D")
-set(3, 3, 0x82)
+ok(Walk.near(1, 3, 4, 4, 3), "left window from 4,3 still passes 641D")
+o = withBoat(0x01); o.x, o.y = 3, 3; o:pressA(); o.vm.mem[0xC188] = 1; frame(o)
+ok(o.objects[4].handler == Ride.PARKED, "wRecordState 1 (a talk in progress) blocks the gate")
 
 print(("mn_frozen_head_test: %d checks, %d failures"):format(checks, failures))
 os.exit(failures == 0 and 0 or 1)
