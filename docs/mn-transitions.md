@@ -105,7 +105,10 @@ Gorge now matches PyBoy frame for frame (measured values below).
 Remaining: steps 1-3 below (`camPix` set only by the `$93` redraw, the
 `scrollDelta` edge tests from `mapCam` and `$C842`, the sprite cull from
 `mapCam`); the map 220 Tony and Eidon `13:58C2` re-checks; a screen check of
-map 0 (the old shift fired there as -5,-5; PyBoy shows no object move).
+map 0 (the old shift fired there as -5,-5; PyBoy shows no object move)
+and map 2 at the seed start (the old shift fired as 2,0; both seeds give the
+same logs as before apart from that line). origin/master has moved
+(674728f7, story15 work); the branch merges into it with no conflicts.
 
 ### What the asm keeps
 
