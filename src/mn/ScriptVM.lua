@@ -492,11 +492,31 @@ function VM:run(bank, ptr)
       local p = self:rd8(0xA013) + 256 * self:rd8(0xA014)
       if p ~= 0 then jump(self:rd8(0xA012), p) else o = o + n end
     elseif op == 0x38 or op == 0x39 then self:note(op); o = o + n -- targets still INCBIN (LCD-off record loop / $1126 / SRAM save)
-    elseif op == 0x11 then -- Opcode11 -> $0C8F (INCBIN). PyBoy cave-in records: the
-      -- slot lands on a random on-screen cell (cam col+1..+9, row+0..+8), then its
-      -- next $47 pick plays one of six rock-fall anims
-      o = o + n
-      if h.scatter and self.curSlot and not self.init then h.scatter(self.curSlot); coroutine.yield("wait", 1) end
+    elseif op == 0x11 then -- Opcode11 / MapBank1AndJump / PickMapCellFromDiv / MatchWRAM5ScriptByte
+      -- pass 1 picks a cell from rDIV (VM.pickCell), pass 2 compares it: the word at $C190
+      -- or a WRAM-5 byte other than the operand sends the record back to Opcode11 (pass 3),
+      -- a match consumes the operand and the next op runs on the following pass. While it
+      -- searches the record head is $63CE (RunOneScriptThenWriteHead): only the first of
+      -- the record's two scripts runs, so its second (sprite) script queues nothing
+      if self.init or not h.mapView then o = o + n
+      else
+        local g = 0
+        while true do
+          coroutine.yield("wait", 1)
+          local col, row, ptr = VM.pickCell(self)
+          self:wr8(0xFF91, col); self:wr8(0xFF92, row); self:wr8(0xFF93, ptr % 256); self:wr8(0xFF94, math.floor(ptr / 256))
+          if h.scatter and self.curSlot then h.scatter(self.curSlot, col, row) end
+          coroutine.yield("wait", 1)
+          if ptr ~= self:rd16(0xC190) and h.blockByte and h.blockByte(ptr) == r:u8(o + 1) then
+            -- $4A6B (RunTwoScriptsFromRecord) is the head again: the second script runs
+            if h.scatter and self.curSlot then h.scatter(self.curSlot, col, row, true) end
+            break
+          end
+          g = g + 1; if g > 4000 then self:note(op); break end
+          coroutine.yield("wait", 1)
+        end
+        o = o + n; coroutine.yield("wait", 1)
+      end
     elseif op == 0x7C or op == 0x7D then -- scroll nudge: target cell - 5 per axis, then speed byte
       if os.getenv("MN_THR") then print(("[nudge] op %02X at %X"):format(op, o)) end
       local tc, tr, spd
@@ -829,6 +849,24 @@ function VM.dividerNext(vm)
   local a = VM.dividerStep(vm:rd8(0xFFA9), div(), div())
   vm:wr8(0xFFA9, a)
   return a
+end
+
+-- PickMapCellFromDiv (01:4456): rDIV low nibble picks a 3-byte record at 01:639E (row
+-- addend, pointer to a stride-table word at $C84B+2k = k * stride), the high nibble of a
+-- second rDIV read picks a column addend at 01:638E. Returns cell column, row and the
+-- WRAM pointer wMapPointer + k * stride + column addend.
+function VM.pickCell(vm)
+  local h = vm.host or {}
+  local div = h.div or function() return love.math.random(0, 255) end
+  local rom = vm.rom
+  local lo = bit.band(div(), 0x0F)
+  local rec = 0x638E + 16 + lo * 3 -- bank 1, CPU $639E
+  local radd = rom:u8(rec)
+  local k = (rom:u16(rec + 1) - 0xC84B) / 2
+  local cadd = rom:u8(0x638E + bit.band(bit.rshift(div(), 4), 0x0F))
+  local camCol, camRow, stride = h.mapView()
+  local base = 0xD000 + camRow * stride + camCol
+  return (camCol + cadd) % 256, (camRow + radd) % 256, (base + k * stride + cadd) % 0x10000
 end
 
 function VM.dividerPick(vm, count)

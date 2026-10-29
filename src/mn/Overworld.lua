@@ -153,14 +153,20 @@ function M:host()
       end
       return M.nudgeStep(s.camFix, tc, tr, spd, W - 160, H - 144)
     end,
-    scatter = function(slot)
-      local ob = s.objects[slot]; if not ob then return end
+    -- $11 (PickMapCellFromDiv): wMapColumn/wMapRow are the camera's top-left cell and the
+    -- map stride is the width; the VM picks the cell and moves the record there
+    mapView = function()
       local W, H = s.def.w * 16, s.def.h * 16
       local cx = s.camFix and s.camFix[1] or math.max(0, math.min(W - 160, s.px + 8 - 80))
       local cy = s.camFix and s.camFix[2] or math.max(0, math.min(H - 144, s.py + 8 - 72))
-      ob.x = math.floor(cx / 16) + love.math.random(1, 9); ob.y = math.floor(cy / 16) + love.math.random(0, 8)
+      return math.floor(cx / 16), math.floor(cy / 16), s.def.w
+    end,
+    blockByte = function(addr) local i = addr - 0xD000; return s.def.block[i + 1] end,
+    scatter = function(slot, col, row, found)
+      local ob = s.objects[slot]; if not ob then return end
+      ob.x, ob.y = col, row; ob.picking = not found or nil
       ob.hx, ob.hy = nil, nil; ob.dirty = true
-      if os.getenv("MN_THR") then s.log[#s.log + 1] = ("scatter %d -> %d,%d dorm=%s blank=%s img=%s"):format(slot, ob.x, ob.y, tostring(ob.dormant), tostring(ob.blank), tostring(ob.image ~= nil)) end
+      if os.getenv("MN_THR") then s.log[#s.log + 1] = ("scatter %d -> %d,%d"):format(slot, ob.x, ob.y) end
     end,
     setCell = function(addr, col, mt)
       local i = addr - 0xD000; local d = s.def
@@ -897,7 +903,7 @@ function M:drawField(vw, vh, ux, uy)
     if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.panv and table.concat(self.panv, ",") or "-")) end
     -- record byte 0 bit 7 (dormant) objects aren't drawn: PyBoy map 40 slots 5-7
     -- stay $80 and show no OAM until $0B wakes them
-    if o.image and not o.dormant and not o.blank then
+    if o.image and not o.dormant and not o.blank and not o.picking then
       local dx, dy = o.x * 16 - 24 + (o.ox or 0), o.y * 16 - 24 + (o.oy or 0)
       -- wide view only: a record parked off the map (scripts hide actors past
       -- the classic screen) stays hidden unless it overlaps the classic frame
