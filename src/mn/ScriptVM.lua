@@ -114,6 +114,12 @@ function VM:tickThreads(textOpen)
 end
 
 function VM:rd8(a) return self.mem[a] or 0 end
+-- $C18E/$C18F (slot 0 record $C189 +5/+6): the host's live player cell, else WRAM
+function VM:playerCell()
+  local h = self.host
+  if h and h.playerCell then return h.playerCell() end
+  return self:rd8(0xC18E), self:rd8(0xC18F)
+end
 function VM:rd16(a) return self:rd8(a) + lshift(self:rd8(a + 1), 8) end
 function VM:wr8(a, v)
   if WATCH and a == WATCH then print(("[watch] %04X <- %02X at %s"):format(a, band(v, 0xFF), self.lastO and ("%02X:%04X"):format(math.floor(self.lastO / 0x4000), self.lastO % 0x4000 + 0x4000) or "?")) end
@@ -153,14 +159,6 @@ function VM:expr(o)
   elseif i == 22 then return self:expr(o + 1) -- WRAM bank select, flat memory here
   end
   return 0, o
-end
-
--- A door pair that was a wall when the slot-0 $05 template took over. In the
--- original $00 copies wScriptPair to $C18E whatever the cell holds, so once the
--- entry's own $7E copy opens that cell the player stands on the pair.
-function VM:openedPairWall(h)
-  local p = self.pairWall
-  if p and h.cellOpen and h.cellOpen(p[1], p[2]) then h.placePlayer(p[1], p[2]); self.pairWall = nil end
 end
 
 function VM:note(op)
@@ -219,8 +217,6 @@ function VM:run(bank, ptr)
     if (op == 0x4C or op == 0x4D or op == 0x4E or op == 0x4F) and self.curSlot and h.animAt and not self.init then
       h.animAt(self.curSlot, cur.bank, cur.ptr)
     end
-    -- the entry's script loop ends here: a blocked door pair its $7E opened is the player's cell
-    if self.pairWall and (op == 0x94 or op == 0x42 or op == 0x12) then self:openedPairWall(h) end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
       -- DefaultState -> SetupWindow: window closed and parked below the picture
       self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
@@ -235,45 +231,35 @@ function VM:run(bank, ptr)
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
       if h.picture then h.picture(nil) end -- back to the field map
       if r:u8(o + 3) == 0x4F then h.loadMap((r:u16(o + 1) - 0x4000) / 15) end
-      self.pairNeedsMap = nil -- opcode_02.asm's pair now refers to this map
-      self.pairWall = nil
       o = o + n
     elseif op == 0x64 then h.setTriggers(r:u16(o + 1)); o = o + n -- ReadBank21ByteThenResume
     elseif op == 0x69 then h.setAList(r:u16(o + 1)); o = o + n -- RunBank21ScriptList ($2C97)
     elseif op == 0x66 then h.objPalette(r:u8(o + 3), r:u16(o + 1)); o = o + n -- $2EE9 OBJ palettes
     elseif op == 0x05 then -- object record from script (opcode_05.asm)
       -- slot, handler word, cell x, cell y, word, tile base, anim (bank, ptr), script (bank, ptr)
+      -- fill_script_record_0808.asm writes record +5/+6 = cell. Slot 0's record is
+      -- $C189 ($0303 table), so its +5/+6 is $C18E/$C18F: the player's cell, now.
       if r:u8(o + 1) == 0 then
-        -- opcode_05.asm fills the record and does not write $C18E. A door's $02
-        -- pair is copied later by $00 (opcode_00_bank1.asm). The template wins
-        -- when that cell is a wall on the destination (ringsmith, map 59,
-        -- 14:7DD2: $65 then $05). It must not win before $65: 1A:6082 fills
-        -- slot 0 at 5,5 while the map being left is still current, and the
-        -- 1A:6802 rebase (8,0 -> 9,27) is off that map.
-        local tx, ty = r:u8(o + 4), r:u8(o + 5)
-        if not self.pair then h.placePlayer(tx, ty)
-        elseif not self.pairNeedsMap and h.cellOpen and not h.cellOpen(self.pair[1], self.pair[2]) then
-          -- keep the blocked pair: a later $7E copy in the same entry can open it
-          -- (250 -> 249 via 19:7784 copies the C1 block onto 26-28,1-2 after $05)
-          self.pairWall = self.pair; self.pair = nil; h.placePlayer(tx, ty)
-        end
+        self:wr8(0xC18E, r:u8(o + 4)); self:wr8(0xC18F, r:u8(o + 5))
+        if h.placePlayer then h.placePlayer(r:u8(o + 4), r:u8(o + 5)) end
       end
       h.spawn(r:u8(o + 1), r:u8(o + 4), r:u8(o + 5), r:u16(o + 2), r:u8(o + 8), r:u8(o + 9), r:u16(o + 10), r:u8(o + 12), r:u16(o + 13)); o = o + n
     elseif op == 0x01 then -- opcode_01.asm: wScriptPair ($C9A1 col, $C9A2 row)
-      self.pair = { r:u8(o + 1), r:u8(o + 2) }; o = o + n
+      self:wr8(0xC9A1, r:u8(o + 1)); self:wr8(0xC9A2, r:u8(o + 2)); o = o + n
     elseif op == 0x02 then -- opcode_02.asm: pair = (C18E - b0) + b1, (C18F - b2) + b3
-      local px, py = h.playerCell()
-      self.pair = { (px - r:u8(o + 1) + r:u8(o + 2)) % 256, (py - r:u8(o + 3) + r:u8(o + 4)) % 256 }
-      self.pairNeedsMap = true -- still the map being left until $65
+      local px, py = self:playerCell()
+      self:wr8(0xC9A1, px - r:u8(o + 1) + r:u8(o + 2))
+      self:wr8(0xC9A2, py - r:u8(o + 3) + r:u8(o + 4))
       o = o + n
     elseif op == 0x00 then -- Opcode00 -> bank 1 $4423: C9A1 copied to C18E (player map cell)
       -- $C18E is slot 0's record cell: a cutscene stand-in filled by an earlier $05
       -- moves with it (182 story $0F entry 2A:6172: template 11,3, door pair 29,11)
-      if self.pair then
-        h.placePlayer(self.pair[1], self.pair[2])
-        if h.moveStandIn then h.moveStandIn(self.pair[1], self.pair[2]) end
-        self.pair = nil
-      end; o = o + n
+      -- always, whatever the cell holds; the pair is not cleared
+      local px, py = self:rd8(0xC9A1), self:rd8(0xC9A2)
+      self:wr8(0xC18E, px); self:wr8(0xC18F, py)
+      if h.placePlayer then h.placePlayer(px, py) end
+      if h.moveStandIn then h.moveStandIn(px, py) end
+      o = o + n
     elseif op == 0x13 then -- Opcode13 (word): this record's handler := word, yield
       o = o + n
       if not self.init then
@@ -288,6 +274,10 @@ function VM:run(bank, ptr)
       if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
       o = o + n
     elseif op == 0x25 then -- Opcode25: battle setup (C9E4, D391 kind, D36D, battle script record)
+      do -- opcode_25.asm first copies $C18E/$C18F to the pair
+        local px, py = self:playerCell()
+        self:wr8(0xC9A1, px); self:wr8(0xC9A2, py)
+      end
       if h.battleBegin and not self.init then
         h.battleBegin({ r:u8(o + 1), r:u8(o + 2), r:u8(o + 3), r:u8(o + 4), r:u16(o + 5) })
         self.dir = { seen = {} } -- the $2B stops passed since this setup (director duel check at $2B)
@@ -350,8 +340,6 @@ function VM:run(bank, ptr)
         jump(k[1], k[2])
       end
     elseif op == 0x82 then -- CenterFineScrollOnScriptBase
-      -- a door pair still pending here (entry had no $00) is the spawn cell
-      if self.pair and not self.init and h.cellOpen and h.cellOpen(self.pair[1], self.pair[2]) then h.placePlayer(self.pair[1], self.pair[2]); self.pair = nil end
       h.centerCamera(); o = o + n
     elseif op == 0x0B then h.slotFlag(r:u8(o + 1)); o = o + n -- opcode_0b.asm: clear bit 7 of slot record
     elseif op == 0x94 then -- MarkScriptDone21B2: stop this frame's loop, resume at the next opcode
@@ -492,8 +480,13 @@ function VM:run(bank, ptr)
       while h.cellByte and self:rd16(0xFF93) >= 0xD000 and h.cellByte(self:rd16(0xFF93)) ~= want and g < 600 and not self.init do g = g + 1; coroutine.yield("wait", 1) end
       o = o + n
     elseif op == 0x96 then -- SaveScriptTripleToSRAM: bank, ptr -> sSavedScriptBank/Ptr ($A012-$A014); pair -> $A015
+      -- save_script_triple.asm: $C18E/$C18F -> sSavedScriptPair first, then jp INITIAL_SCRIPT_HANDLER
+      do local px, py = self:playerCell(); self:wr8(0xA015, px); self:wr8(0xA016, py) end
       self:wr8(0xA012, r:u8(o + 1)); self:wr8(0xA013, r:u8(o + 2)); self:wr8(0xA014, r:u8(o + 3)); o = o + n
+      if not self.init then coroutine.yield("wait", 1) end
     elseif op == 0x89 or op == 0x8A then -- (bank-7 $4087 call for $8A: INCBIN) LoadSRAMScriptAndDispatch
+      -- load_sram_script_dispatch.asm: sSavedScriptPair -> $C9A1/$C9A2 before the jump
+      self:wr8(0xC9A1, self:rd8(0xA015)); self:wr8(0xC9A2, self:rd8(0xA016))
       local p = self:rd8(0xA013) + 256 * self:rd8(0xA014)
       if p ~= 0 then jump(self:rd8(0xA012), p) else o = o + n end
     elseif op == 0x11 then -- Opcode11 / MapBank1AndJump / PickMapCellFromDiv / MatchWRAM5ScriptByte

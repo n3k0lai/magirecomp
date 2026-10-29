@@ -39,7 +39,7 @@ vm:start(0x12, 0x4000)
 ok(px == 29 and py == 11, "player on the door pair 29,11 (got " .. tostring(px) .. "," .. tostring(py) .. ")")
 ok(sx == 29 and sy == 11, "slot-0 stand-in moved to the pair (got " .. tostring(sx) .. "," .. tostring(sy) .. ")")
 ok(moved == 1, "moved once by $00")
-ok(vm.pair == nil, "pair consumed")
+ok(vm:rd8(0xC9A1) == 29 and vm:rd8(0xC9A2) == 11, "pair stays in WRAM (opcode_00 does not clear it)")
 
 if failures == 0 then print(("ok %d checks"):format(checks)) else print(("%d FAIL / %d"):format(failures, checks)) end
 os.exit(failures == 0 and 0 or 1)

@@ -953,6 +953,8 @@ must start from k241 or earlier.
   ringsmith rule, 14:7DD2). In the original `$00` copies the pair to `$C18E` regardless, so Tony
   stands on 27,2 once the copy has run. Fix (ScriptVM): a pair blocked at `$05` is kept as
   `pairWall` and applied at the entry's `$94` / park if its cell is open by then; `$65` clears it.
+  Superseded: the pair now lives in `$C9A1/$C9A2` and `$00` copies it unconditionally, with no
+  wall rule (docs/mn-door-rebase.md).
   Ringsmith is unchanged (its cell stays a wall). Test: `tests/engine/mn_door_rebase_test.lua`.
 - Harness: the aff7e0f7 ">" rule moved to `mn.boot.RouteGoal.talkEndsGoal` with
   `tests/engine/mn_route_goal_test.lua`. `MN_STUCKDBG` now also prints the live 15x11 cell window

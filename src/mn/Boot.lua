@@ -107,7 +107,6 @@ local function continueFromSave(ow, data)
   end
   Save.install(ow.vm, accepted, w)
   local b, p, x, y = Save.resume(ow.vm)
-  ow.vm.pair = { x, y }
   ow.vm:wr8(0xC9A1, x)
   ow.vm:wr8(0xC9A2, y)
   if p == 0 then return false end

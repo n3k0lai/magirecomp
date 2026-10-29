@@ -1,6 +1,7 @@
--- Door rebase (opcode_02.asm): new = old - lo + hi, applied by $00
--- (opcode_00_bank1.asm). A slot-0 $05 template must not replace a pair
--- that was computed before $65 loaded the destination (1A:6802 / 1A:6082).
+-- Door rebase (opcode_02.asm): new = old - lo + hi into $C9A1/$C9A2, copied
+-- to $C18E by $00 (opcode_00_bank1.asm). A slot-0 $05 writes $C18E too (slot 0's
+-- record is $C189, +5/+6 is the cell), so the last writer wins: 1A:6802 / 1A:6082
+-- put the template at 5,5 and the entry's later $00 moves to the pair.
 --   luajit tests/engine/mn_door_rebase_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
 love = love or { math = { random = function(a) return a or 0 end } } -- luacheck: ignore 111
@@ -77,13 +78,12 @@ end
 -- $02 alone stores wScriptPair. $12 parks (opcode_12.asm).
 do
   local x, y, _, _, vm = run({ 0x02, 7, 8, 0, 0x1B, 0x12 }, 8, 0)
-  ok(vm.pair[1] == 9 and vm.pair[2] == 27 and x == 8 and y == 0, "$02 keeps the player until $00")
+  ok(vm:rd8(0xC9A1) == 9 and vm:rd8(0xC9A2) == 27 and x == 8 and y == 0, "$02 keeps the player until $00")
   x, y, _, _, vm = run({ 0x02, 0x16, 0x06, 21, 11, 0x12 }, 23, 21)
-  ok(vm.pair[1] == 7 and vm.pair[2] == 11, "$02 on 23,21 stores 7,11")
+  ok(vm:rd8(0xC9A1) == 7 and vm:rd8(0xC9A2) == 11, "$02 on 23,21 stores 7,11")
 end
 
--- 1A:6082 order: $93, slot 0 at 5,5, $65, $00. The template is off the map
--- being left, so it must not replace the rebase. $00 then copies the pair.
+-- 1A:6082 order: $93, slot 0 at 5,5, $65, then the entry's $00 copies the pair.
 local function doorScript(loX, hiX, loY, hiY)
   return concat({
     { 0x02, loX, hiX, loY, hiY, 0x93 },
@@ -91,14 +91,15 @@ local function doorScript(loX, hiX, loY, hiY)
     { 0x65, 0x00, 0x40, 0x4F, 0x00, 0x12 },
   })
 end
+local function noDoor()
+  return concat({ { 0x93 }, slot0(5, 5), { 0x65, 0x00, 0x40, 0x4F, 0x12 } })
+end
 
 do
   local x, y, placed = run(doorScript(7, 8, 0, 0x1B), 8, 0)
-  ok(x == 9 and y == 27, "slot 0 at 5,5 does not override 8,0 -> 9,27")
+  ok(x == 9 and y == 27, "the entry's $00 after slot 0 at 5,5 lands 8,0 -> 9,27")
   ok(placed[#placed][1] == 9 and placed[#placed][2] == 27, "last place is the rebase")
-  local overwrote = false
-  for _, p in ipairs(placed) do if p[1] == 5 and p[2] == 5 then overwrote = true end end
-  ok(not overwrote, "template 5,5 is not placed while the pair is pending")
+  ok(placed[1][1] == 5 and placed[1][2] == 5, "the $05 writes $C18E = 5,5 first")
 end
 
 do
@@ -108,7 +109,7 @@ end
 
 -- No pending door: the slot-0 template is the spawn (new game / a load at a cell).
 do
-  local x, y = run(concat({ { 0x93 }, slot0(5, 5), { 0x65, 0x00, 0x40, 0x4F, 0x00, 0x12 } }), 3, 4)
+  local x, y = run(noDoor(), 3, 4)
   ok(x == 5 and y == 5, "no pair: template 5,5 is used")
 end
 
@@ -124,32 +125,20 @@ do
   ok(x == 8 and y == 13, "wall on the loaded map keeps the slot-0 cell")
 end
 
--- 250 -> 249 (19:7AFC -> 19:7784): the rebase 27,2 is a wall when slot 0's
--- $05 runs, then the entry's $7E copy opens it. $00 in the original puts the
--- player on the pair whatever the cell held, so once it is open (by $94) the
--- player must stand there, not on the 5,5 template. Here a slot-2 $05 stands in
--- for the $7E copy (the fake host opens 1,1 when it spawns).
+-- 250 -> 249 (19:7AFC -> 19:7744): slot 0 at 5,5, then $00. $00 copies the
+-- pair whatever the cell holds (1,1 is a wall on this map).
 do
-  local host, at = world(0, 0)
-  local spawned = 0
-  host.spawn = function() spawned = spawned + 1 end
-  local open0 = host.cellOpen
-  host.cellOpen = function(cx, cy) if cx == 1 and cy == 1 and spawned >= 2 then return true end return open0(cx, cy) end
-  local slot2 = slot0(9, 9); slot2[2] = 0x02
   local bytes = concat({
     { 0x02, 0, 1, 0, 1, 0x93, 0x65, 0x00, 0x40, 0x4F },
     slot0(5, 5),
-    slot2,
-    { 0x94, 0x12 },
+    { 0x00, 0x94, 0x12 },
   })
-  local vm = VM.new(image(bytes), host)
-  vm:start(0x12, 0x4000)
-  local x, y = at()
-  ok(x == 1 and y == 1, "a pair the entry opens after $05 wins over the template (got " .. x .. "," .. y .. ")")
-  ok(vm.pairWall == nil, "pairWall cleared once placed")
+  local x, y = run(bytes, 0, 0)
+  ok(x == 1 and y == 1, "$00 puts the player on a walled pair (got " .. x .. "," .. y .. ")")
 end
 
--- 1D:79C8 order: map load, slot 0 whose cell matches the rebase, $82, no $00.
+-- 1D:79C8 order: map load, slot 0 whose cell matches the rebase, $82, no $00:
+-- the record's cell is the spawn.
 do
   local bytes = concat({
     { 0x02, 0x16, 0x06, 21, 11, 0x93, 0x65, 0x00, 0x40, 0x4F },
@@ -157,17 +146,16 @@ do
     { 0x82, 0x12 },
   })
   local x, y = run(bytes, 23, 21)
-  ok(x == 7 and y == 11, "$82 applies a pair that is open on the new map")
+  ok(x == 7 and y == 11, "slot 0's 7,11 is the spawn")
 end
 
--- Same bytes as a map-setup run (runInit). The template still must not win
--- while the pair is waiting for its map.
+-- Same bytes as a map-setup run (runInit).
 do
   local host, at = world(8, 0)
   local vm = VM.new(image(doorScript(7, 8, 0, 0x1B)), host)
   vm:runInit(0x12, 0x4000)
   local x, y = at()
-  ok(x == 9 and y == 27 and vm.pair == nil, "init run keeps the door rebase")
+  ok(x == 9 and y == 27 and vm:rd8(0xC9A1) == 9, "init run keeps the door rebase; the pair stays in WRAM")
 end
 
 local romPath = os.getenv("MN_ROM")
