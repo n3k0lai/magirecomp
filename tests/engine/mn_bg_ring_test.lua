@@ -42,11 +42,11 @@ end
 do -- LCD on: $84 jumps 16 columns east, the view shows the old cells
   local s, h = world()
   s:ringFrame() -- view cols 0..9 recorded
-  h.cameraCell(16, 0) -- camFix 256,0: cols 16..25
+  h.cameraCell(16, 0) -- column 16 fine 8, row 0 pinned fine 0: camFix 264,0, cols 16..26
   ok(at(s, 16, 2) == 0, "(16,2) shows slot 0: the old column 0")
   ok(at(s, 25, 2) == 9, "(25,2) shows slot 9: the old column 9")
   ok(s.bgStale and s.bgStale[2 * W + 16], "(16,2) is stale")
-  ok(at(s, 26, 2) == nil, "(26,2) is off screen")
+  ok(at(s, 27, 2) == nil, "(27,2) is off screen")
   h.cameraCell(30, 0) -- on to cols 30..39: the stale cells left the view
   s:flushStale()
   ok(at(s, 16, 2) == 16, "off screen, the seam shows WRAM 3 at (16,2)")
@@ -103,7 +103,7 @@ do -- $82/$84 store wMapColumn/Row and the fine bytes outright (center_fine_scro
   s.camOff = { 48, 0 }
   h.cameraCell(10, 4)
   cx, cy = s:cameraXY()
-  ok(s.camOff == nil and cx == 160 and cy == 64, "$84: camera at the given cell, offset gone")
+  ok(s.camOff == nil and cx == 168 and cy == 72, "$84: camera at the given cell fine 8, offset gone")
 end
 
 print(("mn_bg_ring: %d checks, %d failures"):format(checks, failures))

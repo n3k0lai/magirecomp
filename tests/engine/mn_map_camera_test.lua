@@ -64,7 +64,7 @@ do -- steps carry fine crossings into the column / row
   ok(cam.col == 255 and cam.fx == 15, "the column byte wraps")
 end
 
-do -- the host: $84 and $82 record the logical camera, the visible camera is unchanged
+do -- the host: $84 records the logical camera; the visible camera is its clamp
   local Overworld = require("mn.Overworld")
   local s = setmetatable({ def = { w = 40, h = 30, camCol = 29, camRow = 20, cells = {}, block = {} },
     patches = {}, log = {}, objects = {}, px = 20 * 16, py = 15 * 16 }, { __index = Overworld })
@@ -73,7 +73,13 @@ do -- the host: $84 and $82 record the logical camera, the visible camera is unc
   h.cameraCell(10, 4)
   ok(s.mapCam.col == 10 and s.mapCam.row == 4 and s.mapCam.fx == 8 and s.mapCam.fy == 8, "$84 stores cell-5, fine 8")
   local x, y = s:cameraXY()
-  ok(x == 160 and y == 64, "visible camera still the port's (fine 0) until the split lands")
+  ok(x == 168 and y == 72, "visible camera: column 10 row 4 fine 8 survive inside the limits")
+  h.cameraCell(35, 25)
+  x, y = s:cameraXY()
+  ok(x == 29 * 16 + 15 and y == 20 * 16 + 15, "past the limits: last column/row fine 15")
+  h.cameraCell(251, 251)
+  x, y = s:cameraXY()
+  ok(x == 0 and y == 0, "a wrapped cell - 5 pins to column/row 0 fine 0")
   s.vm = { playerCell = function() return 12, 9 end }
   h.centerCamera()
   ok(s.mapCam.col == 7 and s.mapCam.row == 4 and s.mapCam.fx == 8, "$82 stores $C18E/F - 5, fine 8")

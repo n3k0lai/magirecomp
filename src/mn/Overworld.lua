@@ -224,11 +224,13 @@ function M:host()
     -- scroll code clamps them to the map record's last column (byte 3, w-11)
     -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER.
     cameraCell = function(c, r)
-      s.mapCam = MapCamera.center(c, r) -- what $84 stores; the visible camera is still the port's below
-      local W, H = s.def.w * 16, s.def.h * 16
-      local ux, uy = c * 16, r * 16
-      local cx = math.max(0, math.min(ux, (s.def.camCol or 99) * 16 + 15, W - 160))
-      local cy = math.max(0, math.min(uy, (s.def.camRow or 99) * 16 + 15, H - 144))
+      s.mapCam = MapCamera.center(c, r) -- what $84 stores
+      -- the visible camera is what ClampMapCamera makes of it (fine 8 survives only
+      -- strictly inside the limits). PyBoy map 220: $84 stores column 8 row 24
+      -- fine 8,8; the clamp ($C845/$C846 = 9/20) gives 8 fine 8, 20 fine 15, so
+      -- $C935/$C934 = 136 / 335 & 255 (the old cell * 16 cap gave 128)
+      local pin = MapCamera.clamp(MapCamera.limits(s.def), s.mapCam)
+      local cx, cy = pin.col * 16 + pin.fx, pin.row * 16 + pin.fy
       -- No object moves: ClampMapCamera (07:491F) only pins the camera bytes.
       -- PyBoy (map 219, Tavel Gorge): after $84 $0807 and the $93 redraw the
       -- kids' records stay at 5,12 / 7,12 with $C934 = 15 (row limit 0, fine

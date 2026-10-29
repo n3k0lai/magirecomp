@@ -95,20 +95,50 @@ keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
 
 ### Handoff (2026-10-29)
 
-Ready to merge (fix/mn-cam-split, suite and both seeds run on the pushed
+On the branch (fix/mn-cam-split, suite and both seeds run on the pushed
 tree): step 1 (`MapCamera`, `mapCam` recorded, not read) and step 4 (no
 "camera clamp shift", no `camRow == 0` override, `$84` sets the visible
 camera to the clamped pixel value, `$16` walkers move by their own pan
 delta, objects walking in from below the map cross its edge cells). Tavel
 Gorge now matches PyBoy frame for frame (measured values below).
 
+Visible camera on `$84` (`cameraCell`): ClampMapCamera of the stored
+`mapCam`, so fine 8 survives strictly inside the limits (column 0 or past
+the map pins to 0 fine 0, past `$C845`/`$C846` to the limit fine 15). Map
+220 now gives `$C935`/`$C934` = 136/79 as PyBoy (the old cell * 16 cap
+gave 128); maps 0 and 219 unchanged.
+
+Re-checks (headless PyBoy against the port, 2026-10-29):
+
+- Map 0 (title): PyBoy slot 3 at 5,6 fine 0,7, slot 2 at 0,0, camera 0,0;
+  the port places them the same and draws the same frames as master (the
+  old -5,-5 shift no longer fires). Matches.
+- Map 2 (seed start): the branch keeps slot 3 at its script cell 8,4
+  (master's shift gave 8,5); the asm never moves records, so the branch is
+  right by code.
+- Map 220 Tony: does not match, on master or the branch. PyBoy: `$84` and
+  the clamp at frame 1886, Tony walks 1 px a frame from 1889 to 1936 (48
+  px), 14,28 -> 14,25 fine 8,8, and stays. Port: he walks 34 frames to
+  14,26 (offset -2) and control comes back. Column 14 rows 24-28 are all
+  open cells, so not collision. The entry script `1F:5AC3` runs
+  ScriptByteCountdown `$20` (32 frames), then `$5B` (text script
+  `1F:5A5F`), then `$5F` (wait for `$C6FD`), then RunScriptInSlot 0; the
+  port's text/`$5F` wait (with MN_BAUTO) likely ends far earlier than the
+  real one, cutting the walk script `1F:5AFB` short. Not settled: needs a
+  PyBoy read of slot 0's script pointer and `$C6FD` across frames
+  1886-1940.
+- Eidon `13:58C2` (map 61, slot 2, 1,10 -> 9,10): not re-checked; the
+  after60/after61 snapshots do not reach the scene (after61 is past it,
+  after60's route leaves map 60 for 52). Needs a snapshot on map 60 before
+  the door to 61.
+
+Not merged into master: map 220 Tony does not match PyBoy and Eidon is
+unchecked. The Tony gap is the same on master (674728f7), so it is not
+caused by this branch; the branch merges into master with no conflicts.
+
 Remaining: steps 1-3 below (`camPix` set only by the `$93` redraw, the
 `scrollDelta` edge tests from `mapCam` and `$C842`, the sprite cull from
-`mapCam`); the map 220 Tony and Eidon `13:58C2` re-checks; a screen check of
-map 0 (the old shift fired there as -5,-5; PyBoy shows no object move)
-and map 2 at the seed start (the old shift fired as 2,0; both seeds give the
-same logs as before apart from that line). origin/master has moved
-(674728f7, story15 work); the branch merges into it with no conflicts.
+`mapCam`); the map 220 Tony timing and the Eidon re-check above.
 
 ### What the asm keeps
 
