@@ -2,7 +2,8 @@
 -- loads map data only: palettes, tiles, the WRAM planes. Records, threads, the
 -- mailboxes, the A list and the player cell are left alone. $93 (finish_startup.asm
 -- -> InitQuadRecords, write_quad_records.asm) clears $C6F5-$C6F8, $C6FA, $C6FC and
--- leaves $C6F9, $C6FB, $C6FD. Made-up bytes, no ROM.
+-- leaves $C6F9, $C6FB, $C6FD; its SetupDefaultState
+-- (default_state.asm) clears the cell-$82 enable $C6D8. Made-up bytes, no ROM.
 --   luajit tests/engine/mn_load65_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
 love = love or { math = { random = function(a) return a or 0 end } } -- luacheck: ignore 111
@@ -25,10 +26,14 @@ end
 do -- $93 InitQuadRecords
   local vm = VM.new(image({ 0x93 }), { loadMap = function() end, centerCamera = function() end })
   for m = 0xC6F5, 0xC6FD do vm:wr8(m, 0x11) end
+  vm:wr8(0xC6D8, 1); vm:wr8(0xC716, 0x40)
   vm:start(0x12, 0x4000)
   for _, m in ipairs({ 0xC6F5, 0xC6F6, 0xC6F7, 0xC6F8, 0xC6FA, 0xC6FC }) do
     ok(vm:rd8(m) == 0, ("$93 clears %04X"):format(m))
   end
+  ok(vm:rd8(0xC6D8) == 0, "$93 (SetupDefaultState) turns the cell-$82 countdown off")
+  ok(vm:rd8(0xC716) == 0, "$93 clears wThirdScriptRecord's pointer high byte")
+  ok(vm:rd8(0xFFAA) == 3 and vm:rd8(0xFFAB) == 3, "$93 sets $FFAA/$FFAB to 3")
   for _, m in ipairs({ 0xC6F9, 0xC6FB, 0xC6FD }) do
     ok(vm:rd8(m) == 0x11, ("$93 leaves %04X"):format(m))
   end

@@ -226,9 +226,12 @@ function VM:run(bank, ptr)
       -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
       if h.defaultGates then h.defaultGates() end
       if h.freshScene and not self.init then h.freshScene() end
-      -- InitQuadRecords ($28A9, write_quad_records.asm): 00 00 02 14 at $C70E/$C71C,
-      -- and $C6F5-$C6F8, $C6FA, $C6FC cleared ($C6F9/$C6FB/$C6FD are left)
-      for _, m in ipairs({ 0xC6F5, 0xC6F6, 0xC6F7, 0xC6F8, 0xC6FA, 0xC6FC }) do self:wr8(m, 0) end
+      -- finish_startup.asm: $CCA5 cleared, SetupDefaultState (default_state.asm:
+      -- $C6DE, callbacks, $C931-$C933, $C9C5/6, $C9FF 22 06 40, $C188, $C6D8 grass
+      -- enable, $CCA6, $C6F3, $C6EF = 3, $FFAA/$FFAB = 3), InitQuadRecords ($C70E,
+      -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
+      -- The boot path stores the same bytes (boot/Title.lua).
+      require("mn.boot.Title").applyDefaults(self)
       self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
