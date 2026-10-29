@@ -45,7 +45,11 @@ function M.frames(rom, bank, ptr)
       else
         local a, b = rom:u8(o + 2), rom:u8(o + 3)
         if a >= 128 then a = a - 256 end; if b >= 128 then b = b - 256 end
-        out[#out + 1] = { n = c, dx = a, dy = b } -- list nil: the image already shown stays
+        -- hide: the step queues no sprite list. FinishFrame's HideLeftoverSprites ($0625)
+        -- resets wShadowOAMCursor ($C728) every frame and parks the slots nobody rewrote,
+        -- and the record callbacks (RunOneScriptThenWriteHead etc.) draw only through the
+        -- script's own QueueSpriteList calls, so the object is not drawn on these frames
+        out[#out + 1] = { n = c, dx = a, dy = b, hide = true }
         o = o + 4
       end
     elseif op == 0x4C or op == 0x4F then
@@ -186,6 +190,7 @@ function M.build(ow, o)
     end
   end
   o.image = M.firstImage(seq) or o.image
+  o.hidden = seq[1].hide or nil
   if o.sched then
     o.seqs, o.si, o.st = {}, 1, 0
     for k, e in ipairs(o.sched) do
@@ -202,6 +207,7 @@ function M.build(ow, o)
       o.seqs[k] = sq
     end
     o.seq = o.seqs[1]; o.image = M.firstImage(o.seq) or o.image
+    o.hidden = o.seq[1] and o.seq[1].hide or nil
   end
   return o
 end
@@ -241,8 +247,12 @@ function M.tick(o, canEnter)
     while o.oy <= -16 do o.oy = o.oy + 16; o.y = o.y - 1 end
     o.ft = o.ft + 1
     if o.ft >= math.max(1, f.n) then
+      local wasSpent = o.spent
       if o.fi == #o.seq and o.seq.once and #o.seq > 1 then o.spent = true end
       o.ft = 0; o.fi = o.fi % #o.seq + 1; o.image = o.seq[o.fi].img or o.image
+      -- a spent one-shot keeps its last frame's visibility (the script has moved on)
+      if not o.spent then o.hidden = o.seq[o.fi].hide or nil
+      elseif not wasSpent then o.hidden = f.hide or nil end
     end
   end
   -- a $15 record lasts its full frame count, motion included (16 frames of 20:4FB3 at
@@ -256,6 +266,7 @@ function M.tick(o, canEnter)
     if #o.sched > 1 and not hold and o.st >= math.max(1, o.sched[o.si][3]) then
       o.st = 0; o.si = o.si % #o.sched + 1; o.seq = o.seqs[o.si]; o.fi, o.ft, o.spent = 1, 0, nil
       o.image = o.seq[1].img or o.image
+      o.hidden = o.seq[1].hide or nil
     end
   end
 end

@@ -982,7 +982,7 @@ function M:drawField(vw, vh, ux, uy)
     if os.getenv("MN_RDBG") and self.map == tonumber(os.getenv("MN_RDBG")) and (self.vm.tk or 0) % 30 == 0 and _ ~= 0 and _ ~= 2 then print(("[rdbg] f%d slot %s at %d,%d o=%s,%s img=%s dorm=%s blank=%s cam=%d,%d off=%s fix=%s pan=%s"):format(self.vm.tk or 0, tostring(_), o.x, o.y, tostring(o.ox), tostring(o.oy), tostring(o.image ~= nil), tostring(o.dormant), tostring(o.blank), cx, cy, self.camOff and (self.camOff[1] .. "," .. self.camOff[2]) or "-", self.camFix and (self.camFix[1] .. "," .. self.camFix[2]) or "-", self.panv and table.concat(self.panv, ",") or "-")) end
     -- record byte 0 bit 7 (dormant) objects aren't drawn: PyBoy map 40 slots 5-7
     -- stay $80 and show no OAM until $0B wakes them
-    if o.image and not o.dormant and not o.blank and not o.picking then
+    if o.image and not o.hidden and not o.dormant and not o.blank and not o.picking then
       local dx, dy = o.x * 16 - 24 + (o.ox or 0), o.y * 16 - 24 + (o.oy or 0)
       -- wide view only: a record parked off the map (scripts hide actors past
       -- the classic screen) stays hidden unless it overlaps the classic frame

@@ -106,11 +106,13 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
 
 ## Still open (the code can't answer yet)
 
+Settled on fix/mn-secrets2: **what shows during `$4E` frames** is nothing. RepeatTwoScriptBytes queues
+no sprite list, FinishFrame's HideLeftoverSprites ($0625) resets wShadowOAMCursor ($C728) every frame and
+parks the slots nobody rewrote, and the record callbacks draw only through their scripts' own
+QueueSpriteList calls. The port hides the object on those frames (`Sprites.tick`, `o.hidden`); the rock
+fall (11:7532) is unseen while it lifts and shows only as it drops. Test: mn_op4e_test.
+
 1. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
-2. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
-   last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
-   that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
-   then 40 at +4) that means the rock shows while it's lifted.
 3. **Conveyors `$A0`-`$A7` and warps that land mid-layer.** Not modelled yet. The ride gates (60E7 /
    5F25) are no longer here: the boat is reachable from 236 entry 4 (2F:46C0) and from 258/40 onto map
    281, and mn.Ride implements it (see docs/mn-engines.md, "Boat"). Ride outliers left for Nicholai:

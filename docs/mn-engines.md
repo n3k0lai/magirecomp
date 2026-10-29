@@ -75,7 +75,7 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Split-byte countdowns | `$70`/`$71`/`$74` ($FFA7 low 6 x ($FFA6 high 2 + 1)) | `ScriptVM` | implemented |
 | `$CCA6` countdowns | `$76`/`$77`/`$7A` (`$1C17`/`$1C4A`/`$1BE4`): SetCCA6 countdown, then the bank-7 tails | `ops/Panels` | tested (`mn_panel_tails_test`) |
 | Sprite list animation | `$4C` QueueRepeatedSpriteList, `$4D` StepScriptSpritePointerTable | `Sprites`, `ScriptVM` | tested (`mn_op4c4d_test`) |
-| Fine-step motion | `$4E` RepeatTwoScriptBytes (`$15AB`): count frames of (`$C6D2`, `$C6D3`) | `ScriptVM`, `Sprites.frames` | tested (`mn_op4e_test`) |
+| Fine-step motion | `$4E` RepeatTwoScriptBytes (`$15AB`): count frames of (`$C6D2`, `$C6D3`) | `ScriptVM`, `Sprites.frames`; no list is queued, so the object is hidden on those frames | tested (`mn_op4e_test`) |
 | Offset sprite lists | `$4F` QueueRepeatedOffsetSpriteList (`$1643`) | `ScriptVM`, `Sprites` | tested (`mn_op4e_test`, `mn_offset_list_test`): steps are raw screen X/Y with no wall test, first list drawn on the op's frame |
 | Object dormancy | `$05`, `$0C` set record bit 7, `$0B` clears it | `ScriptVM`, `Overworld` | tested (`mn_record_carry_test`, `mn_down_trigger_wake_test`) |
 | Thread sync (posts and waits) | `$53`-`$62` (C6F8-C6FD) | `ScriptVM` | tested (`mn_use_record_test`) |

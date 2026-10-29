@@ -47,6 +47,18 @@ local seq = Sprites.frames(rom, 0x12, 0x4040)
 ok(#seq == 2, "$4E + one $4C record = two steps")
 ok(seq[1].n == 2 and seq[1].dx == 0 and seq[1].dy == -16 and seq[1].list == nil, "$4E step: count frames of (0,-16), no list")
 ok(seq[2].n == 5 and seq[2].dy == 4 and seq[2].list == 0x5000, "the $4C record keeps its own count")
+ok(seq[1].hide == true and not seq[2].hide, "$4E steps are hidden frames, $4C records are drawn")
+-- tick: hidden while the $4E step runs (HideLeftoverSprites parks unqueued slots), drawn on
+-- the $4C frames, and a spent one-shot keeps its last (drawn) frame
+do
+  seq[2].img = "list5000"; seq.once = true
+  local o = { seq = seq, fi = 1, ft = 0, ox = 0, oy = 0, x = 4, y = 20, hidden = true }
+  local hid = {}
+  for i = 1, 9 do Sprites.tick(o); hid[i] = o.hidden and 1 or 0 end
+  ok(hid[1] == 1 and hid[2] == 0 and hid[6] == 0, "hidden for the 2 $4E frames, then drawn")
+  ok(o.spent and hid[7] == 0 and hid[8] == 0 and hid[9] == 0, "spent one-shot stays drawn")
+  ok(o.y == 19 and o.oy == 4, "hidden frames still move it: 2 x -16 then 5 x +4")
+end
 local v3 = VM.new(rom, {})
 v3:start(0x12, 0x4060)
 ok(v3.wait == 5, "$4F waits the sum of its record counts")
