@@ -66,17 +66,19 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
   00 FF FF 00 FF FF FF FF back at $C12A. That is what ends a ride when a step trigger such as 2F:466C
   (C6 on 281) lands Tony back on 236 through 25:7129. The port does the same and also clears its own
   layer state.
-- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41` or `$5B07` read the pad, so they are the
-  player. 2F:466C fills slot 0 with `$5B41`. `$5B07` (21:78EB, 19:7D92) reads only A: no walk, and A
+- Slot-0 records with heads `$5D81`, `$5B1E`, `$5B41`, `$5B6E`, `$5D47` or `$5B07` read the pad, so they are the
+  player. 2F:466C fills slot 0 with `$5B41`. `$5D47` (mid `$5D3E`) trampolines to `$5B6E` (PixelWalk idle)
+  because WalkPointerSlots leaves A = `$47` (bit 6 clear). `$5B07` (21:78EB, 19:7D92) reads only A: no walk, and A
   always tests the cell above (4C6E). It still runs the `$82` countdown (4212).
 
 ### Pixel motion (mn.Motion, mn.PixelWalk)
 
 - mn.Motion: SaveStepThenApplyOrDispatch (05:682D), the cell probes and their handler table, the
   conveyor cells `$A0`-`$A7` (01:5E65) and the once-per-entry step triggers (01:422E).
-- mn.PixelWalk: the `$5B41` head family, which takes fine steps every frame from fine 8,8
-  (FillScriptRecord0808); a conveyor cell adds to the step. Boot's planner holds the pad while it
-  runs. Tests: mn_motion_test, mn_pixelwalk_test.
+- mn.PixelWalk: the `$5B41` head family (idle `$5B6E`, up `$5D3E` / mid-entry `$5D47` trampoline),
+  which takes fine steps every frame from fine 8,8 (FillScriptRecord0808); a conveyor cell adds to
+  the step. Boot's planner holds the pad while it runs. Tests: mn_motion_test, mn_pixelwalk_test,
+  mn_stale_head_test.
 
 ## Cutscene routines
 
@@ -97,7 +99,7 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 | Camera pan deltas | `$83` AddScriptDeltasUntilZero (`$1E45`): (count, dx, dy) per frame into `$C843`/`$C844` | `h.pan` | implemented |
 | Scroll nudge | `$7C` (`$1D4C`, cells - 5), `$7D` (`$1D6B`, record cell, floored) -> NudgeCameraDeltas 01:4587 | `Overworld.nudgeStep` | tested (`mn_nudge_test`) |
 | Camera seed | `$86` SeedCameraAndEnterLoop (`$20` camera box) | `ops/Travel` | tested (`mn_ops_travel_test`) |
-| Fades | `$6E` (bank 7 `$4850`), `$6F` (`$4837`) to/from a BGR555 colour; targets INCBIN | `h.fade` | outlier (fade curve) |
+| Fades | `$6E`/`$6F`/`$76`/`$77`/`$79`/`$7A` (bank 7 `$4850`/`$4837`/`$489D`/`$48FD`/`$481E`/`$4870`): target `$C72B`, live `$C7AB`, split-byte countdown | `ops/Panels`, `LivePalette` | tested (`mn_palette_ops_test`, `mn_panel_tails_test`) |
 | Palette colour | `$6C` StageColorWordThenCall5C00 | `ops/Panels` | tested (`mn_ops_panels_test`) |
 | Window | `$9B` open (proceeds when `$C6EE == 2`), `$9A` wait `$C6EE == 0`, `$99` FinishWindowYSlide, `$9D` wait `$C6EE == 2` | `ScriptVM`, `ops/Flow` | tested (`mn_op9d_test`, `mn_window_slide_test`): `$C6EE` 0/1/2, WY from the slide table, exact frame counts |
 | Music and sound | `$1B`/`$1C` slots, `$1D`/`$1E`/`$21` requests, `$1F` index, `$22`/`$23`/`$30` | `ScriptVM`, `SfxOut` | tested (`mn_sfx_test`, `mn_sfx_out_test`) |

@@ -1,8 +1,9 @@
--- 01:5D47, mid ResumeOtherLeftCellScript: planted as slot-0 head with a sprite anim
--- (16:7CF5, 19:7DA9, 1B:7B08 $07/$05 00 47 5D + 20:50FB). Bit 6 of $C9A3 with a stale
--- hRecordHead/hScriptPtr always takes .noSide, so the dispatcher is not lifted. Port:
--- drop the stand-in, hide Tony, hold him (turn, A, grass; no pad walk); Walk.screenY
--- is nil. The remaining outlier is a stale double commit (docs/mn-outliers.md).
+-- 01:5D47, mid ResumeOtherLeftCellScript (the PixelWalk up head at $5D3E + 9).
+-- WalkPointerSlots loads A from the head's low byte ($47) before JumpHL, so bit 6
+-- is clear and the up-release path runs: hScriptPtr := $5BBF (idle script 20:5BBF
+-- when bank $20 is still set), PlantDownBit7ClearHead ($5B5B) plants head $5B6E
+-- and commits. Sites that plant it (16:7CF5, 19:7DA9, 1B:7B08 $05/$07 00 47 5D +
+-- 20:50FB) therefore land Tony on the PixelWalk idle family, same as $5B41.
 -- Made-up cells and script bytes only, no ROM bytes.
 --   luajit tests/engine/mn_stale_head_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
@@ -11,7 +12,7 @@ local failures, checks = 0, 0
 local function ok(c, w) checks = checks + 1; if not c then failures = failures + 1; print("FAIL " .. w) end end
 
 local Overworld = require("mn.Overworld")
-local Walk = require("mn.Walk")
+local PixelWalk = require("mn.PixelWalk")
 local MnRom = require("mn.MnRom")
 
 -- a made-up sprite loop at 20:50FB so the anim field reads as a sprite anim:
@@ -28,49 +29,24 @@ local function vmStub()
   return v
 end
 
--- slot-0 record $00,$5D47 with sprite anim: stand-in goes, Tony hidden, stale head kept
+-- slot-0 record $00,$5D47 with sprite anim: stand-in goes, Tony shown on PixelWalk
 local s = setmetatable({ x = 4, y = 4, objects = { [0] = { x = 1, y = 1 } }, hidePlayer = true, log = {},
   vm = vmStub(), facing = "down" }, { __index = Overworld })
 pcall(s:host().spawn, 0, 4, 4, 0x5D47, 0, 0x20, 0x50FB, 0x22, 0x4005)
 ok(s.objects[0] == nil, "$5D47 slot-0 record drops the stand-in")
-ok(s.hidePlayer == true, "Tony stays hidden")
-ok(s.padHead == 0x5D47 and s.tonyHead == 0x5D47, "the $5D47 head is kept")
-ok(Walk.screenY(s, 0, nil) == nil, "Walk.screenY is nil while he is hidden")
+ok(s.hidePlayer == false, "Tony is shown")
+ok(s.padHead == PixelWalk.HEAD, "pad family is PixelWalk ($5B41)")
+ok(s.tonyHead == 0x5B6E, "record head becomes $5B6E (PlantDownBit7ClearHead)")
 
--- field: held direction turns, does not move; A tests the faced cell
-local W, H = 7, 7
-local block = {}
-for i = 1, W * H do block[i] = 0x00 end
-local function set(x, y, v) block[y * W + x + 1] = v end
-set(4, 3, 0x41) -- cell to the right of 3,3
-local ran = {}
-local function field()
-  local o = setmetatable({ def = { w = W, h = H, block = block }, vm = vmStub(), objects = {}, log = {},
-    x = 3, y = 3, facing = "left", padHead = 0x5D47, hidePlayer = true, aList = 0x5000 }, { __index = Overworld })
-  o.listEntry = function(_, ptr, idx) return nil, 0x15, 0x6000 + idx end
-  o.runScript = function(_, b, p, why) ran[#ran + 1] = { b, p, why } end
-  function o:snap() self.px, self.py = self.x * 16, self.y * 16 end
-  return o
-end
-
-local o = field()
-o.input = function(k) return k == "dir" and "right" or nil end
-o:stalePass()
-ok(o.x == 3 and o.y == 3 and not o.moving, "a held direction does not walk")
-ok(o.facing == "right", "a held direction turns Tony")
-
-ran = {}
-o.input = function(k) return k == "a" or nil end
-o:stalePass()
-ok(#ran == 1 and ran[1][1] == 0x15 and ran[1][2] == 0x6001, "A runs list entry from the faced cell")
-ok(o.hidePlayer == true, "he stays hidden after A")
-
--- setTonyHead($5D47) from $07 also hides
-local t = setmetatable({ objects = {}, log = {}, vm = vmStub(), hidePlayer = false }, { __index = Overworld })
+-- $07 00 47 5D trampolines the same way
+local t = setmetatable({ objects = {}, log = {}, vm = vmStub(), hidePlayer = true }, { __index = Overworld })
 t:setTonyHead(0x5D47)
-ok(t.padHead == 0x5D47 and t.hidePlayer == true, "$07 00 47 5D hides Tony")
+ok(t.padHead == PixelWalk.HEAD and t.tonyHead == 0x5B6E and t.hidePlayer == false,
+  "$07 00 47 5D -> PixelWalk idle")
+t:setTonyHead(0x5B6E)
+ok(t.padHead == PixelWalk.HEAD and t.tonyHead == 0x5B6E, "planting $5B6E is PixelWalk idle")
 t:setTonyHead(0x5D81)
-ok(t.padHead == 0x5D81 and t.hidePlayer == false, "a real pad head shows him again")
+ok(t.padHead == 0x5D81 and t.hidePlayer == false, "a normal pad head still shows him")
 
 print(("mn_stale_head: %d checks, %d failures"):format(checks, failures))
 if failures > 0 then os.exit(1) end

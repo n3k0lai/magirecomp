@@ -156,11 +156,16 @@ Also settled on fix/mn-secrets2, from the code:
   at 2B:6E04-6EA2, 13:5477) leave wRecordState at 1 and Tony at `$4A6B` until something else writes
   them, as the ROM does. `$12` with no talk in progress restores nothing in the port (the ROM would
   copy the stale `$C1A4` scratch over the record saved last).
-- **The boat's first facing** is record byte 0 & 3. TakePointerSlot writes `$40` (facing up) when
-  `$0B` links the record; an already linked one keeps what its last head wrote. Port: `ow.recByte0`
-  per slot, written by Walk.take and the ride heads (Ride.setByte0Facing); mount reads it. Heads other
-  than the ride's don't write it in the port yet (a slot whose previous occupant was a turning NPC).
-  Test: mn_ride_mode_test.
+- **The boat's first facing** is record byte 0 & 3 (`hRecordHead` low byte; `$60FD` idle tails
+  read `hRecordHead & 3`). TakePointerSlot writes `$40` (facing up, bit 6 set) when `$0B` links a
+  record whose bit 7 was set; bit 6 already set skips Take and keeps the ROM/prior byte. Ride
+  direction plants (`$608A`/`$5FC4`/`$6027`/`$5F66`) write `$00`/`$01`/`$02`/`$03` into that byte
+  (clearing bit 6). Many non-ride plants do the same (`PlantLeftRecordHead` `$01`,
+  `PlantRightRecordHead` `$02`, layer-1 plants, `ResumeHead0xRecord`, …) via WriteRecordHead.
+  Port today: `ow.recByte0` from Walk.take and Ride.setByte0Facing only. A boat record that never
+  re-Takes after a non-ride facing plant (same WRAM record, bit 7 clear so Take is a no-op even
+  when bit 6 is clear) would keep that facing; no such handoff is in a lifted boat path yet, so
+  this stays open until a concrete site is found rather than guessed. Test: mn_ride_mode_test.
 - **`$65A4` while riding** compares the record's cell with `$C18E`/`$C18F`, slot 0's record. Only
   Opcode00 (01:4426) and slot 0's own commit write those, and 22:40C2 (`$0C`, `$1F`, `$13`, `$45`)
   doesn't move Tony. So during a ride the roll is against the cell Tony boarded from, not the boat.
@@ -176,13 +181,14 @@ exits), the 5DB5 run head, and the `$4C`/`$4D` script frames. 5C7A's `$4C` table
 frame. A no longer dispatches on layer 1 (no layer-1 head reads `$C9A4` bit 0). Test:
 mn_layer_heads_test.
 
-Resolved: **5D47** (mid ResumeOtherLeftCellScript). Planted as a slot-0 head with a sprite
-anim (16:7CF5, 19:7DA9, 1B:7B08), but bit 6 of $C9A3 with a stale hRecordHead/hScriptPtr
-always takes `.noSide`, so the dispatcher is not lifted. Port: drop the stand-in, hide Tony,
-hold him (turn, A, grass; no pad walk); `Walk.screenY` is nil. Test: mn_stale_head_test.
-
-1. **5D47 stale double commit.** After the hold above, a later commit can still fire twice
-   on the leftover head/script pair. Narrowed; not lifted.
+Resolved: **5D47** (mid ResumeOtherLeftCellScript, the PixelWalk up head at $5D3E + 9).
+WalkPointerSlots leaves A = head low byte ($47) before JumpHL, so entry at `bit 6,a`
+(skipping `ld a,[$c9a3]`) always takes the up-release path: hScriptPtr := $5BBF, then
+PlantDownBit7ClearHead ($5B5B) plants head $5B6E. Sites 16:7CF5, 19:7DA9 and 1B:7B08
+that plant `$05`/`$07 00 47 5D` with anim 20:50FB therefore land Tony on the PixelWalk
+idle family (same as `$5B41`). The earlier "stale hold / double commit" reading assumed
+A was `$c9a3`; A is `$47` at mid-entry. Port: drop the stand-in, show Tony,
+`padHead = PixelWalk.HEAD`, `tonyHead = $5B6E`. Test: mn_stale_head_test.
 
 ## Secrets and engines (fix/mn-secrets)
 

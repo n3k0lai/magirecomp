@@ -16,8 +16,9 @@
 --               the same facing switch as DispatchPressedAOnFacingCell (01:619A).
 --   Down 5BEB:  down released -> idle script 20:5BCF and head 5B6E (5B5B);
 --               left -> 5C2F; right -> 5CA5; motion; $C6D3 == 0 -> 4B7B (A).
---   Up 5D3E:    up released -> 20:5BBF; left -> 5C2F; right -> 5CA5; motion;
---               $C6D3 == 0 -> 4C6E.
+--   Up 5D3E:    up released -> 20:5BBF + head 5B6E (5B5B); left -> 5C2F; right -> 5CA5;
+--               motion; $C6D3 == 0 -> 4C6E. Planting head $5D47 (mid 5D3E at bit 6,a)
+--               enters with A=$47 from WalkPointerSlots, so it always takes that release.
 --   Left 5C52:  left released -> 20:5BDF; on odd hMainLoopCounter frames up sets
 --               $C6D3 = $FF, else down sets 1; motion; $C6D2 == 0 -> 4BCC.
 --   Right 5CC8: right released -> 20:5BEF; same odd-frame rule; $C6D2 == 0 -> 4C1D.
