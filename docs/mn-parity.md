@@ -66,7 +66,9 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 
 wLCDC ($C936) is modelled in the VM: $E3 (LCDC_PLAY) from VM.new, 0 at $93
 (FinishStartup's TurnOffLCD), $E3 again where the port ends the startup loop ($94,
-$42/$12), and 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it.
+$42/$12), 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it, and 0 at
+$38 (with wScriptDone 0), which the record's $94 turns back on ($E3) through TurnOnLCDIfOff
+(install_script_record_loop_bank4.asm).
 $44, $A0-$A4, the $D392 pass tail and Overworld:lcdOn read it, so a startup script
 takes the LCD-off branches as the asm does, not only map setup.
 
@@ -136,7 +138,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:613 |  |
 | $1E | SoundRequest4 | opcode_1e.asm | 0 | unused in decomp scripts | ops/Flow:404 |  |
 | $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:596 |  |
-| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1) (mn_sound_ops_test) |
+| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1). The driver's song sequencer ($3D4A/$57FC countdowns, $599D lower expiry) runs the installed sound, so $C924 clears when the song really ends, not on a fixed count (mn_sound_ops_test, mn_music_seq_test) |
 | $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:454 |  |
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |

@@ -252,7 +252,8 @@ local function installStream(s, ch, pri, addr)
   return true
 end
 
--- OpenChannelForTag ($4DFA). Returns channel or nil on reject.
+-- OpenChannelForTag ($4DFA). Returns channel or nil on reject; C (the
+-- channel with bit 7 cleared by InstallTagStream) comes back second then.
 local function openForTag(s, tag, pri, ch, dsave)
   wr(s, 0xDFFE, dsave)
   local off = rom(s, 0x5A88 + tag * 2) + rom(s, 0x5A88 + tag * 2 + 1) * 256
@@ -278,7 +279,7 @@ local function openForTag(s, tag, pri, ch, dsave)
     end
   end
   if band(ch, 0x80) ~= 0 then
-    if not installStream(s, ch, pri, addr) then return nil end
+    if not installStream(s, ch, pri, addr) then return nil, band(ch, 0x7F) end
     return band(ch, 0x7F), true
   end
   if ch == 2 and pri >= rd(s, 0xDF9F) then
@@ -289,7 +290,7 @@ local function openForTag(s, tag, pri, ch, dsave)
     end
     wr(s, 0xDF74, 0)
   end
-  if not installStream(s, ch, pri, addr) then return nil end
+  if not installStream(s, ch, pri, addr) then return nil, band(ch, 0x7F) end
   wr(s, 0xDF70 + ch, 0x0F)
   wr(s, 0xDF09 + ch, 0)
   wr(s, 0xDF0D + ch, 0)
@@ -346,10 +347,11 @@ local function openSlot(s, id, b, c)
   return ch
 end
 
--- PrimeChannelFromTag ($4F1A) and the D=1 entry at $4F15.
-local function primeFromTag(s, tag, dHi, envE, pri, dIs1)
-  local ch = openForTag(s, tag, pri or 0, 0, dIs1 and 1 or 0)
-  if not ch then return nil end
+-- PrimeChannelFromTag ($4F1A) and the D=1 entry at $4F15. hint is the C
+-- the caller passes in (0 when omitted); a reject returns nil, C.
+local function primeFromTag(s, tag, dHi, envE, pri, dIs1, hint)
+  local ch, c = openForTag(s, tag, pri or 0, hint or 0, dIs1 and 1 or 0)
+  if not ch then return nil, c end
   setbit(s, 0xDF09 + ch, 1, false)
   setbit(s, 0xDF09 + ch, 5, true)
   setbit(s, 0xDF0D + ch, 5, true)
@@ -1387,8 +1389,273 @@ local function dropGate(s)
   end
 end
 
--- InstallSoundIndex ($5702). The tempo word is filled by $3D4A, which is
--- still unlifted, so the countdown step stays 0 (TODO).
+-- Music countdown sequencer (bank $30 $57FC and its bank-0 helpers).
+-- The tables live in bank [$DFA9]; every read maps that bank, as
+-- MapRomBank does around each helper, and bank $30 is mapped back.
+local function crd(s, a)
+  local save = s.bank
+  s.bank = rd(s, 0xDFA9)
+  local v = rom(s, a % 65536)
+  s.bank = save
+  return v
+end
+local function cbe(s, a) return crd(s, a) * 256 + crd(s, a + 1) end
+local function ctab(s) return r16(s, 0xDFA7) end
+
+local function r24(s, a) return rd(s, a) + rd(s, a + 1) * 256 + rd(s, a + 2) * 65536 end
+local function w24(s, a, v)
+  v = v % 0x1000000
+  wr(s, a, v % 256)
+  wr(s, a + 1, math.floor(v / 256) % 256)
+  wr(s, a + 2, math.floor(v / 65536))
+end
+-- The walkers fire when the 24-bit count is zero or bit 23 is set.
+local function spent(v) return v == 0 or v >= 0x800000 end
+local function tick24(s, a, step)
+  local v = (r24(s, a) - step) % 0x1000000
+  w24(s, a, v)
+  return spent(v)
+end
+
+-- FillCountdownStep ($577F). ReadCountdownScaleWord ($3D4A) is the
+-- big-endian word at [$DFA7] + 4. MultiplyAByBc wraps at 16 bits.
+local function fillStep(s)
+  local hl = (0x66 * cbe(s, ctab(s) + 4)) % 65536
+  w16(s, 0xDFAA, divu(hl, 0x3C))
+end
+
+-- SeedCountdownFromTable ($3D65).
+local function seedCountdowns(s)
+  local t = ctab(s)
+  local head = (t - 0x84) % 65536
+  for i = 0, 3 do wr(s, 0xDFAD + i, crd(s, head + i)) end
+  w16(s, 0xDFB1, head + 4)
+  local list = (t + cbe(s, t)) % 65536
+  for n = 0, 3 do
+    local off = cbe(s, list + n * 2)
+    if off ~= 0 then
+      w16(s, 0xDFB3 + n * 2, (t + off) % 65536)
+      setbit(s, 0xDFA6, n, true)
+    end
+  end
+  for n = 0, 3 do
+    wr(s, 0xDFF9, n)
+    local p = r16(s, 0xDFB3 + n * 2)
+    if p ~= 0 then
+      wr(s, 0xDFC1 + n * 3, crd(s, p))
+      wr(s, 0xDFC0 + n * 3, crd(s, p + 1))
+      local act = crd(s, p + 2)
+      wr(s, 0xDFFA, act)
+      wr(s, 0xDFBB + n, act)
+    end
+  end
+end
+
+-- AdvanceCountdownRecord ($3E3A): the record moves 3 bytes; a big-endian
+-- delta is added to the top two count bytes and the next action is read.
+local function advanceRecord(s, n)
+  local p = (r16(s, 0xDFB3 + n * 2) + 3) % 65536
+  w16(s, 0xDFB3 + n * 2, p)
+  local delta, act = cbe(s, p), crd(s, p + 2)
+  wr(s, 0xDFBB + n, act)
+  w16(s, 0xDFC0 + n * 3, add16(r16(s, 0xDFC0 + n * 3), delta))
+end
+
+-- StepIndexedCountdown ($3E78), action $FE.
+local function stepIndexed(s, n)
+  local p = r16(s, 0xDFB3 + n * 2)
+  local addend, delta = cbe(s, p + 3), cbe(s, p + 5)
+  w16(s, 0xDFC0 + n * 3, add16(r16(s, 0xDFC0 + n * 3), delta))
+  local t = ctab(s)
+  local w = cbe(s, t + cbe(s, t) + n * 2)
+  local np = (t + w + addend) % 65536
+  w16(s, 0xDFB3 + n * 2, np)
+  wr(s, 0xDFBB + n, crd(s, np + 2))
+end
+
+-- LoadLowerCountdownStream ($3ED4). sla c drops bit 7 of the action.
+local function loadLowerStream(s, n, c)
+  local t = ctab(s)
+  local w = cbe(s, t + cbe(s, t + 2) + band(c * 2, 0xFF))
+  w16(s, 0xDFCB + n * 2, (t + w) % 65536)
+end
+
+-- AddLowerCountdownDelta ($3F7D). The pointer does not move.
+local function addLowerDelta(s, n)
+  local p = r16(s, 0xDFCB + n * 2)
+  local d = band(crd(s, p), 0x0F) * 256 + crd(s, p + 1)
+  w16(s, 0xDFD5 + n * 3, add16(r16(s, 0xDFD5 + n * 3), d))
+end
+
+-- ReadExpiredLowerCountdown ($3F0E). Returns A (the $DFFA latch), D, E
+-- (the tag nibble) and the span (nil when none is read).
+local function readExpired(s, n)
+  local p = r16(s, 0xDFCB + n * 2)
+  wr(s, 0xDFFA, 0)
+  local tag = rshift(crd(s, p), 4)
+  local third = crd(s, p + 2)
+  p = p + 3
+  local d, span, readSpan = third, nil, false
+  if band(third, 0x80) == 0 then
+    readSpan = true
+  elseif not (third == 0xFF and tag == 0x0F) then
+    d = band(third, 0x7F)
+    if tag == 0 then
+      d = bor(d, 0x80)
+      wr(s, 0xDFFA, d)
+    else
+      wr(s, 0xDFFA, bor(crd(s, p), 0x80))
+      p = p + 1
+      readSpan = true
+    end
+  end
+  if readSpan then
+    local x = crd(s, p)
+    p = p + 1
+    if band(x, 0x80) ~= 0 then
+      span = band(x, 0x7F) * 256 + crd(s, p)
+      p = p + 1
+    else
+      span = x
+    end
+  end
+  p = p % 65536
+  wr(s, 0xDFFC, rshift(p, 8))
+  w16(s, 0xDFCB + n * 2, p)
+  return rd(s, 0xDFFA), d, tag, span
+end
+
+-- ReadIndexedCountdownByte ($3FB0).
+local function indexedByte(s, i)
+  return crd(s, add16(r16(s, 0xDFB1), i))
+end
+
+-- ServiceLowerCountdownExpiry ($599D). True is its Z return (the caller
+-- pumps again). The end mark returns through rlca, which clears Z on
+-- the SM83, so that path is false whatever $DFD3 holds.
+local function serviceLower(s, n)
+  if not spent(r24(s, 0xDFD4 + n * 3)) then return false end
+  local a, d, tag, span = readExpired(s, n)
+  if band(d, 0x80) ~= 0 then
+    if band(a, 0x80) == 0 then
+      wr(s, 0xDFD3, band(rd(s, 0xDFD3), bxor(0xFF, lshift(1, n))))
+      return false
+    end
+  end
+  if band(a, 0x80) ~= 0 then
+    local i = band(a, 0x7F)
+    if i < 2 then setbit(s, 0xDFA6, 6, false) end
+    wr(s, 0xDFAD + n, indexedByte(s, i))
+    if band(d, 0x80) ~= 0 then return true end
+  end
+  wr(s, 0xDFFD, tag)
+  local old = rd(s, 0xDFE4 + n)
+  wr(s, 0xDFE4 + n, d)
+  wr(s, 0xDFE0 + n, old)
+  span = span or 0
+  wr(s, 0xDFE8 + n * 3, 0)
+  wr(s, 0xDFE9 + n * 3, band(span, 0xFF))
+  wr(s, 0xDFEA + n * 3, rshift(span, 8))
+  wr(s, 0xDFD3, bor(rd(s, 0xDFD3), lshift(0x10, n)))
+  local env = lookupNibble(s, tag, band(rd(s, 0xDFF8), 0x0F))
+  wr(s, 0xDFFD, n)
+  local ch, c = primeFromTag(s, rd(s, 0xDFAD + n), rd(s, 0xDFE4 + n), env, 0, false, n)
+  c = band(ch or c or 0, 0xFF)
+  local pack = band(rd(s, 0xDFAC), rom(s, 0x5A75 + n))
+  if band(n, 2) ~= 0 then c = bor(band(lshift(c, 4), 0xF0), rshift(c, 4)) end
+  if band(n, 1) ~= 0 then c = band(lshift(c, 2), 0xFF) end
+  wr(s, 0xDFAC, bor(pack, c))
+  return true
+end
+
+-- A walker that keeps refilling an expired count from data would spin in
+-- the asm; the port stops after this many refills in one frame.
+D.SEQ_GUARD = 4096
+
+-- Count guard hits (s.seqGuardHits) and log the first; the asm has no cap.
+local function guardHit(s, where)
+  s.seqGuardHits = (s.seqGuardHits or 0) + 1
+  if s.seqGuardHits == 1 then
+    io.stderr:write(("[mn] sound sequencer guard at %s: the asm keeps looping here (outlier)\n"):format(where))
+  end
+end
+
+-- StartLowerSoundCountdown ($596A).
+local function startLower(s, n, c)
+  wr(s, 0xDFFB, n)
+  wr(s, 0xDFD3, bor(rd(s, 0xDFD3), lshift(1, n)))
+  w24(s, 0xDFD4 + n * 3, 0)
+  loadLowerStream(s, n, c)
+  local g = 0
+  repeat
+    addLowerDelta(s, n)
+    g = g + 1
+  until not serviceLower(s, n) or g >= D.SEQ_GUARD
+  if g >= D.SEQ_GUARD then guardHit(s, "$596A") end
+end
+
+-- StepUpperSoundCountdowns ($58AF).
+local function stepUpper(s, step)
+  for n = 0, 3 do
+    wr(s, 0xDFF9, n)
+    local m = lshift(0x10, n)
+    if band(rd(s, 0xDFD3), m) ~= 0 and tick24(s, 0xDFE8 + n * 3, step) then
+      wr(s, 0xDFD3, band(rd(s, 0xDFD3), bxor(0xFF, m)))
+      local ch = band(rshift(rd(s, 0xDFAC), n * 2), 3)
+      if not testbit(s, 0xDF09 + ch, 1) then
+        wr(s, 0xDF9C, ch)
+        armCountdownIndex(s, ch)
+      end
+    end
+  end
+end
+
+-- StepLowerSoundCountdowns ($5921).
+local function stepLower(s, step)
+  for n = 0, 3 do
+    wr(s, 0xDFF9, n)
+    if testbit(s, 0xDFD3, n) and tick24(s, 0xDFD4 + n * 3, step) then
+      local g = 0
+      while serviceLower(s, n) and g < D.SEQ_GUARD do
+        addLowerDelta(s, n)
+        g = g + 1
+      end
+      if g >= D.SEQ_GUARD then guardHit(s, "$5921") end
+    end
+  end
+end
+
+-- StepSoundCountdowns ($57FC). Bit 7 of $DFA6 is the gate; $DFAA is the
+-- per-frame step. Action $FF ends a slot, $FE re-indexes it, anything
+-- else starts that slot's lower countdown and moves to the next record.
+local function stepCountdowns(s)
+  if not testbit(s, 0xDFA6, 7) then return end
+  local step = r16(s, 0xDFAA)
+  stepUpper(s, step)
+  stepLower(s, step)
+  for n = 0, 3 do
+    wr(s, 0xDFF9, n)
+    local a = 0xDFBF + n * 3
+    if testbit(s, 0xDFA6, n) and tick24(s, a, step) then
+      local g = 0
+      while g < D.SEQ_GUARD do
+        g = g + 1
+        local act = rd(s, 0xDFBB + n)
+        if act == 0xFF then setbit(s, 0xDFA6, n, false); break end
+        if act == 0xFE then
+          stepIndexed(s, n)
+        else
+          startLower(s, n, act)
+          advanceRecord(s, n)
+        end
+        if not spent(r24(s, a)) then break end
+      end
+      if g >= D.SEQ_GUARD then guardHit(s, "$57FC") end
+    end
+  end
+end
+
+-- InstallSoundIndex ($5702).
 local function installIndex(s, idx)
   if idx >= rom(s, 0x5A87) then return end
   local listOff = rom(s, 0x5A85) + rom(s, 0x5A86) * 256
@@ -1399,7 +1666,8 @@ local function installIndex(s, idx)
   w16(s, 0xDFA7, ptr)
   wr(s, 0xDFA6, 0)
   for i = 0, 0x44 do wr(s, 0xDFB3 + i, 0) end
-  -- TODO(FillCountdownStep): $3D4A is unlifted, so $DFAA stays 0.
+  fillStep(s)
+  seedCountdowns(s)
   wr(s, 0xDFAC, 0xE4)
   setbit(s, 0xDFA6, 7, true)
 end
@@ -1543,9 +1811,7 @@ function D.update(s)
       writeEnvelope(s, ch, a, false)
     end
   end
-  -- TODO(StepSoundCountdowns): bit 7 of $DFA6 is the music gate. The
-  -- 24-bit countdown walker is not what a slot SFX runs; songs stay on
-  -- MnMusic until $3D4A is lifted.
+  stepCountdowns(s)
 end
 
 function D.step(s)

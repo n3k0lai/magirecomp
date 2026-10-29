@@ -74,5 +74,29 @@ into the driver. These still write the VM only:
 Music notes and SFX share channels in the ROM driver. This module does
 not drive `MnMusic`, so a slot does not steal a song channel. `sfx:routed()`
 is the current `NR51` byte if the mix should duck those channels.
-`InstallSoundIndex` records the song pointer, but the countdown reader at
-`$3D4A` is still unlifted, so songs do not advance here.
+`InstallSoundIndex` fills the step (`$577F`) and seeds the countdowns
+(`$3D65`), and `D.update` ends with `StepSoundCountdowns` (`$57FC`) as
+update_sound.asm does, so an installed song advances: the upper countdowns
+(`$58AF`), the lower ones (`$5921`, `$596A`) and the lower expiry (`$599D`,
+which reads the song stream through `$3E3A`/`$3E78`/`$3ED4`/`$3F0E`/`$3FB0`
+and opens a channel through `OpenChannelForTag`). A `$20` sound therefore
+holds `$C924` until its song ends, and `SoundCountdownIdle` (`$074F`) then
+restores the saved driver state (tests/engine/mn_music_seq_test.lua).
+
+Lengths from the ROM, counted with `Sfx` from the `$20` frame to the frame
+`$C924` reads 0: index 00 580 frames, 01 63, 02 117, 03 185, 04 7928,
+05 13006, 06 7245. Indices 07-28 (41 songs) loop ($FE) and never end, as
+in the asm, so a `$20` on one holds `$C924` set.
+
+Limits:
+- `D.SEQ_GUARD` (4096) caps the per-frame refill loops in `$596A`, `$5921`
+  and `$57FC`. The asm has no cap; a hit counts in `s.seqGuardHits` and the
+  first logs an outlier. None of the ROM songs above hits it.
+- Opcode `$26`'s `primeFromTag` still passes channel hint 0 (only `$599D`
+  passes slot N, as the asm's C).
+- `ScaleCountdownStep` (`$576B`) has no driver caller found, so it is not
+  lifted.
+- `ScriptVM` `$1F` still plays field music through `MnMusic`, not this
+  driver. In unmuted play a `$20` song now sounds through the SFX channels
+  while `MnMusic` keeps playing; in the game the song takes over the
+  driver. Not checked by ear (no audio is played on the build machine).
