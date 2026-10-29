@@ -758,9 +758,17 @@ function VM:run(bank, ptr)
       -- passes on frames with (hMainLoopCounter & 3) == 3 and dispatches on the (cnt+1)th.
       -- The phase needs hMainLoopCounter from the host (h.frame); without it the wait is the
       -- worst case, 4 * (cnt + 1) (outlier: docs/mn-engines.md).
+      -- In FinishStartup's RunScriptLoop the counter is frozen (MainLoop is not running)
+      -- and passes are back to back: phase 3 dispatches after cnt + 1 passes, no frame;
+      -- any other phase never passes .resume (the loop spins until wScriptDone).
       if not self.init then
         local cnt = r:u8(off(base + bit.band(VM.dividerNext(self), 0x0F), 1))
-        local w = h.frame and ((3 - h.frame()) % 4 + 4 * cnt) or 4 * (cnt + 1)
+        if self:inStartup() and h.frame and band(h.frame(), 3) == 3 then cnt = nil
+        elseif self:inStartup() then
+          local m = ("[vm] $41 in the startup loop off phase 3: the asm spins here (outlier), port waits")
+          self.log[#self.log + 1] = m; print(m)
+        end
+        local w = cnt and (h.frame and ((3 - h.frame()) % 4 + 4 * cnt) or 4 * (cnt + 1)) or 0
         if w > 0 then coroutine.yield("wait", w) end
       end
     elseif op == 0x45 then jump(r:u8(o + 1), r:u16(o + 2)) -- EnterScriptFromLookup

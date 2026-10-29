@@ -40,10 +40,12 @@ M.FRAME = 0xFFA8  -- hMainLoopCounter
 M.ACCUM = 0xFFA9  -- hDividerAccum
 M.HANDLER = 0x0A66
 
--- GameLoop increments hMainLoopCounter at the start of every pass.
+-- GameLoop increments hMainLoopCounter at the start of every pass. MainLoop
+-- ($02E6, the only writer of $FFA8) is not running between $93 and the end of
+-- FinishStartup's RunScriptLoop, so the counter holds there (finish_startup.asm).
 function M.frame(ow)
   local vm = ow.vm
-  if not vm then return end
+  if not vm or vm.startupPending then return end
   vm:wr8(M.FRAME, band(vm:rd8(M.FRAME) + 1, 0xFF))
 end
 

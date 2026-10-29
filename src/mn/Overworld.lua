@@ -207,6 +207,8 @@ function M:host()
     placePlayer = function(x, y) if s.riding then s.rec0 = { x, y } end; s.x, s.y = x, y; s:snap(); s.moving = nil; s.pw = nil; Ride.sync(s); s.log[#s.log + 1] = ("place player %d,%d"):format(x, y) end, -- a placement ends any half step
     -- $93 turns the LCD off; DrawMetatileWindow redraws the view before it is on again
     lcdOff = function() s.fullDraw = true end,
+    -- hMainLoopCounter ($FFA8) for $41's 4-frame phase (Grass.frame ticks it)
+    frame = function() return s.vm:rd8(0xFFA8) end,
     -- $82 CenterFineScrollOnScriptBase ($1E30): wMapColumn/Row = $C18E/F - 5 and
     -- both fine bytes = 8, absolute, so an earlier $16/$83 scroll (camOff) is gone
     centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply() end,

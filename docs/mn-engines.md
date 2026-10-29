@@ -86,7 +86,7 @@ writes, `$53`-`$62` posts and waits, `$1A` polls, `$A5`-`$AF` SRAM flags).
 |---|---|---|---|
 | Frame wait | `$00` Opcode00, `$94` MarkScriptDone21B2 | `ScriptVM` | tested (`mn_op4c4d_test`, `mn_op4e_test`) |
 | Countdowns | `$20`/`$24` ArmCountdown, `$40` ScriptByteCountdown | `ScriptVM` | tested (`mn_kick_test`, `mn_op47_test`) |
-| Random idle pause | `$41` Bank1NibblePhaseCountdown: table[AddDividerStep & `$0F`], phase `(hMainLoopCounter & 3) == 3` | `ScriptVM` | tested (`mn_op47_test`); phase needs `h.frame` (outlier when absent) |
+| Random idle pause | `$41` Bank1NibblePhaseCountdown: table[AddDividerStep & `$0F`], phase `(hMainLoopCounter & 3) == 3` | `ScriptVM` | tested (`mn_op47_test`, `mn_startup_counter_test`); the field host passes `h.frame` = `$FFA8`. The counter holds in FinishStartup's loop (Grass.frame), so a phase-3 `$41` there costs no frame; off phase 3 the asm spins (outlier, logged) |
 | Split-byte countdowns | `$70`/`$71`/`$74` ($FFA7 low 6 x ($FFA6 high 2 + 1)) | `ScriptVM` | implemented |
 | `$CCA6` countdowns | `$76`/`$77`/`$7A` (`$1C17`/`$1C4A`/`$1BE4`): SetCCA6 countdown, then the bank-7 tails | `ops/Panels` | tested (`mn_panel_tails_test`) |
 | Sprite list animation | `$4C` QueueRepeatedSpriteList, `$4D` StepScriptSpritePointerTable | `Sprites`, `ScriptVM` | tested (`mn_op4c4d_test`) |
