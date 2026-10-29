@@ -86,11 +86,13 @@ do
   ow.vm:wr8(MARK, 0)
   for _ = 1, FIRE do pass(ow) end
   ok(ow.vm:rd8(MARK) == 0 and ow.vm:rd8(Grass.COUNT) == 0xFF, "a planted record gates the countdown off")
-  -- battle return: Reset's WRAM clear, then finish_startup's $C715 quad
+  -- battle return: ContinueStartup's $C715 quad; the bank byte stays
+  local bank0 = ow.vm:rd8(Grass.RECORD)
   Grass.afterBattle(ow.vm)
   local rb = {}
-  for i = 0, 4 do rb[#rb + 1] = ow.vm:rd8(Grass.RECORD + i) end
-  ok(table.concat(rb, ",") == "0,0,0,2,20", "after the battle the record reads 00 00 00 02 14")
+  for i = 1, 4 do rb[#rb + 1] = ow.vm:rd8(Grass.RECORD + i) end
+  ok(table.concat(rb, ",") == "0,0,2,20", "after the battle $C715-$C718 read 00 00 02 14")
+  ok(ow.vm:rd8(Grass.RECORD) == bank0, "the record's bank byte is left")
   ok(pass(ow) == false and ow.vm:rd8(MARK) == 0, "the next pass only reloads the countdown")
   for _ = 1, FIRE do pass(ow) end
   ok(ow.vm:rd8(MARK) == 0x5A, "a second countdown fires again")

@@ -41,12 +41,17 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 A handler that ends in `jp DispatchScriptOpcode` (or `jp INITIAL_SCRIPT_HANDLER`)
 runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
-$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91 match. Open (asm ends
-the pass, port goes on or the tail is untraced): $25, $26-$2F battle record ops
-(run by the port's battle director), $30's FinishStartup tail after the
-spiral (the port's battle return keeps the field), $6B (glyph copy
-spread over count passes). $91's zero path calls 2:4799, which is not
-disassembled yet.
+$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91, $6B (one tile a
+pass), $26-$2F (operands to $D392, then the pass ends) match; $91's zero path
+runs 2:4799. Open: $25.
+
+A pass is not a frame while FinishStartup's RunScriptLoop runs
+(run_script_record.asm): from $93, or the $30 spiral's `jp FinishStartup`, until
+the main record parks or $94 sets wScriptDone, the passes repeat back to back
+with the LCD off, and record threads wait for MainLoop's FinishFrame. The port
+marks that span with `startupPending` and `VM:inStartup()` (main record only).
+Per-pass step handlers that count $FFA6 down and `ret` take no frames there:
+$40, $4C, $4D, $4E, $4F, $6B (`mn_startup_passes_test`).
 
 ## Known divergences (intentional)
 
@@ -119,18 +124,18 @@ disassembled yet.
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
 | $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
-| $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | tail jp 04:6416 not traced (open) |
-| $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op: asm ends the pass; port battle director (open) |
+| $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | 04:6416 traced: InitWram7BeforeReset, LoopWhileD0D5, DispatchNonzeroD016, ContinueStartup ($2158); Reset is never reached. Every battle returns through the last $31 record ($D3CD win, $D3D0 loss) and restores [$C923] (mn_battle_director_test) |
+| $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73AC; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test). The port collects the op for its battle engine (director: one pass per $D3C2 raise) |
 | $27 | HaltClearD3C2 | opcode_27.asm | 0 | ok | ScriptVM:339 |  |
-| $28 | CopyScriptToD392 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | battle record op (open) |
+| $28 | CopyScriptToD392 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73DD; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
 | $29 | JumpScriptBank7449 | opcode_29.asm | - | unused in decomp scripts | - | no port handler; logged (outlier: docs/mn-outliers.md) |
-| $2A | CopyScriptToD392_2A | copy_script_to_d392.asm | 1 | unused in decomp scripts | ops/Flow:408 | battle record op (open) |
+| $2A | CopyScriptToD392_2A | copy_script_to_d392.asm | 1 | unused in decomp scripts | ops/Flow:408 | 2:744A; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
 | $2B | ScriptHandlerUntilD3C2 | script_handler_until_d3c2.asm | 0 | ok | ScriptVM:306 |  |
-| $2C | CopyScriptToD392_2C | copy_script_to_d392.asm | 2 | ok | ScriptVM:293, ScriptVM:301 | battle record op (open) |
-| $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 |  |
-| $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | battle record op (open) |
-| $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | battle record op (open) |
-| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); FinishStartup tail not applied (open) |
+| $2C | CopyScriptToD392_2C | copy_script_to_d392.asm | 2 | ok | ScriptVM:293, ScriptVM:301 | 2:7477; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) (mn_forge_ring_test) |
+| $2D | CopyD392ClearD396 | opcode_2d.asm | 4 | unused in decomp scripts | ScriptVM:293 | clears $D396, then 2:752D; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
+| $2E | CopyScriptToD392_2E | copy_script_to_d392.asm | 5 | ok | ScriptVM:293 | 2:752D; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
+| $2F | CopyScriptToD392_2F | copy_script_to_d392.asm | 4 | ok | ops/Flow:407 | 2:7595; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test) |
+| $30 | SetC840SoundThenBank7 | opcode_30.asm | 3 | ok | ScriptVM:278 | 07:56ED spiral wipe, 110 frames (mn_spiral_test); saves $C920 to $C923; the wipe ends in `jp FinishStartup`, applied after the spiral (mn_battle_director_test) |
 | $31 | SetTailScripts | opcode_31.asm | 6 | ok | ScriptVM:593 |  |
 | $32 | SetThirdScript | opcode_32.asm | 5 | ok | ops/Flow:398 |  |
 | $33 | PlantRecord30 | plant_record_30.asm | 0 | ok | ops/Panels:497 |  |
@@ -188,8 +193,8 @@ disassembled yet.
 | $67 | CallScriptUnpackHeaderAndBlock | call_script_unpack_header_and_block.asm | 6 | unused in decomp scripts | ops/Records:362 |  |
 | $68 | CallScriptUnpackIntoWRAM4And6 | call_script_unpack_wram4_and_wram6.asm | 6 | ok | ops/Records:344 |  |
 | $69 | CallScriptPtrThenMapScriptBank | call_script_ptr_then_map_script_bank.asm | 2 | ok | ScriptVM:243 |  |
-| $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 |  |
-| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | glyph copy over count passes; port copies at once (open) |
+| $6A | CallScriptMapRecordsThenFillC72B | call_script_map_records_then_fill_c72b.asm | 6 | ok | ops/Travel:193 | records past bank $3C (14:6029 -> 7C) read from the full ROM (mn_ops_travel_test) |
+| $6B | ArmCopyGlyphFromScript | arm_copy_glyph_from_script.asm | 7 | ok | ScriptVM:365 | one 16-byte tile per pass (CopyGlyph $2949), the next op one pass after the last; count 0 is 256; all at once with the LCD off: map setup and the startup loop (mn_op6b_glyph_passes_test, mn_startup_passes_test) |
 | $6C | StageColorWordThenCall5C00 | stage_color_word_then_call_5c00.asm | 3 | ok | ops/Panels:583 |  |
 | $6D | SaveScriptPtrAndSplitByte | save_script_ptr_and_split_byte.asm | 1 | ok | ops/Panels:596 |  |
 | $6E | StageScriptByteWordAndSavePtr | stage_script_byte_word_and_save_ptr.asm | 3 | ok | ops/Panels:668 |  |
@@ -227,7 +232,7 @@ disassembled yet.
 | $8E | EnterScriptFromLookup_8E | enter_script_from_lookup.asm | blk8e | blk8e: via MnRom:insn | ScriptVM:784 |  |
 | $8F | RewindCopyThenCall7025 | rewind_copy_then_call_7025.asm | blk0 | blk0: via MnRom:insn | ops/Travel:297 |  |
 | $90 | CopyPrefixedBlockThenCall66BE | copy_prefixed_then_call_66be.asm | blk3 | blk3: via MnRom:insn | ops/Travel:315 |  |
-| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:610 | ends the pass (mn_next_pass_test); zero path calls 2:4799 (raw) |
+| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:610 | ends the pass (mn_next_pass_test); zero path fills both banks and runs Copy7646IntoNextSRAMBank (2:4799), also on a new game with no save images (mn_op91_sram_fill_test) |
 | $92 | StageSavedScriptPairThenBank7 | stage_saved_script_pair.asm | 1 | ok | ops/Save:125 |  |
 | $93 | FinishStartup | finish_startup.asm | 0 | ok | ScriptVM:220 |  |
 | $94 | MarkScriptDone21B2 | mark_script_done_21b2.asm | 0 | ok | ScriptVM:352 |  |

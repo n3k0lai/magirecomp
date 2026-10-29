@@ -17,6 +17,10 @@ local function banksOf(vm)
   return vm.sramBanks
 end
 
+-- The cartridge always has its four banks; a new game without a save gets zeroed
+-- images (and wSRAMBank 2) the first time an op needs a bank other than the live one.
+M.banks = banksOf
+
 function M.install(vm, banks, w)
   vm.sramBanks = {
     [0] = banks[0], [1] = banks[1], [2] = banks[2], [3] = banks[3],

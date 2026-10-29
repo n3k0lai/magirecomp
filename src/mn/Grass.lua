@@ -142,14 +142,11 @@ end
 -- Return path after a battle. Every encounter script (13:5F7C picks one of
 -- eight) runs Opcode25 (opcode_25.asm, $0EC5): it stores the third record
 -- back with hScriptHandler $0F59 and the pointer past its operands, so $C716
--- stays nonzero. HaltClearD3C2 ($0F39) then parks it on itself. Bank 4's
--- $6416 runs FinishFrame until $C708 is zero, calls bank 2 $5E6D and jumps
--- to Reset's `ld sp, wStackTop` ($015B). Reset clears WRAM $C000-$CDD7, so
--- $C714 reads 0; finish_startup.asm then stores 00 00 02 14 at $C715-$C718.
--- The port keeps the field through the battle, so only the record bytes are
--- rewritten when it ends.
+-- stays nonzero. The battle (bank 2 $5E6D, then the $6591 loop) leaves only
+-- through DispatchNonzeroD016 into ContinueStartup ($2158, finish_startup.asm),
+-- which stores 00 00 02 14 at $C715-$C718; the bank byte at $C714 is left.
+-- The script that runs next is the $31 tail (ScriptVM duelTail).
 function M.afterBattle(vm)
-  vm:wr8(M.RECORD, 0)
   vm:wr8(M.RECORD + 1, 0x00); vm:wr8(M.RECORD + 2, 0x00)
   vm:wr8(M.RECORD + 3, 0x02); vm:wr8(M.RECORD + 4, 0x14)
 end

@@ -14,18 +14,44 @@ local Save = require("mn.ops.Save")
 
 local VM = {}
 
--- after a scripted duel the engine never resumes the battle's stream
--- (dispatch_nonzero_d016.asm): a loss (mode 3) continues at the $31 record's second
--- script ($D3D0), anything else at its first ($D3CD). Scripted duels use it (Korg
--- 14:6EAD -> win 14:6B30); the port keeps the field through wild encounters, so the
--- record is only followed when a $31 ran since the last battle. Returns {bank, ptr} or nil.
+-- After any battle the engine never resumes the battle's stream. 2:5E6D ends in the
+-- $6591 loop (loop_while_d0d5.asm), which only leaves through DispatchNonzeroD016
+-- (dispatch_nonzero_d016.asm) into ContinueStartup ($2158, finish_startup.asm); the
+-- `jp $015B` after bank 4's call (opcode_25_bank4.asm) is never reached. A loss (mode 3)
+-- continues at the $31 record's second script ($D3D0), anything else at its first
+-- ($D3CD). Only opcode_31.asm writes $D3CD-$D3D2 (no other `$D3CD`/`$D3D0` access in the
+-- ROM), and WRAM 7 is not cleared, so a wild encounter (13:5F7C, 14:4076: no $31) returns
+-- through the last $31 that ran: the map's entry script (21:776A -> 21:77BA, which
+-- starts with $93) on a win, 22:40CE on a loss. Returns {bank, ptr} or nil (a record
+-- never set: the port then ends the script).
 local function duelTail(vm, h)
   local lost = h.battleResult and h.battleResult() == "loss"
   local k = lost and 0x7D3D0 or 0x7D3CD
-  local had = vm.duelTail
-  vm.duelTail = nil
-  if had and vm:rd8(k) ~= 0 then return { vm:rd8(k), vm:rd8(k + 1) + 256 * vm:rd8(k + 2) } end
+  -- every D016 path ends by copying [$C923] (saved by $30) into wSoundIndex when it differs
+  local v = vm:rd8(0xC923)
+  if vm:rd8(0xC920) ~= v then vm:wr8(0xC920, v); if h.music then h.music(v) end end
+  if vm:rd8(k) ~= 0 then return { vm:rd8(k), vm:rd8(k + 1) + 256 * vm:rd8(k + 2) } end
   return nil
+end
+
+-- FinishStartup ($2158) state: what $93 and the $30 wipe's `jp FinishStartup` share.
+local function finishStartup(self, h)
+  -- DefaultState -> SetupWindow: window closed and parked below the picture
+  self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
+  self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
+  if self.threads then self.threads.loop38 = nil end
+  -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
+  -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
+  if h.defaultGates then h.defaultGates() end
+  if h.freshScene and not self.init then h.freshScene() end
+  -- finish_startup.asm: $CCA5 cleared, SetupDefaultState (default_state.asm:
+  -- $C6DE, callbacks, $C931-$C933, $C9C5/6, $C9FF 22 06 40, $C188, $C6D8 grass
+  -- enable, $CCA6, $C6F3, $C6EF = 3, $FFAA/$FFAB = 3), InitQuadRecords ($C70E,
+  -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
+  -- The boot path stores the same bytes (boot/Title.lua).
+  require("mn.boot.Title").applyDefaults(self)
+  self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
+  if h.lcdOff then h.lcdOff() end
 end
 VM.__index = VM
 
@@ -111,6 +137,15 @@ function VM:tickThreads(textOpen)
     for _, t in ipairs(self.carried) do self.threads[t.slot] = t end
     self.carried = nil
   end
+end
+
+-- FinishStartup's RunScriptLoop (run_script_record.asm) runs the main record's passes
+-- back to back, handler then callback, until wScriptDone, with the LCD off and no frame
+-- wait; record threads only step from MainLoop's FinishFrame, after it. So while the
+-- main record runs between $93 (or the $30 spiral) and its park or $94, a pass end or a
+-- per-pass step costs no frame. (Map setup, self.init, is the same but has no coroutine.)
+function VM:inStartup()
+  return self.startupPending and self.co ~= nil and coroutine.running() == self.co or false
 end
 
 function VM:rd8(a) return self.mem[a] or 0 end
@@ -218,22 +253,7 @@ function VM:run(bank, ptr)
       h.animAt(self.curSlot, cur.bank, cur.ptr)
     end
     if op == 0x93 then -- FinishStartup: default state (object records) reinstalled, script continues
-      -- DefaultState -> SetupWindow: window closed and parked below the picture
-      self:wr8(0xC6EC, 0); self:wr8(0xC6EE, 0); self:wr8(0xC6F0, 7); self:wr8(0xC6F1, 0x90)
-      self.loop38 = nil -- FinishStartup resets the stack: a $38 loop is left here
-      if self.threads then self.threads.loop38 = nil end
-      -- SetupDefaultState's first call is WriteC12APattern (05:6C08): the cell gates
-      -- go back to 00 FF FF 00 FF FF FF FF, ending a ride ($60E7) or a layer's gates
-      if h.defaultGates then h.defaultGates() end
-      if h.freshScene and not self.init then h.freshScene() end
-      -- finish_startup.asm: $CCA5 cleared, SetupDefaultState (default_state.asm:
-      -- $C6DE, callbacks, $C931-$C933, $C9C5/6, $C9FF 22 06 40, $C188, $C6D8 grass
-      -- enable, $CCA6, $C6F3, $C6EF = 3, $FFAA/$FFAB = 3), InitQuadRecords ($C70E,
-      -- $C71C, $C6F5-$C6F8/$C6FA/$C6FC; $C6F9/$C6FB/$C6FD are left) and $C715 00 00 02 14.
-      -- The boot path stores the same bytes (boot/Title.lua).
-      require("mn.boot.Title").applyDefaults(self)
-      self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
-      if h.lcdOff then h.lcdOff() end
+      finishStartup(self, h)
       o = o + 1
     elseif op == 0x65 then -- $1820 -> LoadFiveBankedMapSources (bank $4F record)
       if h.picture then h.picture(nil) end -- back to the field map
@@ -277,12 +297,17 @@ function VM:run(bank, ptr)
       end
     elseif op == 0x30 then -- Opcode30: C840/C841 := b1,b2; b3 = sound index ($FF keeps)
       self:wr8(0xC840, r:u8(o + 1)); self:wr8(0xC841, r:u8(o + 2))
+      self:wr8(0xC923, self:rd8(0xC920)) -- opcode_30.asm saves wSoundIndex for the battle's end
       local v = r:u8(o + 3)
       if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
       o = o + n
-      -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral).
-      -- Its FinishStartup tail is not run here: the port's battle return keeps the field.
-      if not self.init and h.spiral and self:rd8(0xC840) == 0xED and self:rd8(0xC841) == 0x56 then h.spiral() end
+      -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral),
+      -- which ends in `jp FinishStartup` with hScriptPtr past this $30 (opcode_30.asm):
+      -- the rest of the stream runs on as the main record under FinishStartup's state.
+      if not self.init and h.spiral and self:rd8(0xC840) == 0xED and self:rd8(0xC841) == 0x56 then
+        h.spiral()
+        finishStartup(self, h)
+      end
     elseif op == 0x25 then -- Opcode25: battle setup (C9E4, D391 kind, D36D, battle script record)
       do -- opcode_25.asm first copies $C18E/$C18F to the pair
         local px, py = self:playerCell()
@@ -294,9 +319,11 @@ function VM:run(bank, ptr)
       end
       o = o + n
     elseif op == 0x2E or op == 0x2C or op == 0x2D or op == 0x26 or op == 0x28 then
-      -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant)
-      local args = {}; for i = 1, n - 1 do args[i] = r:u8(o + i) end
-      if h.battleOp and not self.init then h.battleOp(op, args) end
+      -- battle-engine record ops ($2E: five bytes to D392 then bank 2 $752D = add combatant):
+      -- CopyScriptToD392 stores the operands at $D392 in WRAM bank 7 ($C937 = 7)
+      local Flow = require("mn.ops.Flow")
+      local args = Flow.copyToD392(self, o, op, n - 1)
+      if op == 0x2D then self:wr8(0xD396, 0) end -- opcode_2d.asm: xor a / ld [$D396], a
       -- $2C Opcode2C (gift a ring): StoreScriptPairThenCall5D19 (2:$7477) puts the
       -- id at $CD51 and the level count at $CD50, then AddSRAMEntryForOperand
       -- (4:$5D19) writes the new ring entry (mn.ops.Forge). Map 59's starter gift
@@ -306,6 +333,7 @@ function VM:run(bank, ptr)
         require("mn.ops.Forge").addEntry(self, r)
       end
       o = o + n
+      Flow.endD392Pass(self)
     elseif op == 0x2B then -- Opcode2B: clear $D3C2; the stream steps again once the battle raises it
       local at = o
       o = o + n
@@ -365,7 +393,23 @@ function VM:run(bank, ptr)
       if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
       if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       return
-    elseif op == 0x6B then h.glyphCopy(r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)); o = o + n -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest, wGlyphVRAMBank; CopyGlyph moves 16 bytes per count
+    elseif op == 0x6B then
+      -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest,
+      -- wGlyphVRAMBank. Each pass of its .step handler plants CopyGlyph ($2949) at
+      -- wCallback, which moves one 16-byte tile and advances both pointers, and counts
+      -- $FFA6 down; the pass that reaches zero plants INITIAL_SCRIPT_HANDLER and returns,
+      -- so the next op runs one pass later. A count of 0 wraps to 256 passes. With the
+      -- LCD off (map setup) the tiles are all in place before the screen shows.
+      local cnt, bank, src, dest, vb = r:u8(o + 1), r:u8(o + 2), r:u16(o + 3), r:u16(o + 5), r:u8(o + 7)
+      if cnt == 0 then cnt = 256 end
+      if self.init or self:inStartup() then h.glyphCopy(cnt, bank, src, dest, vb)
+      else
+        for i = 0, cnt - 1 do
+          h.glyphCopy(1, bank, src + 16 * i, dest + 16 * i, vb, i > 0, cnt)
+          coroutine.yield("wait", 1)
+        end
+      end
+      o = o + n
     elseif op == 0x56 or op == 0x57 or op == 0x58 then
       -- StoreScriptByteAtC6F8/A/C: mailbox post; stall while the box is full.
       -- tickThreads moves C6F8->C6F9 (A->B, C->D) once per frame.
@@ -460,7 +504,7 @@ function VM:run(bank, ptr)
       local q, tot = o + 1, 0
       while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
       o = q + 1
-      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() and tot > 0 then coroutine.yield("wait", tot) end
     elseif op == 0x4F then
       -- QueueRepeatedOffsetSpriteList ($1643): (count, dx, dy, list) records until a zero count,
       -- like $4C, but each frame clears $C6D2/$C6D3 and adds dx/dy to the object's cell bytes
@@ -469,14 +513,14 @@ function VM:run(bank, ptr)
       while r:u8(q) ~= 0 do tot = tot + r:u8(q); q = q + 5 end
       o = q + 1
       if tot > 0 then self:wr8(0xC6D2, 0); self:wr8(0xC6D3, 0) end
-      if not self.init and tot > 0 then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() and tot > 0 then coroutine.yield("wait", tot) end
     elseif op == 0x4D then -- StepScriptSpritePointerTable ($15E8): (size, count, b1, b2, size bytes of
       -- list words); each entry is stepped count frames (count 0 wraps to 256), then the script goes on
       local size, cnt = r:u8(o + 1), r:u8(o + 2)
       if cnt == 0 then cnt = 256 end
       o = o + 5 + size
       local tot = math.max(1, math.floor(size / 2)) * cnt
-      if not self.init then coroutine.yield("wait", tot) end
+      if not self.init and not self:inStartup() then coroutine.yield("wait", tot) end
     elseif op == 0x4E then
       -- RepeatTwoScriptBytes ($15AB, repeat_two_script_bytes.asm): count, b1, b2. Zero count
       -- goes straight back to the dispatcher with BC just past the count (n = 2), so b1/b2 run
@@ -485,7 +529,7 @@ function VM:run(bank, ptr)
       local cnt = r:u8(o + 1)
       if cnt > 0 then
         self:wr8(0xC6D2, r:u8(o + 2)); self:wr8(0xC6D3, r:u8(o + 3))
-        if not self.init then coroutine.yield("wait", cnt) end
+        if not self.init and not self:inStartup() then coroutine.yield("wait", cnt) end
       end
       o = o + n
     elseif op == 0x51 then o = o + n -- JumpDispatchScriptOpcode ($16BE): jp DispatchScriptOpcode, the next op runs this pass
@@ -595,7 +639,6 @@ function VM:run(bank, ptr)
       h.slotFields(r:u8(o + 1), r:u8(o + 2), r:u8(o + 3)); o = o + n
     elseif op == 0x31 then -- opcode_31.asm: six bytes to WRAM 7 $D3CD-$D3D2
       for k = 0, 5 do self:wr8(0x7D3CD + k, r:u8(o + 1 + k)) end; o = o + n
-      self.duelTail = true -- a battle started from here returns through these records
     elseif op == 0x1F then -- opcode_1f.asm: music index (wSoundIndex $C920), wSoundActive on change
       local v = r:u8(o + 1)
       if self:rd8(0xC920) ~= v then self:wr8(0xC920, v); self:wr8(0xC91E, 1); h.music(v) end
@@ -677,7 +720,7 @@ function VM:run(bank, ptr)
       if h.got then h.got(cat, id, cnt) end
       o = o + n
     elseif op == 0x40 or op == 0x20 then -- ScriptByteCountdown / Opcode20ArmCountdown: wait n frames
-      o = o + n; coroutine.yield("wait", r:u8(o - 1))
+      o = o + n; if not self:inStartup() then coroutine.yield("wait", r:u8(o - 1)) end
     elseif op == 0x83 then -- AddScriptDeltasUntilZero: (count, dx, dy) camera pixel deltas
       local q = o + 1
       while r:u8(q) ~= 0 do
@@ -841,7 +884,7 @@ function VM:run(bank, ptr)
 end
 
 -- $91 BranchBank1OnScriptByte (branch_bank1_on_script_byte.asm). The live SRAM bank is
--- vm.mem; bank wSRAMBank + 1 is the vm.sramBanks image when there is one.
+-- vm.mem; bank wSRAMBank + 1 is the vm.sramBanks image (Save.banks makes one if needed).
 -- Zero (FillSRAMAfterZeroScriptByte, 01:466D): $00 over $068B bytes at $A019, $FF over
 -- the ten sEntryIds at $A118, $FF over $1E10 bytes at $A025 in the next bank, then
 -- Copy7646IntoNextSRAMBank (02:4799): the $1F bytes at 02:7646 go to sEntryBase
@@ -852,9 +895,12 @@ function VM.fillSRAM(vm, b)
   if b ~= 0 then fill(0xA123, 0x0581, 0); return end
   fill(0xA019, 0x068B, 0)
   fill(0xA118, 0x000A, 0xFF)
-  local nb = (vm.sramBank or 0) + 1
-  local img = vm.sramBanks and vm.sramBanks[nb]
-  if img then
+  -- the next bank is always a separate bank on the cartridge, so a new game without a
+  -- save image gets one here instead of skipping 02:4799 and the $A025 fill
+  Save.banks(vm)
+  local nb = vm.sramBank + 1
+  local img = vm.sramBanks[nb] or ""
+  do
     local t = {}
     for i = 0, 0x1E do t[#t + 1] = string.char(vm.rom:u8(off(0x7646 + i, 2))) end
     local head = table.concat(t)
