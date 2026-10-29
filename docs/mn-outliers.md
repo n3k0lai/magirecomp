@@ -67,3 +67,31 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
 9. **5C7A entry-anim timing** is still INCBIN.
 10. **The route planner doesn't plan layer walks.** The engine now walks layers, but the planner doesn't
     route through them.
+
+## Secrets and engines (fix/mn-secrets)
+
+Unresolved items from docs/mn-secrets.md and docs/mn-engines.md. None is guessed in the port.
+
+1. **Thunder Hyren (id 71)** is only summoned in Unused_Script_19_62AA, a bank-19 gauntlet no
+   map root reaches. Is it cut content, or entered from bank code still INCBIN?
+2. **Bolt Hyren (id 9)** has no `$2E` anywhere. Creatures can also come from bank-4 `$8E`
+   (CallBank4_5494, INCBIN); ids 55, 69, 84, 86-108 are in the same position.
+3. **Map 167** (Cave/Mush Hyren room) has no script warp in. Its only references are an
+   unused run at 10:4B2A-4B42 and word references at 15:6E0B and 59:5CC2.
+4. **Sound test** (bank 7 `$5997`/`$59CA`): the caller is INCBIN, so the way in is unknown.
+5. **Hidden `$B0` spots** (maps 101, 105, 108): what action `$2A` is has not been traced.
+6. **`$11` cave-in scatter** (`$0C7E` -> `$0C8F`, SC_PickMapCellFromDiv) is INCBIN; the port's
+   `Overworld.scatter` comes from PyBoy observation, not the asm.
+7. **`$29`, `$38`, `$39`, `$67`** hand off to INCBIN code; the port logs them. Reachable uses
+   of `$38` (02:4126, 51:5604) and `$9D` (7B:478F) sit inside map 40 at offsets that look like
+   data read as code (species 131 at 51:5614 too).
+8. **`$76`/`$77`/`$7A`** count `$FFA6` down and fall into an INCBIN tail; the port waits on the
+   last operand byte.
+9. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
+   the port waits the worst case, 4 x (count + 1).
+10. **`$6E`/`$6F` fades and `$99`/`$9A`/`$9B` window slides**: the bank-7/bank-1 targets are
+    INCBIN; the port uses its own fade and text-box timing.
+11. **`$4F` offset lists** add dx/dy to the object cell each frame; the port's sprite model
+    applies them as cell steps, not fine-pixel motion. `Sprites.firstImage` takes the first
+    list image as the initial frame (assumption).
+12. **Post-game**: content gated after story `$1A` was not inventoried.
