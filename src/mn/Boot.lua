@@ -203,12 +203,25 @@ function Planner:input(kind)
     return nil
   end
   if os.getenv("MN_IDLE_ON") and ow.map == tonumber(os.getenv("MN_IDLE_ON")) then return nil end
+  -- the conveyor heads (mn.PixelWalk) move a few px a frame while the direction is
+  -- held: hold a popped direction until the next cell's centre is reached
+  if self.hold and kind == "dir" then
+    local hd = self.hold
+    hd.n = hd.n + 1
+    local pw = ow.pw
+    local st = pw and pw.st
+    local past = (hd.d == "right" and st and st.fx >= 8) or (hd.d == "left" and st and st.fx <= 8)
+      or (hd.d == "down" and st and st.fy >= 8) or (hd.d == "up" and st and st.fy <= 8)
+    local arrived = ow.padHead ~= 0x5B41 or (st and (st.cx ~= hd.x or st.cy ~= hd.y) and past)
+    if arrived or hd.n > 64 then self.hold = nil else return hd.d end
+  end
   if #self.q == 0 then if kind == "dir" then self:plan() end; return nil end
   local h = self.q[1]
   if h == "A" then if kind == "a" then table.remove(self.q, 1); return true end; return nil end
   if kind ~= "dir" then return nil end
   table.remove(self.q, 1)
   if h:sub(-1) == "!" then ow.facing = h:sub(1, -2); return nil end
+  if ow.padHead == 0x5B41 and not ow.layer then self.hold = { d = h, x = ow.x, y = ow.y, n = 0 } end -- PixelWalk.HEAD
   return h
 end
 
