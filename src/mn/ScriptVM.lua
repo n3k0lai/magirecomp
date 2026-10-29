@@ -604,6 +604,9 @@ function VM:run(bank, ptr)
       -- (PyBoy: the cave's 1F:5EB4 A125 bit is gone after Orwin; 14:50BA tests it at A123=3)
       for a = 0xA125, 0xA125 + 0x7E do self.mem[a] = nil end
       for a = 0xA224, 0xA224 + 0x7E do self.mem[a] = nil end
+      -- store_script_word_at_a123.asm plants INITIAL_SCRIPT_HANDLER and rets after
+      -- the clear: the next op runs on the next pass
+      if not self.init then coroutine.yield("wait", 1) end
     elseif op == 0x91 then VM.fillSRAM(self, r:u8(o + 1)); o = o + n -- BranchBank1OnScriptByte
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n

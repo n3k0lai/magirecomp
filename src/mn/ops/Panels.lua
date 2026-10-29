@@ -514,6 +514,7 @@ M.handlers[0x34] = function(vm, o, n)
   wr16(vm, 0xC9DE, ptr)
   copyEntryFields(vm, ptr, 17, ENTRY_DEST)
   vm:wr8(0xC9E4, saved)
+  frames(vm, 1) -- INITIAL_SCRIPT_HANDLER planted, then ret: the next op runs next pass
   return o + n
 end
 
@@ -540,6 +541,7 @@ M.handlers[0x35] = function(vm, o, n, cur)
   vm:wr8(0xC9D9, 0)
   vm:wr8(0xC938, 4)
   recordFromId(vm, id)
+  frames(vm, 1) -- INITIAL_SCRIPT_HANDLER planted, then ret: the next op runs next pass
   return o + n
 end
 
