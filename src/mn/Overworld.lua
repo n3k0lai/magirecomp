@@ -60,17 +60,13 @@ function M:host()
   local s = self
   local h = {
     loadMap = function(i)
-      -- from an object/talk thread this is a scene change inside a cutscene:
-      -- the area reloads but object records stay (map 40 second scene keeps slots 0,3,4,6,7,9)
-      -- after $93 the records were reset already; spawns before the $65 belong to the
-      -- new map (training grounds 13:57EB spawns Tony/Eidon/Yaki/Salafy, then loads map 61)
-      local keep = (s.vm.curSlot ~= nil or s.sceneFresh) and s.objects or nil
-      local keepThreads = s.sceneFresh and s.vm.threads
-      s.sceneFresh = nil
+      -- $65 (00:1820) -> LoadFiveBankedMapSources (00:2E15): BG palettes ($C72B),
+      -- tiles (CopyMapRecords), the WRAM-2/3/5 planes. Nothing else: records,
+      -- threads, mailboxes, the A list ($69) and the player cell are untouched.
+      -- A door's resets are $93's (FinishStartup), which precedes 634 of the
+      -- 701 $65 in the scripts.
       s:scriptSnapshot(i)
-      s:enterMap(i, s.x, s.y); s.rebased = false
-      if keepThreads then s.vm.threads = keepThreads end
-      if keep then for k, ob in pairs(keep) do s.objects[k] = ob end end
+      s:loadArea(i); s.rebased = false
     end,
     -- FinishStartup ($93) -> SetupDefaultState -> BuildPointerList (01:40D3) sets bit 7
     -- and clears bit 6 on all $31 records: they sleep, they are not erased, and a later
@@ -83,7 +79,7 @@ function M:host()
       s.asleep = s.asleep or {}
       -- (slot 0 is the player; the port keeps only a cutscene stand-in there)
       for k, ob in pairs(s.objects) do if k ~= 0 then ob.dormant = true; s.asleep[k] = ob end end
-      s.objects = {}; s.sceneFresh = true
+      s.objects = {}
       local co = coroutine.running()
       for k, t in pairs(s.vm.threads or {}) do if t.co ~= co then s.vm.threads[k] = nil end end
     end,
@@ -391,39 +387,38 @@ function M:paletteBlock(bank, ptr)
   return w
 end
 
-function M:enterMap(i, x, y)
-  self.def = Importer.loadMap(i); self.map = i; self.objects = {}
+-- The map data $65 loads (see host.loadMap); no record, thread or WRAM state.
+function M:loadArea(i)
+  self.def = Importer.loadMap(i); self.map = i
   -- $65 LoadFiveBankedMapSources -> FillC72BFromBCThenBank7 ($2EC3): slot 0's
   -- 32 words land in $C72B, are copied to $C7AB and uploaded the same frame
   if self.def.bgWords then
     local w = {}; for k = 0, 31 do w[k] = self.def.bgWords[k + 1] end
     Panels.loadPalettes(self.vm, w, false)
   end
-  self.x, self.y = x, y; self:snap(); self.moving = nil; self.facing = self.facing or "down"
-  self:settleAList(); self.camOff = nil; self.camFix = nil; self.patches = {}; self.bgStale = nil
+  if self.x then self:snap() end
+  -- port camera overrides and BG overlays belong to the old plane
+  self.camOff = nil; self.camFix = nil; self.patches = {}; self.bgStale = nil
   self.atlas = love.graphics.newImage(("%s/maps/%03d_meta.png"):format(Importer.CACHE, i)); self.atlas:setFilter("nearest", "nearest")
   local ai = ("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, i)
   self.atlasIndex = self.def.index and love.filesystem.getInfo(ai) and love.graphics.newImage(ai) or nil
   if self.atlasIndex then self.atlasIndex:setFilter("nearest", "nearest") end
   local ov = love.filesystem.read(("%s/maps/%03d.obj"):format(Importer.CACHE, i))
   self.obj = {}; for k = 1, #ov do self.obj[k - 1] = ov:byte(k) end
-  self.log[#self.log + 1] = ("enter map %d at %d,%d"):format(i, x, y)
-  -- a door load (not a thread's scene change) rebuilds every record: stale
-  -- c70d/slot threads from the old map must not survive into the new one
-  do
-    local co, inThread = coroutine.running(), false
-    for _, t in pairs(self.vm.threads or {}) do if t.co == co then inThread = true end end
-    if not inThread and self.vm.threads then self.vm.threads = {} end
-    -- a thread's scene change still drops the C70D record unless it is the loader:
-    -- PyBoy C70D reads 0 on map 40 after the kids scene (whose shake loop 1F:52F3
-    -- would otherwise override the 2A:4859 camera pan)
-    -- mailboxes C6F8-C6FD: hardware posts live one frame, so nothing carries
-    -- over a scene change (map 40 slot 4's $5F saw the kids scene's stale $06)
-    for m = 0xC6F5, 0xC6FD do self.vm.mem[m] = 0 end -- WriteQuadRecords clears the rendezvous too
-    local c = self.vm.threads and self.vm.threads.c70d
-    if inThread and c and c.co ~= co then self.vm.threads.c70d = nil end
-  end
+  self.log[#self.log + 1] = ("enter map %d at %d,%d"):format(i, self.x or -1, self.y or -1)
   if os.getenv("MN_THR") then local co = coroutine.running(); local who = "main"; for k, t in pairs(self.vm.threads or {}) do if t.co == co then who = tostring(k) end end; self.log[#self.log + 1] = "  by thread " .. who .. " pc " .. (self.vm.pcs and self.vm.pcs[co] and ("%X"):format(self.vm.pcs[co]) or "?") end
+end
+
+-- A port-side start in a map (boot, checkpoint replay): a fresh record table,
+-- no threads, no mailboxes, no A list.
+function M:enterMap(i, x, y)
+  self.objects = {}
+  self.x, self.y = x, y
+  self:loadArea(i)
+  self.moving = nil; self.facing = self.facing or "down"
+  self:settleAList()
+  if self.vm.threads then self.vm.threads = {} end
+  for m = 0xC6F5, 0xC6FD do self.vm.mem[m] = 0 end
 end
 
 -- Dev checkpoints (MN_SNAP_TO=map[:n] MN_SNAP_FILE=path): when a door trigger into that map
