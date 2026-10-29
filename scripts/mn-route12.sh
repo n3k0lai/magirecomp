@@ -557,7 +557,11 @@ MN_PICK=2B:43F0 MN_WATCH=A224 run_leg evu 10000 \
 # at 10,9). Stepping on 61's west cell 0,9 (13:4163) runs the quake (13:5D5F,
 # story word 3); the goal has no facing, so the autopilot steps off and back
 # on and the second step takes the door (13:4000) into 2 (after61.lua).
-run_leg train 7000 \
+# Stepping on 0,9 first asks whether Tony has trained enough (talk 13:418C,
+# a $9C No / Yes choice); the autopilot's first option is No (13:41CB),
+# which loops back, so the leg picks Yes (13:420F). The 43 scene before
+# 61 now runs its full text (about 6500 frames), so the leg gets 10000.
+MN_PICK=13:420F run_leg train 10000 \
   "52:17.5r,51:13.23d,44:12.16d,43:far,61:0.9" \
   2 "$SNAP/after61.lua" \
   "$SNAP/after60.lua"
