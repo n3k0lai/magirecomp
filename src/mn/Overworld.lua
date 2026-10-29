@@ -620,6 +620,16 @@ function M:writeSnapshot(file, b, p, to, kind)
   local what = kind == "c" and "control" or (kind == "s" and "script" or "door")
   self.log[#self.log + 1] = b and ("snapshot -> %s (%s %02X:%04X into %d)"):format(file, what, b, p, to)
     or ("snapshot -> %s (%s in %d at %d,%d)"):format(file, what, to, self.x, self.y)
+  -- once every MN_SNAP_FILE target has been written, the harness can end the run
+  -- (route legs only need the snapshot; lingering on the next map wastes frames and
+  -- can re-hit visit goals, e.g. 277 37,8 after the Korg duel)
+  if not self.snapsLeft then
+    local n = 0
+    for _ in (os.getenv("MN_SNAP_FILE") or ""):gmatch("[^,]+") do n = n + 1 end
+    self.snapsLeft = math.max(1, n)
+  end
+  self.snapsLeft = self.snapsLeft - 1
+  if self.snapsLeft <= 0 then self.snapWritten = true end
 end
 
 -- stored map record for a plane diff (tests swap this out)

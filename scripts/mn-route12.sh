@@ -582,8 +582,11 @@ run_leg glade 6000 \
 # with MN_GOD (the battle length varies with its seed, so the leg has slack);
 # its win tail (14:6B30) ends with control at 8,8. Then 8's far
 # exit leads back into 277, and that second door into 277 writes beat12.snap.
-run_leg korg 12000 \
-  "7:far,277:37.8,8:far" \
+# 277 uses per-entry goals: first visit steps on 37,8; the second visit (back
+# from 8 after the win) parks at 38,9. Reusing 37,8 would re-fire 2F:4210
+# (2F:41F4 still takes the geyser slot while story is 3..5; post-duel is 4).
+run_leg korg 20000 \
+  "7:far,277:37.8|38.9,8:far" \
   277:2 "$SNAP/beat12.snap" \
   "$SNAP/after5.lua"
 
