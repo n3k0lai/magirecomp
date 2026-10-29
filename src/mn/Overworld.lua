@@ -834,28 +834,7 @@ function M:update()
       end
     end
   end
-  if self.panv then
-    local p = self.panv; self.camOff = self.camOff or { 0, 0 }
-    local dx, dy = p[2], p[3]
-    if p[5] then -- $16 scroll: clamped to the map, and it carries its walkers
-      local cx, cy = self:cameraXY()
-      local W, H = self.def.w * 16, self.def.h * 16
-      if W >= 160 then dx = math.max(0, math.min(W - 160, cx + dx)) - cx end
-      if H >= 144 then dy = math.max(0, math.min(H - 144, cy + dy)) - cy end
-      for slot in pairs(p[5]) do
-        local ob = self.objects[slot]
-        if ob then
-          ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
-          while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
-          while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
-          while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end
-          while ob.oy <= -16 do ob.oy = ob.oy + 16; ob.y = ob.y - 1 end
-        end
-      end
-    end
-    self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
-    p[1] = p[1] - 1; if p[1] <= 0 then self.panv = nil end
-  end
+  if self.panv then self:panFrame() end
   -- $9C choice menu: up/down/left/right move the hand (on a fresh press), A picks
   local ch = self.textBox and self.textBox.choice
   if ch and not ch.picked then
@@ -1316,6 +1295,51 @@ end
 
 -- camera top-left in map pixels: follows the player, clamped to the map, unless a
 -- script fixed it ($84) or panned it ($83 / $16)
+-- One frame of $C843/$C844 through StepHorizontalScroll / StepVerticalScroll (bank 7,
+-- step_horizontal_scroll.asm, step_vertical_scroll.asm): each delta is clamped to -4..+4,
+-- and the edge flags ClampMapCamera and the steps keep in $C842 refuse a step past column
+-- 0 fine 0 (row 0 fine 0) or past the limit column $C845 (row $C846) at fine 15, so a
+-- pan stops at the map edge. A stride of 10 sets bit 3 (no sideways steps) and a row
+-- limit of $FF sets bit 7 (no vertical steps). The limits are the map header's bytes 3
+-- and 4 (def.camCol / def.camRow); without them the field's own W - 160 / H - 144 apply.
+-- A camera already past an edge is not pulled back; only steps further out are refused.
+local function edgeStep(v, d, hi)
+  if d < 0 then return math.max(d, math.min(0, -v)) end
+  if d > 0 then return math.min(d, math.max(0, hi - v)) end
+  return 0
+end
+function M:scrollDelta(dx, dy)
+  local def = self.def
+  dx = math.max(-4, math.min(4, dx)); dy = math.max(-4, math.min(4, dy))
+  local cx, cy = self:cameraXY()
+  if def.w == 10 then dx = 0
+  else dx = edgeStep(cx, dx, def.camCol and def.camCol * 16 + 15 or def.w * 16 - 160) end
+  if def.camRow == 0xFF then dy = 0
+  else dy = edgeStep(cy, dy, def.camRow and def.camRow * 16 + 15 or def.h * 16 - 144) end
+  return dx, dy
+end
+
+-- One frame of a $83 / $16 pan (self.panv), after the edge clamp above.
+function M:panFrame()
+  local p = self.panv; self.camOff = self.camOff or { 0, 0 }
+  -- $83 and $16 both go through $C843/$C844, so both stop at the map edges
+  local dx, dy = self:scrollDelta(p[2], p[3])
+  if p[5] then -- $16 scroll: it carries its walkers
+    for slot in pairs(p[5]) do
+      local ob = self.objects[slot]
+      if ob then
+        ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
+        while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
+        while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
+        while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end
+        while ob.oy <= -16 do ob.oy = ob.oy + 16; ob.y = ob.y - 1 end
+      end
+    end
+  end
+  self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
+  p[1] = p[1] - 1; if p[1] <= 0 then self.panv = nil end
+end
+
 function M:cameraXY()
   local W, H = self.def.w * 16, self.def.h * 16
   local cx = math.max(0, math.min(W - 160, self.px + 8 - 80))
