@@ -149,8 +149,8 @@ M.handlers[0x86] = function(vm, o, n)
 end
 
 -- $6A and $63 share one picture. Later cards write over the same VRAM.
--- TODO(LoadFiveBankedMapSources): opcode $65 returns to the field map and
--- must call vm.host.picture(nil). That handler lives in ScriptVM.
+-- Opcode $65 (LoadFiveBankedMapSources, ScriptVM) returns to the field map and
+-- calls vm.host.picture(nil) there.
 local function livePicture(vm)
   local pic = vm.travelPicture
   if not pic then pic = Picture.new(); vm.travelPicture = pic end
