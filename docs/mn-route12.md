@@ -1303,3 +1303,7 @@ must start from k241 or earlier.
   into 159, so 159's wild monsters exist on load. With no battles on the road, Animite is 55.
 - `MN_LEGS=story15 bash scripts/mn-route12.sh` runs these as four legs (s15road, s15ferry,
   s15ship, s15horn) and fails unless the last log has `A123 <- 0F`.
+- After the f40dee7c merge (`$41` exact phase, hMainLoopCounter), s15road runs on seed 5:
+  seed 4 now picks 1A:45D9 on 156's `$47` 1A:45C5 and lands in 157 (rDIV outlier, mn-outliers
+  item 8). s15ship gets 16000 frames: wild battles in 242 and 247 add about 5000 frames
+  before 19:6F64 into 249.
