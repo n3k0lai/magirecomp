@@ -64,6 +64,12 @@ $81, $03, $0D, $78 and $7E/$7F's cell steps, whose LCD-off path also skips the
 edge check (`mn_startup_passes_test`, `mn_edge_stall_test`). Polls that wait on
 another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a frame.
 
+wLCDC ($C936) is modelled in the VM: $E3 (LCDC_PLAY) from VM.new, 0 at $93
+(FinishStartup's TurnOffLCD), $E3 again where the port ends the startup loop ($94,
+$42/$12), and 0 for a map-setup record (LcdOffSetup) with TurnOnLCDIfOff after it.
+$44, $A0-$A4, the $D392 pass tail and Overworld:lcdOn read it, so a startup script
+takes the LCD-off branches as the asm does, not only map setup.
+
 ## Known divergences (intentional)
 
 - Mailboxes ($C6F8-$C6FD). Hardware `AddAndShiftUnknown` copies C6F8 to C6F9
@@ -166,7 +172,7 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $41 | Bank1NibblePhaseCountdown | bank1_nibble_phase_countdown.asm | 2 | ok | ScriptVM:684 |  |
 | $42 | InstallParkedScript_42 | install_parked_script.asm | 0 | ok | ScriptVM:361 |  |
 | $43 | LookupWordAt1234 | sram_lookup_install_script.asm | expr3 | expr3: via MnRom:insn | ScriptVM:705 |  |
-| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:614 |  |
+| $44 | SkipTwoUnlessLcdOff | skip_two_unless_lcd_off.asm | 2 | ok | ScriptVM:684 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $45 | EnterScriptFromLookup | enter_script_from_lookup.asm | 3 | ok | ScriptVM:696 |  |
 | $46 | FollowScriptWord | follow_script_word.asm | 2 | ok | ScriptVM:360 |  |
 | $47 | PickScriptRecordByDividerMod | pick_script_record_by_divider_mod.asm | pick | pick: via MnRom:insn | ScriptVM:777 |  |
@@ -258,11 +264,11 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $9D | WaitC6EETwo | opcode_9d.asm | 0 | unused in decomp scripts | ops/Flow:321 |  |
 | $9E | FormatSRAMWord | opcode_9e.asm | 2 | ok | ops/Save:164 |  |
 | $9F | StageStripTextFromScript | stage_strip_text_from_script.asm | strip | strip: via MnRom:insn | ScriptVM:728 |  |
-| $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:395 |  |
-| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:396 |  |
-| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:397 |  |
-| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:638 |  |
-| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:616 |  |
+| $A0 | BranchWhenLCDOff | branch_when_lcd_off.asm | 10 | ok | ops/Flow:449 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A1 | PlantParkedHandlerWhenLCDOff | plant_parked_handler_when_lcd_off.asm | 10 | ok | ops/Flow:450 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A2 | BranchParkedScriptWhenLCDOff | branch_parked_script_when_lcd_off.asm | 9 | ok | ops/Flow:451 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A3 | PlantScriptPtrReadSramByte | plant_script_ptr_read_sram.asm | 9 | ok | ScriptVM:708 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
+| $A4 | PlantOffset7ThenStoreFF | plant_offset7_then_store_ff.asm | 7 | ok | ScriptVM:686 | LCD off = modelled wLCDC $C936 == 0 (vm:lcdOff), incl. the startup loop; tests/engine/mn_wlcdc_test.lua |
 | $A5 | OrSramMaskWhenLookup | or_sram_mask_when_lookup.asm | expr_wb | expr_wb: via MnRom:insn | ScriptVM:725 |  |
 | $A6 | StoreLookupLowIntoSram | store_lookup_low_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:722 |  |
 | $A7 | StoreLookupWordIntoSram | store_lookup_word_into_sram.asm | expr_w | expr_w: via MnRom:insn | ScriptVM:722, ScriptVM:724 |  |

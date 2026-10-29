@@ -178,7 +178,7 @@ do
   while #b < 0x30 do b[#b + 1] = 0 end
   local f = host()
   local vm = VM.new(image(b), f.h)
-  vm.startupPending = true
+  vm.startupPending = true; vm:wr8(0xC936, 0) -- finishStartup: TurnOffLCD (wLCDC)
   vm:start(0x12, 0x4000)
   ok(f.runs == 1 and f.ran and #f.ran.ops == 2, "LCD off: $25, both $2E and $27 in one frame")
 end

@@ -1,5 +1,6 @@
--- Script control-flow and record-install opcodes. vm.init stands in for wLCDC == 0
--- (the LCD-off map-setup run), the same convention as $A3/$A4 in ScriptVM.
+-- Script control-flow and record-install opcodes. The LCD-off ops read the
+-- modelled wLCDC ($C936) through vm:lcdOff(), as $44/$A3/$A4 in ScriptVM: 0 in
+-- map setup and in FinishStartup's loop, $E3 once the LCD is back on.
 -- A parked record returns nil so that run stops. Nothing here keeps ROM bytes.
 local bit = require("bit")
 local band, bor, bxor, lshift, rshift = bit.band, bit.bor, bit.bxor, bit.lshift, bit.rshift
@@ -58,7 +59,7 @@ local function branchWhenLCDOff(vm, o, n, cur)
     plant(vm, INITIAL, cur.bank, p)
     return o + n
   end
-  if vm.init then
+  if vm:lcdOff() then
     if set then storeCell(vm, cell, tileSet); return go(bank, ptr) end
     return cont(tileClr)
   elseif set then
@@ -75,7 +76,7 @@ end
 -- the set byte when the mask hits, the clear byte otherwise (StageBytePastFour).
 -- LCD on is BranchRecordBitsAfterParkedPlant, the same OR/XOR split as $A0.
 local function plantParkedWhenLCDOff(vm, o, n, cur)
-  if not vm.init then return branchWhenLCDOff(vm, o, n, cur) end
+  if not vm:lcdOff() then return branchWhenLCDOff(vm, o, n, cur) end
   local r = vm.rom
   local addr, mask = r:u16(o + 1), r:u8(o + 3)
   local tileSet, tileClr, cell = r:u8(o + 7), r:u8(o + 8), r:u16(o + 9)
@@ -95,7 +96,7 @@ local function branchParkedWhenLCDOff(vm, o, n, cur)
   local bank, ptr = r:u8(o + 4), r:u16(o + 5)
   local tile, cell = r:u8(o + 7), r:u16(o + 8)
   local set = masked(vm, addr, mask)
-  if vm.init then
+  if vm:lcdOff() then
     if not set then parkNow(vm); return nil end
     storeCell(vm, cell, tile)
     plant(vm, INITIAL, cur.bank, ptrOf(o + n))
@@ -130,7 +131,7 @@ M.copyToD392 = copyToD392
 -- RunScriptRecord, e.g. after the $30 wipe of a wild encounter) the passes run
 -- back to back with no frame between them (run_script_record.asm).
 function M.endD392Pass(vm)
-  if not vm.init and not vm.startupPending then coroutine.yield("wait", 1) end
+  if not vm:lcdOff() then coroutine.yield("wait", 1) end
 end
 
 -- opcode_32.asm: $C6D8 = 1, $C6D7 = $FF, first three operands to $C6DB-$C6DD

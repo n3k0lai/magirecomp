@@ -14,6 +14,12 @@ local Save = require("mn.ops.Save")
 
 local VM = {}
 
+-- wLCDC ($C936, turn_off_lcd.asm): TurnOffLCD writes 0, TurnOnLCDIfOff writes
+-- LCDC_PLAY only when it is 0. The "LCD off" ops ($44, $A0-$A4) test it for zero.
+local WLCDC, LCDC_PLAY = 0xC936, 0xE3
+VM.WLCDC = WLCDC
+function VM:lcdOff() return (self.mem[WLCDC] or 0) == 0 end
+
 -- After any battle the engine never resumes the battle's stream. 2:5E6D ends in the
 -- $6591 loop (loop_while_d0d5.asm), which only leaves through DispatchNonzeroD016
 -- (dispatch_nonzero_d016.asm) into ContinueStartup ($2158, finish_startup.asm); the
@@ -51,6 +57,7 @@ local function finishStartup(self, h)
   -- The boot path stores the same bytes (boot/Title.lua).
   require("mn.boot.Title").applyDefaults(self)
   self.startupPending = true -- finish_startup.asm: $C6F3 = 1 once RunScriptLoop parks
+  self:wr8(WLCDC, 0) -- TurnOffLCD (turn_off_lcd.asm) before RunScriptLoop
   if h.lcdOff then h.lcdOff() end
 end
 VM.__index = VM
@@ -59,7 +66,7 @@ VM.__index = VM
 -- host: callbacks loadMap(i), setTriggers(ptr), setAList(ptr), runAList(entries),
 --       spawn(slot, x, y), objPalette(bank, ptr), text(str) -> yields
 function VM.new(rom, host)
-  return setmetatable({ rom = rom, host = host, mem = {}, logged = {}, log = {} }, VM)
+  return setmetatable({ rom = rom, host = host, mem = { [WLCDC] = LCDC_PLAY }, logged = {}, log = {} }, VM)
 end
 
 -- Object script records run as threads (one per slot + the $C71B text record).
@@ -214,12 +221,18 @@ end
 
 -- Run a script from (bank, ptr) as a coroutine; text boxes yield.
 -- Map-setup run (LCD off): no yields; stops at text or park.
+-- wLCDC: LcdOffSetup (04:6346) is TurnOffLCD, the record, then TurnOnLCDIfOff
+-- ($E3 only if it was 0). Restoring the byte gives the same result: $E3 after a
+-- field setup, still 0 for records run inside FinishStartup's loop, where the
+-- LCD stays off until its TurnOnLCD.
 function VM:runInit(bank, ptr)
   local saved = self.init; self.init = true
+  local lcdc = self:rd8(WLCDC); self:wr8(WLCDC, 0)
   local co = coroutine.create(function() self:run(bank, ptr) end)
   local ok, err = coroutine.resume(co)
   if not ok then print("[vm] init error " .. tostring(err)) end
   self.init = saved
+  self:wr8(WLCDC, lcdc ~= 0 and lcdc or (self.startupPending and 0 or LCDC_PLAY))
 end
 
 function VM:start(bank, ptr)
@@ -393,12 +406,12 @@ function VM:run(bank, ptr)
       -- it sets wScriptDone ($C705), which also ends FinishStartup's RunScriptRecord
       -- (run_script_record.asm): $C6F3 = 1 and the LCD on happen here, not only at a park
       -- (map 2 Eidon scene 14:512C waits on C6FD after its $94; its talk record waits on $C6F3)
-      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
+      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1); self:wr8(WLCDC, LCDC_PLAY) end
       o = o + n; coroutine.yield("wait", 1)
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
       if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
-      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
+      if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1); self:wr8(WLCDC, LCDC_PLAY) end
       return
     elseif op == 0x6B then
       -- ArmCopyGlyphFromScript ($1946): count, wCallbackBank, wGlyphSrc, wGlyphDest,
@@ -668,8 +681,8 @@ function VM:run(bank, ptr)
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
-    elseif op == 0x44 then -- SkipTwoUnlessLcdOff: LCD off (map setup) follows the word
-      if self.init then o = off(r:u16(o + 1), cur.bank) else o = o + n end
+    elseif op == 0x44 then -- SkipTwoUnlessLcdOff: wLCDC == 0 follows the word
+      if self:lcdOff() then o = off(r:u16(o + 1), cur.bank) else o = o + n end
     elseif op == 0xA4 then
       -- PlantOffset7ThenStoreFF ($25DA): SRAM flag word, mask, reward (category,
       -- id), WRAM-3 map cell word. LCD off (map setup): flag set -> cell := $FF
@@ -678,7 +691,7 @@ function VM:run(bank, ptr)
       -- the reward, flag |= mask, cell := $FF, continue at 22:4048 (22:4074 when full).
       local W, m, cat, id, cell = r:u16(o + 1), r:u8(o + 3), r:u8(o + 4), r:u8(o + 5), r:u16(o + 6)
       local set = band(self:rd8(W), m) ~= 0
-      if self.init then
+      if self:lcdOff() then
         if set then h.setMetatile(cell, 0xFF); o = o + n else return end
       elseif set then jump(0x22, 0x405B)
       else
@@ -704,7 +717,7 @@ function VM:run(bank, ptr)
       -- script goes on at record + 9. tests/engine/mn_a3_parked_stage_test.lua.
       local W, m, b, p, mt, cell = r:u16(o + 1), r:u8(o + 3), r:u8(o + 4), r:u16(o + 5), r:u8(o + 7), r:u16(o + 8)
       local set = band(self:rd8(W), m) ~= 0
-      if self.init then
+      if self:lcdOff() then
         if set then h.setMetatile(cell, mt) end
         return
       elseif set then jump(b, p)

@@ -65,10 +65,10 @@ end
 do -- LCD off ($93 until the park): no ring effect, and the view is redrawn
   local s, h = world()
   s:ringFrame()
-  s.vm.startupPending = true
+  s.vm.startupPending = true; s.vm:wr8(0xC936, 0) -- $93: TurnOffLCD (wLCDC)
   h.cameraCell(16, 0)
   ok(#s.patches == 0, "LCD off: the jump shows nothing stale")
-  s.vm.startupPending = nil
+  s.vm.startupPending = nil; s.vm:wr8(0xC936, 0xE3) -- the park: TurnOnLCD
   s:ringFrame()
   ok(s.bgStale == nil, "nothing stale after DrawMetatileWindow")
 end

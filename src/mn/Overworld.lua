@@ -704,6 +704,7 @@ function M.load(file, input)
   local s = M.new(snap.map, snap.x, snap.y, input)
   if snap.planes then s:applyPlanes(snap.planes) end
   for a, v in pairs(snap.mem) do s.vm.mem[a] = v end
+  s.vm.mem[0xC936] = 0xE3 -- a field snapshot: the LCD is on
   s.tonyEnergy = snap.tony; s.facing = snap.facing
   if snap.trig then s.triggerPtr = snap.trig end
   if snap.alist then s.aList = snap.alist end
@@ -1156,10 +1157,11 @@ function M:shownAt(x, y)
   return v
 end
 
--- The LCD is off during map setup (vm.init) and from $93 until RunScriptLoop parks.
+-- The modelled wLCDC ($C936): 0 during map setup (vm.init) and from $93 until
+-- RunScriptLoop parks (ScriptVM).
 function M:lcdOn()
   local vm = self.vm
-  return vm ~= nil and not vm.init and not vm.startupPending
+  return vm ~= nil and not vm:lcdOff()
 end
 
 -- The on-screen cell range (the 160 x 144 view), clamped to the map.
