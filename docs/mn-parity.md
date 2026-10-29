@@ -26,7 +26,7 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 - $5D-$5F, $60-$62: a satisfied wait plants INITIAL_SCRIPT_HANDLER and
   returns, so the next opcode runs the following frame. The port ran it the
   same frame; it now yields one frame (`mn_next_pass_test`).
-- $34, $35, $A9: same pattern (plant INITIAL_SCRIPT_HANDLER, call, ret); the
+- $34, $35, $A9, $91: same pattern (plant INITIAL_SCRIPT_HANDLER, call, ret); the
   port went on in the same pass and now yields one frame.
 
 ## Pass boundaries
@@ -34,10 +34,11 @@ the port's handler sites; no ROM bytes here. Regenerate when handlers move.
 A handler that ends in `jp DispatchScriptOpcode` (or `jp INITIAL_SCRIPT_HANDLER`)
 runs the next opcode in the same pass; one that plants INITIAL_SCRIPT_HANDLER
 and `ret`s ends the record's pass, so the next opcode runs next frame. Checked:
-$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9 match. Open (asm ends
+$48, $4A, $5D-$62, $73, $75, $78, $79, $7B, $34, $35, $A9, $91 match. Open (asm ends
 the pass, port goes on or the tail is untraced): $25, $26-$2F battle record ops
 (run by the port's battle director), $30 (tail jp $584A), $6B (glyph copy
-spread over count passes), $91.
+spread over count passes). $91's zero path calls 2:4799, which is not
+disassembled yet.
 
 ## Known divergences (intentional)
 
@@ -218,7 +219,7 @@ spread over count passes), $91.
 | $8E | EnterScriptFromLookup_8E | enter_script_from_lookup.asm | blk8e | blk8e: via MnRom:insn | ScriptVM:784 |  |
 | $8F | RewindCopyThenCall7025 | rewind_copy_then_call_7025.asm | blk0 | blk0: via MnRom:insn | ops/Travel:297 |  |
 | $90 | CopyPrefixedBlockThenCall66BE | copy_prefixed_then_call_66be.asm | blk3 | blk3: via MnRom:insn | ops/Travel:315 |  |
-| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:610 | asm ends the pass; port goes on (open) |
+| $91 | BranchBank1OnScriptByte | branch_bank1_on_script_byte.asm | 1 | ok | ScriptVM:610 | ends the pass (mn_next_pass_test); zero path calls 2:4799 (raw) |
 | $92 | StageSavedScriptPairThenBank7 | stage_saved_script_pair.asm | 1 | ok | ops/Save:125 |  |
 | $93 | FinishStartup | finish_startup.asm | 0 | ok | ScriptVM:220 |  |
 | $94 | MarkScriptDone21B2 | mark_script_done_21b2.asm | 0 | ok | ScriptVM:352 |  |

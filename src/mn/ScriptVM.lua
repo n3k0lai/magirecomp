@@ -607,7 +607,9 @@ function VM:run(bank, ptr)
       -- store_script_word_at_a123.asm plants INITIAL_SCRIPT_HANDLER and rets after
       -- the clear: the next op runs on the next pass
       if not self.init then coroutine.yield("wait", 1) end
-    elseif op == 0x91 then VM.fillSRAM(self, r:u8(o + 1)); o = o + n -- BranchBank1OnScriptByte
+    elseif op == 0x91 then -- BranchBank1OnScriptByte: plants INITIAL_SCRIPT_HANDLER, the fill, ret
+      VM.fillSRAM(self, r:u8(o + 1)); o = o + n
+      if not self.init then coroutine.yield("wait", 1) end -- next op on the next pass
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
     elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2

@@ -1,6 +1,6 @@
 -- Ops whose handler plants INITIAL_SCRIPT_HANDLER and returns (instead of
 -- jp DispatchScriptOpcode) end the record's pass: the next opcode runs next frame.
--- Mailbox waits $60-$62 and $5D-$5F (on the match), $34, $35, $A9.
+-- Mailbox waits $60-$62 and $5D-$5F (on the match), $34, $35, $A9, $91.
 -- Synthetic bytes only.
 --   luajit tests/engine/mn_next_pass_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
@@ -60,6 +60,14 @@ ok(vm2:rd8(0xC6F8) == 0 and vm2:rd8(0xC6FA) == 0 and vm2:rd8(0xC6FC) == 0, "$34/
 ok(vm2:rd8(0xA123) == 3, "$A9 stored its word on frame 1")
 vm2:tickThreads(false)
 ok(vm2:rd8(0xC6F8) == 1 and vm2:rd8(0xC6FA) == 2 and vm2:rd8(0xC6FC) == 3, "their next opcode runs on frame 2")
+
+-- 12:4500: $91 nonzero (FillSRAMAfterNonzeroScriptByte), post
+local vm3 = VM.new(image({ [0x4500] = { 0x91, 0x01, 0x56, 0x04, 0x42 } }), {})
+vm3:spawnThread(2, 0x12, 0x4500)
+vm3:tickThreads(false)
+ok(vm3:rd8(0xC6F8) == 0, "$91 ends the pass")
+vm3:tickThreads(false)
+ok(vm3:rd8(0xC6F8) == 4, "$91: the next opcode runs on frame 2")
 
 print(("mn_next_pass_test: %d/%d ok"):format(checks - failures, checks))
 os.exit(failures == 0 and 0 or 1)
