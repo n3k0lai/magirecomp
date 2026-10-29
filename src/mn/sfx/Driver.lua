@@ -1210,17 +1210,21 @@ local function cmd26(s, bc)
   local e, d = rom(s, bc), rom(s, bc + 1)
   setCursor(s, bc + 2)
   local ch = slot(s)
-  -- Period high passed into PrimeChannelFromTag. OpenSlotChannel stored it
-  -- at $DF16 (open_slot_channel.asm).
-  local dHi = rd(s, 0xDF16 + ch * 2)
+  -- D for the prime stores is the slot's wExpirySlotHigh byte ($DFE4 + slot), the
+  -- same byte $599D passes; it lands in the high byte of $DF15 + 2 * channel.
+  local dHi = rd(s, 0xDFE4 + ch)
   local pri = rd(s, 0xDF9D + ch)
   local env = rd(s, 0xDFF4 + ch)
+  -- sound_command_trigger_tag.asm: C = the first operand (E) on both paths, A = the
+  -- second (the tag). With bit 1 set, $4F15 keeps B = the slot's priority and D = 1,
+  -- then runs the same prime stores as $4F1A before bit 1 is set again on the slot
+  -- it returns (prime_channel_from_tag_d1.asm joins at $4F1E).
   local opened
   if testbit(s, 0xDF09 + ch, 1) then
-    opened = openForTag(s, d, pri, e, 1)
+    opened = primeFromTag(s, d, dHi, env, pri, true, e)
     if opened then setbit(s, 0xDF09 + opened, 1, true) end
   else
-    opened = primeFromTag(s, d, dHi, env, 0, false)
+    opened = primeFromTag(s, d, dHi, env, 0, false, e)
   end
   if opened and opened == ch then
     setCursor(s, r16(s, 0xDF7E + ch * 2))
@@ -1291,6 +1295,7 @@ local CMDS = {
   [0x28] = cmd28,
   [0x29] = cmd1C,
 }
+D._cmds = CMDS -- test seam (tests/engine/mn_music_seq_test.lua)
 
 -- RunSoundStream ($5032). Command $04 yields the tick. A zero cursor stops.
 local function runStream(s, addr)
@@ -1745,6 +1750,8 @@ local ROM0 = {
     if testbit(s, 0xDFA6, 7) then setbit(s, 0xDFA6, 4, true); dropGate(s) end
     for i = 0, 0x51 do wr(s, 0xC8C9 + i, rd(s, 0xDFA6 + i)) end
     installIndex(s, rd(s, 0xC925))
+    -- host flag (not WRAM): the $20 song owns the driver until $074F restores
+    s.songHold = true
   end,
   [0x074F] = function(s)
     local running = band(rd(s, 0xDFA6), 0x0F) ~= 0 or rd(s, 0xDFD3) ~= 0
@@ -1752,6 +1759,7 @@ local ROM0 = {
     wr(s, 0xC924, 0)
     for i = 0, 0x51 do wr(s, 0xDFA6 + i, rd(s, 0xC8C9 + i)) end
     latchGate(s)
+    s.songHold = nil
   end,
 }
 

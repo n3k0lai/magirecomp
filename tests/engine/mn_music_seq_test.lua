@@ -97,6 +97,51 @@ do
   ok(s:rd(0xC924) == 0, "SoundCountdownIdle restores on frame 6")
 end
 
+-- The field side (Overworld.musicHoldFrame): MnMusic pauses on the $072D frame and
+-- resumes on the $074F restore frame. Fake music object, muted (never plays).
+local Overworld = require("mn.Overworld")
+local function fakeMusic()
+  local m = { pauses = 0, plays = 0 }
+  function m:pause() self.pauses = self.pauses + 1 end
+  function m:play() self.plays = self.plays + 1 end
+  function m:stop() end
+  return m
+end
+do
+  local s = start({ 0x00, 0x08, 0x01, 0x00, 0x08, 0xFF })
+  local ow = { sfx = s, log = {}, music = fakeMusic() }
+  local held = {}
+  for f = 1, 7 do
+    frame(s); Overworld.musicHoldFrame(ow)
+    held[f] = ow.musicHeld and true or false
+  end
+  ok(held[1] and held[5] and not held[6] and not held[7], "hold spans frames 1-5, ends with the frame-6 restore")
+  ok(ow.music.pauses == 1 and ow.music.plays == 1, "paused once, resumed once")
+  ok(ow.log[1] == "music held ($20 song)" and ow.log[2] == "music resumed" and #ow.log == 2, "log lines")
+  ok(s.songHold == nil and s:rd(0xC924) == 0, "driver hold cleared with C924")
+end
+-- A $1F during the hold (muted here): the new song is not paused again, and the
+-- hold still ends at the driver restore without a second pause.
+do
+  local s = start({ 0x00, 0x08, 0x01, 0x00, 0x08, 0xFF })
+  local ow = { sfx = s, log = {}, music = fakeMusic() }
+  frame(s); Overworld.musicHoldFrame(ow)
+  Overworld.playMusic(ow, 3)
+  ok(ow.musicHeld == "replaced", "$1F marks the hold replaced")
+  for _ = 2, 7 do frame(s); Overworld.musicHoldFrame(ow) end
+  ok(ow.music.pauses == 1 and ow.musicHeld == nil, "no second pause; hold ends at the restore")
+end
+-- An index past the limit holds for one frame only (restored at once).
+do
+  local s = Sfx.new(image({ 0x00, 0x08, 0xFF }))
+  s:select(); s:step()
+  s:wr(0xC925, 5); s:request("countdown", 2)
+  local ow = { sfx = s, log = {}, music = fakeMusic() }
+  frame(s); Overworld.musicHoldFrame(ow)
+  frame(s); Overworld.musicHoldFrame(ow)
+  ok(ow.music.pauses == 1 and ow.music.plays == 1 and ow.musicHeld == nil, "past the limit: pause then resume")
+end
+
 -- Case 2: action $FE re-indexes the slot record.
 do
   local s = start({ 0x00, 0x08, 0xFE, 0x00, 0x10, 0x00, 0x08 })
