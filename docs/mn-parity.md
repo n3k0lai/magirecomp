@@ -46,6 +46,12 @@ pass), $26-$2F (operands to $D392, then the pass ends) match; $91's zero path
 runs 2:4799. $96 ends in `jp INITIAL_SCRIPT_HANDLER`, which is $0A66
 DispatchScriptOpcode itself, so its next op runs in the same pass; the port had
 yielded a frame (fixed, `mn_startup_passes_test`). Open: $25.
+$20 (opcode_20_arm_countdown.asm) and $24 (opcode_20.asm) are sound-selector
+setups that end in `jp DispatchScriptOpcode`; the port had waited operand frames
+for both. They now run in the same pass and arm the driver: $24 a music fade-out
+(SoundSelectBit0), $20 the SoundCountdown sound or, with $C924 already set,
+Opcode21's request (`mn_sound_ops_test`). $1F now also writes the driver's
+$C92A/$C92C, so a fade starts from $0F.
 
 A pass is not a frame while FinishStartup's RunScriptLoop runs
 (run_script_record.asm): from $93, or the $30 spiral's `jp FinishStartup`, until
@@ -124,11 +130,11 @@ another record or the frame counter ($5B, $5C, $1A, mailboxes) still take a fram
 | $1D | SoundRequest2 | opcode_1d.asm | 0 | ok | ScriptVM:613 |  |
 | $1E | SoundRequest4 | opcode_1e.asm | 0 | unused in decomp scripts | ops/Flow:404 |  |
 | $1F | SetSoundIndex | opcode_1f.asm | 1 | ok | ScriptVM:596 |  |
-| $20 | ArmCountdown | opcode_20.asm | 1 | ok | ScriptVM:674 |  |
+| $20 | ArmCountdown | opcode_20_arm_countdown.asm | 1 | ok | ops/Flow:461 | no frame: with $C924 clear, $C924 = 2 and $C925 = sound index (SoundCountdown installs it, SoundCountdownIdle restores the driver when it stops); with $C924 set, falls into Opcode21 ($C91F = 1) (mn_sound_ops_test) |
 | $21 | SoundRequest1 | opcode_21.asm | 0 | ok | ScriptVM:454 |  |
 | $22 | SetC92CSoundSelect4 | opcode_22.asm | 1 | unused in decomp scripts | ops/Flow:405 |  |
 | $23 | SetC929SoundSelect2 | opcode_23.asm | 1 | ok | ops/Flow:406 |  |
-| $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ScriptVM:359 |  |
+| $24 | SetSoundStateC928 | opcode_20.asm | 1 | ok | ops/Flow:460 | no frame: $C929 = hi nibble + 1, $C928 = 0, wSoundSelect = 1; the selector writes wSoundIndex $FF and SoundSelectBit0 fades $C92C down every $C929 frames, then drops the music gate; field music stops there (mn_sound_ops_test) |
 | $25 | LoadMapRecord | opcode_25.asm | 6 | ok | ScriptVM:283 | 04:6416 traced: InitWram7BeforeReset, LoopWhileD0D5, DispatchNonzeroD016, ContinueStartup ($2158); Reset is never reached. Every battle returns through the last $31 record ($D3CD win, $D3D0 loss) and restores [$C923] (mn_battle_director_test) |
 | $26 | CopyScriptToD392_26 | copy_script_to_d392.asm | 4 | ok | ScriptVM:293 | 2:73AC; operands to $D392 (WRAM 7, $C937 = 7); the bank-2 tail returns, so the pass ends (mn_battle_director_test). The port collects the op for its battle engine (director: one pass per $D3C2 raise) |
 | $27 | HaltClearD3C2 | opcode_27.asm | 0 | ok | ScriptVM:339 |  |

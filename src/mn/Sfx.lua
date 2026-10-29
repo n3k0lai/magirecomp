@@ -115,12 +115,21 @@ function M.host(ow, h)
   h.sfxRequest = function(id) sfx:request("request", id) end
   -- opcode_22.asm / opcode_23.asm. SoundSelectOther and SoundSelectBit1
   -- read $C928 / $C929 / $C92C; request("select") writes $C92A.
+  -- A nil byte is left as the driver has it (opcode_20.asm, $24, leaves $C92C; opcode_1f.asm
+  -- writes only $C92A and $C92C).
   h.sfxSelect = function(sel, c928, c929, c92c)
-    sfx:wr(0xC928, c928 or 0)
-    sfx:wr(0xC929, c929 or 0)
-    sfx:wr(0xC92C, c92c or 0)
+    if c928 then sfx:wr(0xC928, c928) end
+    if c929 then sfx:wr(0xC929, c929) end
+    if c92c then sfx:wr(0xC92C, c92c) end
     sfx:request("select", sel)
   end
+  -- opcode_20_arm_countdown.asm: $C925 = sound index, wSoundCountdown ($C924) = 2.
+  h.sfxCountdown = function(id)
+    sfx:wr(0xC925, id)
+    sfx:request("countdown", 2)
+  end
+  -- driver WRAM read (opcode $20 tests the driver's $C924; the VM mirrors $24's select end)
+  h.sfxByte = function(a) return sfx:rd(a) end
   return sfx
 end
 

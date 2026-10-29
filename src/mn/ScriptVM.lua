@@ -93,6 +93,14 @@ function VM:spawnTalk(bank, ptr)
 end
 
 function VM:tickThreads(textOpen)
+  -- SelectSoundCommand (FinishFrame): while wSoundSelect bit 0 is set ($24's fade-out) it
+  -- writes wSoundIndex := $FF each frame, so a later $1F/$30 of the same index restarts the
+  -- music. The driver clears the select when the fade ends; mirror that clear here.
+  if band(self.mem[0xC92A] or 0, 1) ~= 0 then
+    local hs = self.host and self.host.sfxByte
+    if hs and band(hs(0xC92A), 1) == 0 then self.mem[0xC92A] = hs(0xC92A)
+    else self.mem[0xC920] = 0xFF end
+  end
   -- AddAndShiftUnknown, rendezvous half: C6F6 += C6F5 (arrivals this frame), C6F5 := 0;
   -- the carry out of $FF bumps the phase C6F7 and releases the $5C waiters
   local sum = (self.mem[0xC6F6] or 0) + (self.mem[0xC6F5] or 0)
@@ -387,7 +395,6 @@ function VM:run(bank, ptr)
       -- (map 2 Eidon scene 14:512C waits on C6FD after its $94; its talk record waits on $C6F3)
       if self.startupPending then self.startupPending = nil; self:wr8(0xC6F3, 1) end
       o = o + n; coroutine.yield("wait", 1)
-    elseif op == 0x24 then o = o + n; coroutine.yield("wait", r:u8(o - 1)) -- Opcode20 alias: countdown
     elseif op == 0x46 then o = off(r:u16(o + 1), cur.bank) -- FollowScriptWord: jump in bank
     elseif op == 0x42 or op == 0x12 then -- InstallParkedScript / Opcode12: park the record
       if op == 0x12 and h.commitRecord then h.commitRecord() end -- opcode_12.asm: $C188 = 3, Tony's head $5E10
@@ -643,6 +650,8 @@ function VM:run(bank, ptr)
       local v = r:u8(o + 1)
       if self:rd8(0xC920) ~= v then self:wr8(0xC920, v); self:wr8(0xC91E, 1); h.music(v) end
       self:wr8(0xC92A, 0); self:wr8(0xC92C, 0x0F); o = o + n
+      -- the driver's select bytes too: a later $24 fade steps the driver's $C92C down from $0F
+      if h.sfxSelect then h.sfxSelect(0, nil, nil, 0x0F) end
     elseif op == 0xA9 then -- StoreScriptWordAtA123: story-progress word
       self:wr8(0xA123, r:u8(o + 1)); self:wr8(0xA124, r:u8(o + 2)); o = o + n
       -- then bank 7 $40E6 (clear_sram_after_script_word.asm): $7F bytes from $A125 and
@@ -719,7 +728,7 @@ function VM:run(bank, ptr)
       if cat == 0 or cat == 2 or cat == 3 then self.nameBuf = self:recordName(cat, id) end
       if h.got then h.got(cat, id, cnt) end
       o = o + n
-    elseif op == 0x40 or op == 0x20 then -- ScriptByteCountdown / Opcode20ArmCountdown: wait n frames
+    elseif op == 0x40 then -- ScriptByteCountdown: wait n frames ($20 and $24 are sound ops, mn.ops.Flow)
       o = o + n; if not self:inStartup() then coroutine.yield("wait", r:u8(o - 1)) end
     elseif op == 0x83 then -- AddScriptDeltasUntilZero: (count, dx, dy) camera pixel deltas
       local q = o + 1

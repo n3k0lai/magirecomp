@@ -760,6 +760,7 @@ end
 function M:update()
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
+  self:musicFadeFrame()
   Grass.frame(self) -- hMainLoopCounter, once per pass (main_loop.asm)
   self:stepEdgeLatches()
   if self.bgStale then self:flushStale() end
@@ -1373,6 +1374,21 @@ function M:drawField(vw, vh, ux, uy)
   if self.textBox then self:classicFrame(wide, ux, uy, function() Font.drawTyped(self.textBox, self.def.pal7, self.vm.rom) end) end
 end
 
+
+-- $24 (opcode_20.asm) fades the music out in the driver: SoundSelectBit0 steps $C92C down
+-- and, at 0 or 1, clears wSoundSelect and drops the music gate ($57A0). The field music
+-- (MnMusic, not the driver) stops there too. A $1F in between cancels the fade instead
+-- (wSoundSelect 0 with $C92C = $0F), so only a clear with $C92C = 0 ends it.
+function M:musicFadeFrame()
+  local d = self.sfx
+  if not d then return end
+  if d:rd(0xC92A) % 2 == 1 then self.musicFading = true; return end
+  if not self.musicFading then return end
+  self.musicFading = nil
+  if d:rd(0xC92C) ~= 0 then return end
+  self.log[#self.log + 1] = "music fade end"
+  if self.music then self.music:stop(); self.music = nil end
+end
 
 -- $1F music: decode the song from the cached ROM banks and loop it.
 local MnMusic = require("mn.MnMusic")

@@ -253,6 +253,45 @@ local function soundSelect2(vm, o, n)
   return o + n
 end
 
+-- opcode_20.asm (opcode $24, labelled Opcode20): high nibble plus one to $C929,
+-- $C928 cleared, wSoundSelect ($C92A) = 1, then jp DispatchScriptOpcode, so the next op
+-- runs in the same pass (no frame). $C92C is left alone. At the next FinishFrame,
+-- SelectSoundCommand writes wSoundIndex := $FF and arms SoundSelectBit0 ($0684): every
+-- $C929 selector calls it steps $C92C down; at 0 or 1 it clears the select and drops
+-- the music gate ($57A0), i.e. a music fade-out. The driver (mn.sfx.Driver) runs it.
+local function soundSelect1(vm, o, n)
+  local e = vm.rom:u8(o + 1)
+  local lim = band(rshift(e, 4), 0x0F) + 1
+  vm:wr8(0xC929, lim)
+  vm:wr8(0xC928, 0)
+  vm:wr8(0xC92A, 1)
+  local h = vm.host
+  if h and h.sfxSelect then h.sfxSelect(1, 0, lim, nil) end -- nil: keep the driver's $C92C
+  return o + n
+end
+
+-- opcode_20_arm_countdown.asm (opcode $20): the operand is read either way. With
+-- wSoundCountdown ($C924) clear it sets $C924 = 2 and $C925 = operand: SelectSoundCommand
+-- then arms SoundCountdown ($072D), which saves the driver state and installs sound index
+-- $C925, and SoundCountdownIdle ($074F) restores it once that sound stops. With $C924 set,
+-- the jr lands inside `jp DispatchScriptOpcode` (ld h,[hl] / ld a,[bc]) and falls into
+-- Opcode21 ($0EBD): wSoundRequest ($C91F) = 1. Both paths dispatch the next op in the same
+-- pass (no frame). $C924 is the driver's (it counts it down), so it is read from there.
+local function armCountdown(vm, o, n)
+  local e = vm.rom:u8(o + 1)
+  local h = vm.host
+  local cd = (h and h.sfxByte) and h.sfxByte(0xC924) or vm:rd8(0xC924)
+  if cd == 0 then
+    vm:wr8(0xC924, 2)
+    vm:wr8(0xC925, e)
+    if h and h.sfxCountdown then h.sfxCountdown(e) end
+  else
+    vm:wr8(0xC91F, 1)
+    if h and h.sfx then h.sfx(1) end
+  end
+  return o + n
+end
+
 -- opcode_2f.asm: four bytes to $D392, then ApplyItemBlockThenDispatch (bank 2 $7595).
 local function copyD392Item(vm, o, n)
   copyToD392(vm, o, 0x2F, 4)
@@ -418,6 +457,8 @@ M.handlers[0x97] = reenterReset
 M.handlers[0x1E] = soundRequest4
 M.handlers[0x22] = soundSelect4
 M.handlers[0x23] = soundSelect2
+M.handlers[0x24] = soundSelect1
+M.handlers[0x20] = armCountdown
 M.handlers[0x2F] = copyD392Item
 M.handlers[0x2A] = copyD392Focus
 
