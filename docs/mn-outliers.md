@@ -65,29 +65,37 @@ answer yet: the routine is still INCBIN, or no static caller exists. Nothing her
    OBJ palettes share a base color the lower one wins, which only differs from the hardware when an op
    touches some OBJ palettes and not others. Test: tests/engine/mn_palette_ops_test.lua.
 
+9. **`$8E` after a forge (was "resume when `$CD49 != 0`").** CopyPrefixedBlockToD000 runs before the window
+   opens and plants hScriptPtr one past the list with handler `$0A66`, so the `ret nz` taken after a forge
+   (CommitOtherChoiceFive sets `$CD49 = 1`) runs the bytes after the list; the BC it pops is dead. A cancel
+   (`$FE`) leaves `$CD49 = 0` and the op enters its second record. FlagDirectScriptFromEntryEnd (04:5494)
+   sets `$CD1F` when `$A122 >= $D0`, which enters the first record. The port already continued past the list;
+   it now also keeps `$CD49`. Test: tests/engine/mn_forge_ring_test.lua.
+10. **The route planner plans layer walks.** World.moves gives each direction's step/hop/enter/exit/bump with
+    the `$C12A`-`$C12C` gates of the current family (World.gatesFor), and both planners in src/mn/Boot.lua
+    search (cell, family) states. Neither stops on a goal inside a `$02` band. Test:
+    tests/engine/mn_planner_layers_test.lua. The 186 headless run gives the same route and map changes as
+    before, with no VM errors.
+
 ## Still open (the code can't answer yet)
 
-1. **`$8E` resume when `$CD49 != 0`.** CallBank4_5494ThenEnterScript does `ret nz` with the saved BC. The
-   resume point after that return is in INCBIN, so the port's "continue at list+len" can't be confirmed.
-2. **2A:50AE preset selector.** The code that picks which preset (level 3 or 5) runs is still INCBIN.
-3. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
-4. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
+1. **2A:50AE preset selector.** The code that picks which preset (level 3 or 5) runs is still INCBIN.
+2. **Owner of 1F:581F.** It's reached through a `$04` at 1F:4D83, and no map entry walk reaches that.
+3. **Running scripts in "sprite" banks.** opcode_05.asm always runs operand 9-11 as the record's script. The
    port only threads it outside banks 0E/0F/10/11/20/25, and it decodes those banks statically
    (Sprites.frames). That's exact for pure `$4C`/`$4D`/`$4E`/`$46` anims. It isn't exact for the bank-25
    choreography scripts 25:7211, 731F, 739D, 746C, 747F, 74DE, 751E (maps 236, 237, 240, 368) or 25:68D8,
    all of which hold flow and story ops. None of these are in stories `$01`-`$0F` or the 186 area. Fixing it
    means running every record on the VM with sprite queueing. That's a design change, so I left it for you.
-5. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
+4. **What shows during `$4E` frames.** RepeatTwoScriptBytes queues no sprite list. Whether the object's
    last list stays on screen or nothing is drawn depends on how the sprite queue is cleared each frame, and
    that code isn't traced. The port keeps the last image. For the rock fall (11:7532: 10 frames at dy -16,
    then 40 at +4) that means the rock shows while it's lifted.
-6. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
+5. **Gate modes 5F25/60E6, conveyors `$A0`-`$A7`, and warps that land mid-layer.** They aren't modelled. No
    story `$01`-`$0F` or 186 script reaches them in the static graph.
-7. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
+6. **186 `$C3`-`$C6`** (1F:62A1-62BC). No base cell, overlay cell or `$7F`/`$80` write reachable from 186
    produces those values. They look like dead data, but that isn't proven.
-8. **5C7A entry-anim timing** is still INCBIN.
-9. **The route planner doesn't plan layer walks.** The engine now walks layers, but the planner doesn't
-    route through them.
+7. **5C7A entry-anim timing** is still INCBIN.
 
 ## Secrets and engines (fix/mn-secrets)
 

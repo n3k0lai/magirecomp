@@ -734,16 +734,21 @@ function VM:run(bank, ptr)
       elseif op == 0x8E then
         -- $8E CallBank4_5494ThenEnterScript (ring forge): (full record, cancel record,
         -- u16 len, len-byte list: count then 8-byte entries led by the ring id).
-        -- $A122 >= $D0 (ring bank full) enters the first record. Otherwise the forge
-        -- window opens with $C726 = $FF; a pick stores the ring id in $C726, counts it
-        -- in $A122 and goes on past the list; no pick enters the cancel record.
-        -- The animite cost and the full ring-bank SRAM record (bank 4 $5A5B/$54D8)
-        -- are not modelled.
+        -- FlagDirectScriptFromEntryEnd (04:5494): $A122 >= $D0 (ring bank full) sets
+        -- $CD1F and enters the first record. Otherwise CopyPrefixedBlockToD000 copies
+        -- the list to $D000 and plants hScriptPtr one past it with handler $0A66, then
+        -- StageCopiedBlockWindow (04:5926, $C726 = $FF, $CD49 = 0) runs the window loop
+        -- (04:582C). $FE (cancel) leaves $CD49 = 0 and the op enters the cancel record.
+        -- A forge commits through CommitOtherChoiceFive (04:5CB3: $CD49 = 1) and
+        -- AddSRAMEntryForOperand (counts it, id at $C726); the op returns and the
+        -- planted pointer runs the bytes after the list.
+        -- The animite cost (the $A3A5 difference word) is not modelled.
         if self.init then return end
         if self:rd8(0xA122) >= 0xD0 then jump(r:u8(o + 1), r:u16(o + 2))
         else
           local len, list = r:u16(o + 7), o + 9
           self:wr8(0xC726, 0xFF)
+          self:wr8(0xCD49, 0)
           -- MN_FORGE="2A": forge that ring id when the list offers it
           local want = tonumber(os.getenv("MN_FORGE") or "", 16)
           if not want and h.forge then want = h.forge(list, len) end
@@ -752,6 +757,7 @@ function VM:run(bank, ptr)
             if r:u8(list + 1 + 8 * i) == want then id = want end
           end
           if id then
+            self:wr8(0xCD49, 1)
             self:wr8(0xC726, id)
             self:wr8(0xA122, self:rd8(0xA122) + 1)
             o = list + len

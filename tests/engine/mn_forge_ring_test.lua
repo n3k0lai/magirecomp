@@ -4,6 +4,9 @@
 -- Forge choice (1E:7537) opens it; a pick stores the ring id in $C726 and runs on
 -- past the list, where 1E:75EA checks $C726 for the story-13 ring.
 -- It used to always enter the first record ("Ring Bank is full").
+-- The run-on is the game's: CopyPrefixedBlockToD000 plants hScriptPtr one past the list
+-- with handler $0A66 before the window opens, so when a forge leaves $CD49 = 1 and the
+-- op returns, that pointer runs. A cancel leaves $CD49 = 0 and enters the cancel record.
 --   luajit tests/engine/mn_forge_ring_test.lua
 package.path = "./?.lua;./?/init.lua;./src/?.lua;" .. package.path
 love = love or { math = { random = function(a) return a or 0 end } } -- luacheck: ignore 111
@@ -48,12 +51,14 @@ do -- a listed ring is forged: $C726 = id, $A122 counts it, the script goes on p
   ok(vm:rd8(0xC726) == 0x2A, "forge pick stores the ring id in $C726")
   ok(vm:rd8(0xA122) == 4, "forge pick counts the ring in $A122")
   ok(not vm.logged[0x8E], "$8E is not logged as unimplemented")
+  ok(vm:rd8(0xCD49) == 1, "a forge leaves $CD49 = 1")
 end
 
 do -- no pick (or an unlisted id) enters the cancel record with $C726 = $FF
   local vm = run(nil)
   ok(vm:rd8(0xC800) == 3, "no pick enters the cancel record, got " .. vm:rd8(0xC800))
   ok(vm:rd8(0xC726) == 0xFF, "no pick leaves $C726 = $FF")
+  ok(vm:rd8(0xCD49) == 0, "a cancel leaves $CD49 = 0")
   ok(run(0x55):rd8(0xC800) == 3, "an unlisted ring id cancels")
 end
 
