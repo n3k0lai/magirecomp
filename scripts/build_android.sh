@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Packages the LÖVE2D Pokémon Red port into an Android APK via love-android 11.5a.
+# Packages MagiRecomp (LÖVE, Magi Nation rebuild) into an Android APK via love-android 11.5a.
 #
 # Usage: scripts/build_android.sh [--version X.Y.Z] [--release] [--package-only]
 #                                 [--test-application-id ID]
@@ -9,7 +9,7 @@
 #                            GEN1RECOMP_ANDROID_* signing environment variables)
 #   --package-only           zip game.love + apply branding; skip gradle
 #   --test-application-id ID install under a distinct application id (e.g.
-#                             com.theboisclub.pokemonred.shaderfxtest) so a
+#                             sh.comfy.magirecomp.test) so a
 #                             test build installs side by side with a real
 #                             played copy instead of overwriting it. App name
 #                             gets a " (test)" suffix so it's distinguishable
@@ -34,8 +34,8 @@ ANDROID_DIR="$ROOT/mobile/android"
 EMBED_ASSETS="$ANDROID_DIR/app/src/embed/assets"
 LOVE_FILE="$EMBED_ASSETS/game.love"
 DIST="$ROOT/dist/android"
-APP_NAME="gen1recomp"
-APPLICATION_ID="com.theboisclub.pokemonred"
+APP_NAME="MagiRecomp"
+APPLICATION_ID="sh.comfy.magirecomp"
 LOVE_ANDROID_VERSION="11.5a"
 NDK_VERSION="25.2.9519653"
 ANDROID_API="36"
@@ -103,16 +103,16 @@ if $RELEASE; then
 fi
 
 if ! $RELEASE; then
-  APPLICATION_ID="com.theboisclub.pokemonred.dev"
+  APPLICATION_ID="sh.comfy.magirecomp.dev"
   APP_NAME="$APP_NAME (dev)"
 fi
 
 if [ -n "$TEST_APPLICATION_ID" ]; then
   if ! printf '%s' "$TEST_APPLICATION_ID" | grep -Eq '^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$'; then
-    fail "invalid --test-application-id '$TEST_APPLICATION_ID' (expected a dotted package id, e.g. com.theboisclub.pokemonred.shaderfxtest)"
+    fail "invalid --test-application-id '$TEST_APPLICATION_ID' (expected a dotted package id, e.g. sh.comfy.magirecomp.test)"
   fi
   APPLICATION_ID="$TEST_APPLICATION_ID"
-  APP_NAME="gen1recomp (test)"
+  APP_NAME="MagiRecomp (test)"
 fi
 # Optional overrides for side-by-side test APKs (never used by CI shipping builds).
 if [ -n "${GEN1RECOMP_ANDROID_APPLICATION_ID:-}" ]; then
@@ -443,11 +443,11 @@ PY
 # --------------------------------------------------------------- game.love
 pack_game_love() {
   say "packing game.love for love-android embed flavor"
-  ensure_yellow_manifest
-  ensure_gold_manifest
-  ensure_silver_manifest
-  ensure_crystal_manifest
-  ensure_firered_manifest
+  #   ensure_yellow_manifest  (MagiRecomp: no Pokemon manifests are fetched or packaged)
+  #   ensure_gold_manifest  (MagiRecomp: no Pokemon manifests are fetched or packaged)
+  #   ensure_silver_manifest  (MagiRecomp: no Pokemon manifests are fetched or packaged)
+  #   ensure_crystal_manifest  (MagiRecomp: no Pokemon manifests are fetched or packaged)
+  #   ensure_firered_manifest  (MagiRecomp: no Pokemon manifests are fetched or packaged)
   [ -f "$ROOT/tools/rom_manifest_leafgreen.json" ] || fail "LeafGreen import manifest is missing"
   [ -f "$ROOT/tools/rom_manifest_emerald.json" ] || fail "Emerald import manifest is missing"
   [ -f "$ROOT/tools/rom_manifest_ruby.json" ] || fail "Ruby import manifest is missing"
