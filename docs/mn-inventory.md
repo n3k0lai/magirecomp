@@ -24,12 +24,14 @@ motion (`$15 $16 $4C $4D $4F $99 $9B`) or screen effects (`$30 $6C`) and 4+ ops.
 | status | blocks | meaning |
 |---|---|---|
 | matches | 2455 | every op has a decomp-read port handler |
-| diverges | 1151 | uses a documented divergence: mailbox latching (`$53`-`$62`) or `$16` camera ride |
+| diverges | 1151 | 2026-11-01 snapshot tag: mailbox ops (`$53`-`$62`) or `$16` camera ride |
 | missing | 0 | no reachable scene uses `$29` (the only logged-only op) |
 
-Divergent ops: `$58` 713, `$62` 264, `$56` 158, `$60` 132, `$16` 74, rest under 40.
-The mailbox latch only changes behaviour if a waiter relies on a post expiring after one
-frame; that audit is queued (below), not assumed.
+Divergent ops in that snapshot: `$58` 713, `$62` 264, `$56` 158, `$60` 132, `$16` 74, rest under 40.
+The mailbox half is closed. `VM:tickThreads` copies each source into its shadow every frame, zeros
+included, as `AddAndShiftUnknown` does (docs/mn-parity.md, `mn_mailbox_frame_test`). `$16` is still
+a documented divergence. `cutscenes.tsv` was not regenerated; `tools/mn_inventory.py` still lists
+the mailbox ops so a re-run reproduces this snapshot.
 
 ## Transitions
 
@@ -46,7 +48,7 @@ for `$93` is the LCD-off path. The 123 `live` rows are the open audit.
 
 ## Audit queue (workers, 2026-11-01)
 
-1. Mailbox latch: find any `$5D`-`$62` waiter that depends on a one-frame post.
+1. Mailbox latch: done. One-frame copy in `VM:tickThreads`. Proof per site class in docs/mn-parity.md. No reachable post of 0 and no `$60`-`$62` match of 0.
 2. The 123 `live` transitions: trace each to its `$93` or prove LCD-on, check the port path.
 3. Camera split (fix/mn-cam-split): `$84` ClampMapCamera from the asm, rebase on master.
 4. `$30`/`$6C` fades and palette timing vs 07:56ED and 5C00.

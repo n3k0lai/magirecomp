@@ -12,8 +12,10 @@ it: LCD-off door), `spiral` ($30 wipe), `live` (LCD on, no $93 in block).
 
 Port status per block comes from the opcode parity table (docs/mn-parity.md):
   matches  every op has a port handler with a decomp-read implementation
-  diverges uses an op on the documented divergence list (mailbox latching
-           $53-$62, $16 camera-ride) -> see docs/mn-parity.md
+  diverges uses an op on the snapshot divergence list ($53-$62, $16).
+           $53-$62 now match AddAndShiftUnknown's one-frame copy
+           (docs/mn-parity.md); they stay listed so a re-run reproduces the
+           2026-11-01 cutscenes.tsv. $16 is still a camera-ride divergence.
   missing  uses an op the port only logs ($29)
 Handler parity is not a per-scene run check; per-scene confirmation is the
 headless audit queue (docs/mn-inventory.md).

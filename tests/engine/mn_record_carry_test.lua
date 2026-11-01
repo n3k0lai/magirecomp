@@ -41,9 +41,15 @@ function h.spawn(slot, _, _, _, _, abank, aptr)
 end
 vm = VM.new(rom, h)
 vm:spawnThread(2, 0x12, 0x4000)
-for _ = 1, 30 do vm:tickThreads(false) end
-ok(vm:rd8(0xC6F9) == 0x0A, "the planted record script ran in slot 2 and posted C6F8 $0A")
-ok(vm:rd8(0xC6FD) == 0x0B, "the planting script carried on past its C6F9 $0A wait")
+-- a post lives one frame (AddAndShiftUnknown), so sample the shadow while it is up
+local sawPost, sawContinue = false, false
+for _ = 1, 30 do
+  vm:tickThreads(false)
+  if vm:rd8(0xC6F9) == 0x0A then sawPost = true end
+  if vm:rd8(0xC6FC) == 0x0B or vm:rd8(0xC6FD) == 0x0B then sawContinue = true end
+end
+ok(sawPost, "the planted record script ran in slot 2 and posted C6F8 $0A")
+ok(sawContinue, "the planting script carried on past its C6F9 $0A wait")
 ok(vm.threads and vm.threads.carry2 == nil, "the carried thread ends when it parks")
 
 -- without carry (other spawn paths) the slot's old script is replaced as before

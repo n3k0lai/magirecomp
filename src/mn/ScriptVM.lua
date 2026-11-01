@@ -116,11 +116,11 @@ function VM:tickThreads(textOpen)
   if sum > 0xFF then self.mem[0xC6F7] = ((self.mem[0xC6F7] or 0) + 1) % 256; sum = 0 end
   self.mem[0xC6F6], self.mem[0xC6F5] = sum, 0
   for a = 0xC6F8, 0xC6FC, 2 do
-    -- AddAndShiftUnknown on hardware: C6F9 := C6F8, C6F8 := 0 every frame (a post
-    -- lives one frame). Our main VM and threads don't tick in one lockstep loop
-    -- (text boxes pause the main VM), so a one-frame post gets missed (Eidon
-    -- 2A:42A9 $60 $2A deadlock). Latch nonzero posts instead.
-    local v = self.mem[a]; if v and v ~= 0 then self.mem[a + 1] = v; self.mem[a] = 0 end
+    -- AddAndShiftUnknown ($28E5), from FinishFrame before the four records:
+    -- shadow := source, source := 0, zeros included. A post is visible one frame.
+    -- Eidon 2A:42A4's $60 $2A is posted by 2A:4C5A only after 2A:42A5 sets the
+    -- bit, in the same pass the waiter starts polling, so the one frame is seen.
+    local v = self.mem[a] or 0; self.mem[a + 1] = v; self.mem[a] = 0
   end
   if not self.threads then return end
   if os.getenv("MN_THR") then
@@ -499,7 +499,7 @@ function VM:run(bank, ptr)
       o = o + n
     elseif op == 0x56 or op == 0x57 or op == 0x58 then
       -- StoreScriptByteAtC6F8/A/C: mailbox post; stall while the box is full.
-      -- tickThreads moves C6F8->C6F9 (A->B, C->D) once per frame.
+      -- tickThreads copies C6F8->C6F9 (A->B, C->D) once per frame, zeros included.
       local a = 0xC6F8 + (op - 0x56) * 2
       if self.init then if self:rd8(a) ~= 0 then return end
       else while self:rd8(a) ~= 0 do coroutine.yield("wait", 1) end end

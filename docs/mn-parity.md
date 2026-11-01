@@ -74,16 +74,63 @@ takes the LCD-off branches as the asm does, not only map setup.
 
 ## Known divergences (intentional)
 
-- Mailboxes ($C6F8-$C6FD). Hardware `AddAndShiftUnknown` copies C6F8 to C6F9
-  (and FA->FB, FC->FD) every frame, zeros included, so a post is readable for
-  one frame. The port's main VM and record threads don't tick in one lockstep
-  loop (text boxes pause the main VM), so `VM:tickThreads` latches nonzero
-  posts until the next post instead. Waiters ($5D-$5F, $60-$62) therefore see
-  a post later than one frame; nothing found so far relies on a post expiring.
 - $29 JumpScriptBank7449: unused by every decomp script; the port logs it
   (docs/mn-outliers.md, Secrets and engines #3).
 - $16 pans ride the camera, so a walker stops where the camera stops
   (PyBoy-checked; see the handler comment).
+
+## Mailboxes ($C6F8-$C6FD)
+
+`AddAndShiftUnknown` ($28E5), from `FinishFrame` before the four script records,
+does `C6F9 := C6F8; C6F8 := 0` and the same for FA/FB and FC/FD, zeros included.
+A byte written into a source on frame N is readable in the shadow on frame N+1
+only. Every record that frame reads the shadow the shift already wrote, so
+record order does not change a mailbox read. `VM:tickThreads` does this copy
+once per field frame, before record threads. `Overworld:update` calls that and
+then resumes a main script whose frame wait has expired, so a waiter that
+yields one frame observes the shadow. A text yield does not poll: a post made
+while a box is open expires, which is the hardware result when the wait opcode
+has not been reached. FinishStartup's loop does not call `AddAndShiftUnknown`;
+the port does not shift during that burst, and `$93` still clears the sources
+only (`mn_load65_test`).
+
+`$53`-`$55` and `$56`-`$58` fill the source and `jp DispatchScriptOpcode` on
+that pass when the source was 0. A source that is already nonzero returns
+without moving the script pointer, so the handler retries next frame. `$5D`-`$5F`
+and `$60`-`$62` read the shadow; on a hit they plant `INITIAL_SCRIPT_HANDLER`
+and return, and the next opcode runs the following frame (`mn_next_pass_test`).
+
+The port used to keep a nonzero shadow until the next nonzero post. A one-frame
+copy was thought to deadlock Eidon `2A:42A4` `$60 $2A` while a text box paused
+the main VM. The post is `2A:4C5A` `$56 $2A`. `2A:4C51` reaches it by falling
+through a `$43` whose lookup is index `$0A` of index `$00` on SRAM `$A125`
+mask `$02`: the `$43` repeats while the bit is clear and falls through once
+the bit is set. `$AF` at `2A:42A5` sets that bit in the same pass as the `$60`,
+after `$9A` has waited out the window. That `$60` is the continuation of the
+talk record `2A:4186` installed from `2A:4C0D`. The waiter is polling when the
+post is written, so the one visible frame satisfies it (`mn_mailbox_frame_test`).
+
+A waiter's outcome differed under the latch exactly when it read the shadow on
+some frame other than the one frame after a matching post:
+
+- A post, then a gap in which the waiter is not polling, then a wait on that
+  box. `1F:5982` arms `$C6F8` (`$53`), counts `$40 $18`, then runs four `$5D`
+  with only `$14` between them. The `$FF` is visible for one frame of the
+  countdown. The latch let each `$5D` succeed on that stale `$FF`, and the
+  script went on to store `$3C`. Hardware waits for a new post. The same rule
+  covers a second `$5D`/`$5F`/`$62` of the same value after the match frame:
+  the shift has cleared the shadow, so the next wait needs its own post.
+- A post that is shifted away before the waiter is installed. The latch still
+  delivered it. Hardware does not.
+
+These agree while the waiter polls every frame. One post is seen on the next
+frame. Back-to-back `$56`/`$58` of a full box each land on their own frame, and
+the latch was overwritten by that new nonzero anyway. A later wait for a
+different value does not match the old shadow, so it still blocks until the
+new value is posted.
+
+Reachable `$56`-`$58`: 1096, none with operand 0. Reachable `$60`-`$62`: 1203,
+none with operand 0. A store of 0 would copy as 0, the same as an empty source.
 
 ## Motion heads
 
@@ -202,7 +249,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $5D | LoadC6F9ThenPlantHandlerUnlessZero | load_c6f9_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame (mn_next_pass_test) |
 | $5E | LoadC6FBThenPlantHandlerUnlessZero | load_c6fb_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame |
 | $5F | LoadC6FDThenPlantHandlerUnlessZero | load_c6fd_then_plant_handler_unless_zero.asm | 0 | ok | ScriptVM:421 | next opcode next frame |
-| $60 | LoadC6F9ThenMatchScriptByte | load_c6f9_then_match_script_byte.asm | 1 | ok | ScriptVM:373 | reads C6F9; next opcode next frame (mn_next_pass_test); latch: see Mailboxes |
+| $60 | LoadC6F9ThenMatchScriptByte | load_c6f9_then_match_script_byte.asm | 1 | ok | ScriptVM:373 | reads C6F9 for one frame (mn_mailbox_frame_test); next opcode next frame (mn_next_pass_test) |
 | $61 | MatchScriptByteThenPlantHandler | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FB; next opcode next frame |
 | $62 | MatchScriptByteThenPlantHandler_62 | match_script_byte_then_plant_handler.asm | 1 | ok | ScriptVM:373 | reads C6FD; next opcode next frame |
 | $63 | CallBankedWordThenResume | call_banked_word_then_resume.asm | 3 | ok | ops/Travel:183 |  |
