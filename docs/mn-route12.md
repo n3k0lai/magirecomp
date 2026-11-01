@@ -438,7 +438,7 @@ east pocket. Walking right crosses 34,21 (2F:44DE; story 10 falls through to
 Next goal (story $0A -> $0B, not routed yet): the town. 279's town records
 enter 22:595E, whose story switch sends $0A to 22:67BD. That scene stages
 slot 0 with 22:6977, which sets both duel tails to 22:6B1A, and 6B1A stores
-story $0B. Later stores: $0C at 1A:76AF, $0D at 1E:75EA, $0E at 1E:5572.
+story $0B. Later stores: $0C at 1A:76B9 (script 1A:76AF), $0D at 1E:75FD (script 1E:75EA), $0E at 1E:55E6.
 From the pocket the way back to the town side is presumably 33,23 into 121
 and back through 120..115 (the story-9 legs in reverse). That has not been
 checked.
@@ -524,7 +524,8 @@ was wrong). Leg s12talk: `145:12.11,146:4.8u`, checkpoint s9/to146s12.lua
 
 ### Story 13
 
-1E:75EA needs story >= $0C plus ring $2A in $C726. Town 136's third trigger
+1E:75EA stores $0D only when the story word is exactly $0C and byte[$C726] is
+exactly $2A (both $43 tests are kind $10, inequality, and jump to 1E:764B). Town 136's third trigger
 (17:5DB2, 8,34) enters the forge, map 144. Leg s13walk: 146 -> 145 0,9 ->
 280 19,19 -> 138 9,0 -> 135 0,30 -> 136 8,34, checkpoint s9/to144s13.lua.
 Leg s13forge: A on the counter (cell $40 at 2,10, 1E:72AB) from 2,11; the
@@ -567,13 +568,11 @@ cell at 13,9 (A from 13,10 facing up runs 1E:620D, `got 0:29`, $A1A5 bit 3),
 then off and back onto 11,15: 1E:61DC with the key goes 1E:6204 -> 12:7608
 (back to 135), and `A123 <- 0E at 1E:55E6`. `MN_ROUTE=141:far` alone loops on
 11,15 without the key. After the store the scene goes on into 138 (1E:52C1)
-and back to 135; story 15 is not routed. Story 15: the only `A9 0F 00`
-(StoreScriptWordAtA123 $0F) sites in the ROM are 19:7838, 28:63BE and
-2A:5115 (bank 19 is the likely script; the others may be data), and the
-only $10 store is 1F:7B0B. Next step: find which map or trigger runs
-19:7838.
+and back to 135. The three `A9 0F 00` sites are all real stores: 19:7838
+(horn scene, maps 249 and 250), 28:63BE (134 trig2) and 2A:5115 (debug-room
+trig9). The only $10 store is 1F:7B0B, on maps 187-189.
 
-$0E itself is stored at 1E:55E2, entered from 12:7608 when C6F9 reads $01;
+$0E itself is stored at 1E:55E6 (the script starts at 1E:55E2), entered from 12:7608 when C6F9 reads $01;
 12:7608 comes from 1E:6204 once $A1A5 bit 3 is set (1E:620D sets it). 1E:5572
 is a separate map-init record behind hub 280's C0 door (2F:455E -> 138) and
 does not store the story word.
@@ -607,22 +606,15 @@ leads out to overworld 277; 277 trig16 2F:4072 -> 159, 159 1A:467D -> 158,
 - MN_ROUTE dead end (g2): `route far -> 21,39 (0 steps)` loops forever on
   277 when the target is an NPC cell; don't route onto NPC cells.
 
-Story $0F store: of the three `A9 0F 00` hits, 2A:5115 is inside an
-Opcode16 argument run at 2A:5102 (data, not a store). 19:7838 is real:
-19:7834 ends a script (`MarkScriptDone21B2`), 19:7835
-`StageNextScriptIfByteAtMostC6F7 03 02`, then 19:7838 stores $0F, followed
-by 19:783B $07 / 19:783F $09 / 19:7844 `InstallParkedScript`. So the
-entry is 19:7835, gated on C6F7 <= 3, but no trigger list or pointer in
-the ROM names 19:7835 (it may be planted by a slot record; unresolved).
-
-The real story 15 store is 28:63BE. Map 134's trigger list 21:49E9 (all
-five 134 entries 28:68C1/6962/6A13/6DE1/7224 load it) is:
+Story $0F store: all three `A9 0F 00` hits are real. 19:7838 is the horn
+scene, walked from 249's 19:77F2 and 250's 19:7AFC (the routed s15horn
+store). 28:63BE is 134 trig2 (28:63B6): it clears `$A2B2`, stores `$0F`,
+then 1F:6241 warps toward 185. 2A:5115 is the debug-room trig9, not an
+Opcode16 operand. `$10` (1F:7B0B) is reached from maps 187-189, not from
+185 or 186. Map 134's trigger list 21:49E9 (entries 28:68C1/6962/6A13/6DE1/7224):
 trig0 kind 2 28:63A9 -> 135 (cells 39,59 40,59), trig1 kind 1 28:63B2
-(enters 28:69DA), trig2 kind 1 (moving up) 28:63B6: `A2B2 <- 00`, save
-triple 28:63B6, `A123 <- 0F` at 28:63BE, Opcode01 0E 1C, then 1F:6241,
-which warps 134 -> 185. 185's exits are 1F:5FA7 -> 134 and 1F:5FB6 -> 186,
-and the $10 store 1F:7B0B is in the same bank, so story 15 is crossing
-from 134 into 185 and story 16 follows in 185/186.
+(enters 28:69DA), trig2 kind 1 (moving up) 28:63B6 as above. 185's exits
+are 1F:5FA7 -> 134 and 1F:5FB6 -> 186.
 
 Map 42 (20x20, ten 2-3 cell pads, links to 219/277/83/280/282/134/113) is
 a warp room: 2A:5107 (trig8) sets story $0B, $A3A3 = 2 and warps to 134;
@@ -1135,12 +1127,13 @@ must start from k241 or earlier.
 - The walk to the floor is 2A:5DBD: 20:505D for 2 frames (+2 px/frame) then 20:5738 for $1A
   frames, a hop (dy -2,-2,-1,-1,0,0,0,0,2x6,3x4,4,4, then 3 x +1, then op $10 and `$46` to the idle
   20:50B5, so it does not loop): about +33 px, 22,9 -> 22,11 over row 10.
-- Engine bugs: (1) the object walk gate (`cell == 0`, `$C0+` for slot 0) blocked the hop at
-  row 10, because the scene places the stand-in inside the cliff; (2) `Sprites.tick` wrapped
-  every list, so a hop that ends in a jump elsewhere repeated its arc. Fix: `Sprites.walkGate`
-  lets a slot-0 stand-in that stands in a wall move (others keep the strict gate), and a list
-  that does not loop back (`frames` second result false) moves once (`o.spent`) and then
-  only animates. Test `tests/engine/mn_standin_hop_test.lua`; all 45 `tests/engine/mn_*` pass.
+- Engine bugs found on that walk: (1) the object walk gate blocked the hop at row 10,
+  because the scene places the stand-in inside the cliff; (2) `Sprites.tick` wrapped
+  every list, so a hop that ends in a jump elsewhere repeated its arc. The once-only
+  list stayed (`o.spent` when `frames` does not loop). The gate did not: ApplyFineXDelta
+  (05:67B1) and ApplyFineYDelta (05:67E7) step every slot through any cell, and
+  `Sprites.walkGate` now always returns. Test `tests/engine/mn_standin_hop_test.lua`.
+  See docs/mn-story-audit.md.
 - z1 (k182f, `182:29.11,277:58.45,257:7.13u`, 7000 frames, `MN_SNAP_TO=c180`): "player control
   at 22,11". **k180** re-saved from it (old wall one kept as `k180-wall`).
 
@@ -1269,7 +1262,7 @@ must start from k241 or earlier.
 - Harness: `MN_SNAP_AT=end` (or a frame number) with `MN_SNAP_FILE` now saves a control checkpoint (map, cell, lists, SRAM, plane diff) on the run's last frame (or that frame). Checkpoints in the s15 snaps dir: k186b (43,36, after the `$4F` push), k186c (60,20, trig9 fired, `$A128` bit `$04` set), k186d (49,10, `$4A` pressed).
 - `$A128` writers (literal byte scan of the whole ROM for `28 A1`, plus `27 A1` after `AD`/`A7`/`AB`): the only script op that sets bit `$04` is `AF 28 A1 04` at 1F:62D0, i.e. trig9 (1F:62CF, cell `$C9` at 60,30). Others: `AF 28 A1 02` at 1F:74F1, `AE 28 A1 FD` at 1F:7559 (bit `$02` only). No `EA 28 A1` / `21 28 A1` absolute asm access, no word store over `$A127`. Readers of bit `$04`: 1F:6704 (the `$50` lookup), 1B:6143 / 1B:6367 (bank 1B, not 186). Indexed or computed asm writes are not excluded by this scan.
 - Bit `$04` comes from walking onto 60,30, behind `$50` at 59,31. Port leg c2 (k186b, route `186:58.31r>58.31r>59.31r>60.30>60.20`): A on `$50` with the bit clear gives the chest and a `$09` block at 59,31; pushes 59,31 -> 60,31 -> 61,31 over `$81`; stepping up into 60,30 runs 1F:62CF. North of it a `$82` corridor (58-62 x 19-29, row 19 west, x=38-39 up to rows 2-4) leads to 26-39 x 2-4 and room 46-50 x 7-11 with `$4A` at 49,9.
-- Correction to the a1 note: A list 21:4E3D (3-byte entries kind/bank/ptr) maps `$46`-`$49` to 1F:660A-660D (single `InstallParkedScript`, no-ops), but `$4A` to 1F:660E, a real script: `Opcode07 00 6B 4A`, `Opcode09 00 20 B5 50`, `PlantParkedHandlerThenStage 26 A1 08 -> 6642` (6642 shows a text starting "It's broke"), else `SkipTwoUnlessLcdOff`, unpack `65:63E0` / `69:7AD0`, rect 1F:6635 (dst `$D173`, 2 x 7) = 51-52 x 5-11. Port leg c3 (k186c, route `186:49.10u`): A on `$4A` sets metatile (49,9) to `$11` and opens x=51 rows 7-11; the flood reaches room 52-61 x 3-11, which has no trigger or A cell in the grid.
+- Correction to the a1 note: A list 21:4E3D (4-byte entries kind/bank/ptr) maps `$46`-`$49` to 1F:660A-660D (single `InstallParkedScript`, no-ops), but `$4A` to 1F:660E, a real script: `Opcode07 00 6B 4A`, `Opcode09 00 20 B5 50`, `PlantParkedHandlerThenStage 26 A1 08 -> 6642` (6642 shows a text starting "It's broke"), else `SkipTwoUnlessLcdOff`, unpack `65:63E0` / `69:7AD0`, rect 1F:6635 (dst `$D173`, 2 x 7) = 51-52 x 5-11. Port leg c3 (k186c, route `186:49.10u`): A on `$4A` sets metatile (49,9) to `$11` and opens x=51 rows 7-11; the flood reaches room 52-61 x 3-11, which has no trigger or A cell in the grid.
 - Still closed: x=44 rows 40-43 and 49-55 row 42. No `$7F` rect in 1F:6280-6900 touches them; no `Opcode03`/`Opcode04` in the 186 scripts writes there (slots `$22`/`$23`/`$25`-`$27` only); no absolute `7F`/`80`/`81`/`03` op in banks 1F, 21-24, 28 has a destination in x 40-56 rows 38-47 (cell base `$D000`, 64 wide).
 - 187's doors back (1F:6910-693D, `Opcode02 b0 b1 00 3F`) map 187 row 0 to 186 row 63 at x 7, 20, 34-45 (+11), 46, 53, 59; 186 T3-T6 (1F:62A1-62BC) map x 7, 20, 46, 59 the other way. In 186, rows 61-62 at x 7 and 20 are `$08` under the open SW rooms (rows 58-60).
 - Next: list object records in 186 at k186d (NE room may hold a record-based switch or block), check `$58`'s `PlantOffset7` record at 51,44, look for indexed writes to the live plane landing on x=44 rows 40-43.

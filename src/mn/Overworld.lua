@@ -875,11 +875,11 @@ function M:update()
     if o.seq and not o.dirty and not o.dormant then -- dormant records don't animate or move
       o.hx, o.hy = o.hx or o.x, o.hy or o.y
       Sprites.tick(o, function(x, y)
-        if x < 0 or y < 0 or x >= self.def.w or y >= self.def.h then return y >= self.def.h end -- may enter from below
-        -- objects use the strict "cell == 0" walk gate (Tavel Gorge kids halt below the
-        -- $C0 cave mouth); the slot-0 stand-in walks like the player and may end on a
-        -- trigger cell (PyBoy: training-grounds Tony stops on the $C2 cell 10,9)
-        return Sprites.walkGate(function(cx, cy) return World.cell(self.def, cx, cy) end, _ == 0, o.x, o.y, x, y)
+        -- ApplyFineXDelta / ApplyFineYDelta do not test the cell or the map edge.
+        -- Rejecting x < 0, y < 0 or x >= width is a port limit so a step cannot
+        -- index off the plane. y >= height stays open (entry from below).
+        if x < 0 or y < 0 or x >= self.def.w or y >= self.def.h then return y >= self.def.h end
+        return Sprites.walkGate()
       end)
       if not o.driven and math.abs(o.x - o.hx) + math.abs(o.y - o.hy) > 6 then o.x, o.y, o.ox, o.oy = o.hx, o.hy, 0, 0 end
       if os.getenv("MN_TRACE") and o.sched then

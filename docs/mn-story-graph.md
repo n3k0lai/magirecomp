@@ -8,7 +8,8 @@ list (bank $21: count, then 4-byte {kind, bank, ptr}, cell $C0+i, kind 1 up / 2 
 4 left) and the `69` A list (bank $21: count, then 4-byte {kind, bank, ptr}, cell $40+i) are walked
 the same way. Every op is decoded into effects: story stores (`A9`), flag OR/AND/set (`AF`/`AE`/`AC`/`AD`/`A5`-`A7`),
 tests (`43`/`49`/`4B`), chests (`A4`), rect copies (`7E`/`7F`), cell writes (`80`/`81`, `03`/`04`/`0D`/`0E`
-record-relative), overlays (`68`), door pairs (`01`/`02`), spawns (`05`) and map loads (`65`). `collision()`
+record-relative), overlays (`68`), door pairs (`01`/`02`), spawns (`05`), map loads (`65`) and `$31`
+battle tails (win at `$D3CD`, loss at `$D3D0`; dispatch_nonzero_d016.asm). `collision()`
 unpacks a map's block record so the cell grid can be checked without running the game.
 The generated JSON is not committed (it holds ROM operand values); regenerate it locally.
 Test: `python3 tests/tools/mn_story_graph_test.py` (made-up bytes).
@@ -60,9 +61,18 @@ which needs `$C9A6 >= 5`.
 
 **Answer (resolved from code).** 186 -> 187 on foot needs the `$02` layer walk with `$C9A6 >= 5`.
 `$C9A6` is copied from SRAM `$A3A3`. On the story path level 5 is set only after 186: 19:63C3, maps 290/283,
-story `$17`. Story `$10` is maps 187-189. The other level-5 source is the 2A:50AE preset (maps 40/42), and
-its selector is still INCBIN. The port now models the `$01`/`$02` layer walks (CountCellRun 01:517C,
-dispatch 01:51B6). See docs/mn-outliers.md for the level table.
+story `$17`. Story `$10` is maps 187-189. The other level-5 source is the 2A:50AE preset (maps 40/42).
+The port models the `$01`/`$02` layer walks (CountCellRun 01:517C, dispatch 01:51B6). See docs/mn-outliers.md
+for the level table.
+
+Re-derived 2026-11-01 from the lever scripts, not from a dumped plane. Each A-list lever's first press
+(mask clear: `$A2` falls through, `$A0` enters its target) unpacks collision `69:7AD0` and blits its `$7F`
+rects. After `$40`-`$45` and `$4A`, a flood from the 185 landing (3,32) with World.step's rules reaches
+525 cells at mark 3 and none of `$C1`, `$C2`, `$C7`, `$C8`, `$C9`. At mark 5 the same plane reaches `$C1`,
+`$C7` and `$C8` (1078 cells) and still not `$C2` or `$C9`. The crossing is the 3-wide `$02` at x 40-42 on
+rows 59-63; row 58 has `$00` at x 43, which the layer-2 heads exit onto, then the `$82` column. Treating
+every `$09` as open does not add a mark-3 path: a push does not rewrite an `$08` wall. `$C3`-`$C6` still
+have no cells.
 
 Other 187 entries:
 
@@ -79,34 +89,34 @@ Other 187 entries:
 
 ## Story stores ($01-$1A)
 
-| word | store (A9) | reached from (map: script) |
-|---|---|---|
-| $01 | 1F:5011, 2A:50C7 | 40/42: 2A:50AE, 216 |
-| $02 | 23:73AD | 63, 64, 54 |
-| $03 | 13:5D5F | 61: 13:4163 |
-| $04 | 14:6BCF | 1,2,3,7,8 |
-| $05 | 1D:5D45 | 223-225 |
-| $06 | 1A:672C | 24: 1A:65CE, 25: 1A:66CB |
-| $07 | 1D:465D | 223, 225, 277, 278 |
-| $08 | 22:6498 | 76-81 (1C:4FB5...) |
-| $09 | 15:4CCB, 2A:50D9 | 40/42 |
-| $0A | 13:6C74 | 125, 126, 129-132 |
-| $0B | 22:6BB9, 2A:510E | 40/42 |
-| $0C | 1A:76B9 | 145, 146 |
-| $0D | 1E:75FD | 144: 1E:72B4 -> `$8E` pick path -> 1E:75EA |
-| $0E | 1E:55E6 | 135, 141 |
-| $0F | 2A:5115, 28:63BE, 19:7838 | 40/42; 134/146/189 via 28:63B6 |
-| $10 | 1F:7B0B | 187 1F:694F/6958, 188 1F:74F5, 189 |
-| $11 | 1C:42A9 | 137 |
-| $12 | 2F:473C, 25:73BC | 368 (`$05` running script 1C:49BC); 281 via 2F:473F |
-| $13 | 25:74A0 | 240: 18:636F |
-| $14 | 18:52B4 | 267: 18:4B6F, 270: 18:5264 |
-| $15 | 23:67E1, 23:6953 | 63 |
-| $16 | 17:71AF | 310 |
-| $17 | 19:6477 | 283, 290 |
-| $18 | 24:7F41 | 340 |
-| $19 | 15:6058 | 191-195: 15:6041, when `$A1A5` bit 1 is set |
-| $1A | 15:604A | 191-195: 15:6041, when that bit is clear |
+| word | store (A9) | story path | also |
+|---|---|---|---|
+| $01 | 1F:5011 | 216: 2A:6CB5, 2A:6D78 | preset 2A:50C7 via 2A:50AE on 40/42 |
+| $02 | 23:73AD | 63, 64, 54 | |
+| $03 | 13:5D5F | 61: 13:4163 | also walked from 43 |
+| $04 | 14:6B30, 14:6BCF | 8: Korg `$31` win tail 14:6B30 (sets `$A3A3` = 1 and `$A1A5` \|= `$02`); 14:6BCF when the word is already 3 (14:6AAE) | the win tail is reachable from every map whose walked scripts hit that `$31` |
+| $05 | 1D:5D45 | 223-225 | |
+| $06 | 1A:672C | 24: 1A:65CE, 25: 1A:66CB | |
+| $07 | 1D:465D | 223: 1D:48B4, 1D:4F57 (then `$A3A3` = 2 at 1D:4660) | |
+| $08 | 22:6498 | 74, 76-82, 279 | |
+| $09 | 15:4CCB | 279: 2F:44DE; also 122, 125 | preset 2A:50D9 on 40/42. Unused 2A:5123 stores `$09` and `$A3A3` = 5; nothing reaches it |
+| $0A | 13:6C74, 13:6CD9 | 125, 126, 129-133. 13:6C74 is the stone (also `$A2B2` = 1, `$A3A4` = 3). 13:6CD9 is the Ogar `$31` win tail | |
+| $0B | 22:6BB9 | 75: 22:6B1B | preset 2A:510E on 40/42 |
+| $0C | 1A:76B9 | 145, 146 (script label 1A:76AF) | |
+| $0D | 1E:75FD | 144: 1E:72B4 -> `$8E` pick -> 1E:75EA | only when the story word is exactly `$0C` and byte `[$C726]` is `$2A` |
+| $0E | 1E:55E6 | 135: 12:760D, 141: 1E:61DC | `$A2B2` = 1 at 1E:55E2, then the store |
+| $0F | 19:7838, 28:63BE | 249: 19:77F2 and 250: 19:7AFC (horn); 134: 28:63B6 trig2 | debug 2A:5115 on 40/42 trig9 |
+| $10 | 1F:7B0B | 187: 1F:694F/6958, 188: 1F:74F5, 189 | |
+| $11 | 1C:42A9 | 137: 1E:4BFE | |
+| $12 | 2F:473C, 25:73BC | 368: 1C:48FD reaches both; 281: 2F:473F reaches 25:73BC | `$A3A3` = 4 beside 2F:473C |
+| $13 | 25:74A0 | 240: 18:636F | |
+| $14 | 18:52B4 | 267: 18:4B6F, 270: 18:5264, 18:52C3 | |
+| $15 | 23:67E1, 23:6953 | 63 | |
+| $16 | 17:71AF | 310: 17:71FC | |
+| $17 | 19:6477 | 283: 19:63C8, 290: 1A:4B10 | `$A3A3` = 5 at 19:63C3, before the store |
+| $18 | 24:7F41 | 340: 24:7F1E, 331: 24:6D51 | |
+| $19 | 15:6058 | 191: 15:5F5E | the third `$A225` step at 15:6041; `$A1A5` bit 1 (mask `$02`) set jumps to 15:6058; clear falls through to `$1A` |
+| $1A | 15:604A | 191: 15:5F5E | the clear side of that `$43` |
 
 Selections on the story word (`4B`/`49`, and `43` with expr `0F 04 05 v`, story == v) for $0F-$1A: 134 12:7183,
 135 17:6B34 / 1E:5B90 / 1E:69D9 ($0F, $10); 255/277/278 1B:4E6E ($12-$14); 288 1A:4970 and 290 19:638C ($16);
@@ -123,11 +133,13 @@ Selections on the story word (`4B`/`49`, and `43` with expr `0F 04 05 v`, story 
 
 ## Unresolved
 
-- Every story store `$01`-`$1A` is attributed. The earlier misses were tool bugs. The tool read `$05`
-  operand 12-14 as the running script, but opcode_05.asm puts it at 9-11. It also stopped at `$86`, `$94`
-  and `$8E`, which all resume (MarkScriptDone21B2 resumes at the next byte; the `$8E` pick path continues
-  past the list).
-- Attribution is reachability: the walk follows far targets (`45`, `43`, `09`, `59`-`5B`, `05`) up to a
-  limit, so a shared script can show up under several maps.
-- About 25 ops are unsized (`tab`/`rec` variants with data-dependent length), so those walks stop early.
-- The `$8E` resume after `ret nz` (`$CD49 != 0`) is in INCBIN (docs/mn-outliers.md).
+- Every disassembled story store `$01`-`$1A` is attributed. `$31` win and loss tails are followed
+  (dispatch_nonzero_d016.asm), which is why 14:6B30 and 13:6CD9 show up. Unused_Script_2A_5123 stores
+  `$09` and is not reached. The walk also decoded four `A9` shapes past the last bank-`$1B` script
+  (6CB7.asm), on map 198: words `$9E4F` at 1B:7017, 1B:7144 and 1B:71E5, and `$D33D` at 1B:7721.
+  Those are not `SC_StoreScriptWordAtA123` sites.
+- Attribution is reachability: the walk follows far targets (`45`, `43`, `09`, `59`-`5B`, `05`, `31`)
+  up to a limit, so a shared tail can show up under many maps. The "story path" column is the map
+  whose own script is the scene; the wider map list in a raw dump is the over-approx.
+- 10 unique ops are unsized (`tab`/`rec` variants with data-dependent length), so those walks stop early.
+- The `$8E` resume after a forge is source now (docs/mn-outliers.md item 9, `mn_forge_ring_test.lua`).
