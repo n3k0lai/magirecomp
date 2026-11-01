@@ -38,16 +38,30 @@ frame; that audit is queued (below), not assumed.
 | type | count | asm path |
 |---|---|---|
 | startup | 583 | `$93` earlier in the block: LCD-off door, defaults reinstalled |
-| live | 123 | no `$93` in the same block: either one in a calling block, or an LCD-on scene change |
+| live | 123 | no `$93` in the same block. Classified in `live-transitions.tsv` |
 | spiral | 4 | `$30` 07:56ED 22x20 spiral wipe (mn.Spiral, `mn_spiral_test`) |
 
 Arrival facing carries through record byte 0 (port keeps `self.facing`); fade timing
-for `$93` is the LCD-off path. The 123 `live` rows are the open audit.
+for `$93` is the LCD-off path.
+
+`docs/mn-inventory/live-transitions.tsv` is one row per live `$65` (`lcd`, `via`,
+and the `chains()` path). `chains()` splits a root at the `$65`, so an empty
+chain is not "no earlier `$93`". The walk that classifies them follows the
+decomp's `Script_` labels through `$93`/`$94` and only trusts a target that
+lands on an instruction.
+
+| lcd | rows | meaning |
+|---|---|---|
+| off | 114 | a `$93` runs earlier on every path (LCD still off). `via=fallthrough-93` (105) is the previous instruction; `via=prior-93` (9) is earlier in the script or in the only caller |
+| data | 9 | not an executed `$65`: `via=strip` (`1B:4E4E`, `23:6C26`) or `via=not-insn` (operand `16:7CE7`, leftover `1B:6EFD` at `7153`/`715E`/`7862`/`7891`/`7B7C`/`7D64`) |
+
+No executed row loads with the LCD on. `loadArea` now does the `$2F37` clears
+and does not snap (test: `mn_load65_test`).
 
 ## Audit queue (workers, 2026-11-01)
 
 1. Mailbox latch: find any `$5D`-`$62` waiter that depends on a one-frame post.
-2. The 123 `live` transitions: trace each to its `$93` or prove LCD-on, check the port path.
+2. The 123 `live` transitions: done. See `live-transitions.tsv` and `mn_load65_test`.
 3. Camera split (fix/mn-cam-split): `$84` ClampMapCamera from the asm, rebase on master.
 4. `$30`/`$6C` fades and palette timing vs 07:56ED and 5C00.
 5. Secrets: map-40 data runs, Hyren chains, map 167 (docs/mn-outliers.md).

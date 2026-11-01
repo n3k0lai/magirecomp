@@ -73,8 +73,9 @@ function M:host()
   local h = {
     loadMap = function(i)
       -- $65 (00:1820) -> LoadFiveBankedMapSources (00:2E15): BG palettes ($C72B),
-      -- tiles (CopyMapRecords), the WRAM-2/3/5 planes. Nothing else: records,
-      -- threads, mailboxes, the A list ($69) and the player cell are untouched.
+      -- tiles (CopyMapRecords), the WRAM-2/3/5 planes, and the $2F37 clears
+      -- (logical camera, latches, $C842 = $44). Records, threads, mailboxes,
+      -- the A list ($69) and the player cell are untouched. No snap.
       -- A door's resets are $93's (FinishStartup), which precedes 634 of the
       -- 701 $65 in the scripts.
       s:scriptSnapshot(i)
@@ -472,6 +473,36 @@ end
 
 function M:snap() self.px, self.py = self.x * 16, self.y * 16 end
 
+-- $2F37 / $2DDC, shared by every $65. Zeroes the logical camera, the fine
+-- bytes, both load latches and their countdowns, the one-frame scroll deltas,
+-- and the live step ($C6D2/$C6D3). $C842 = $44. Stride and camera limits come
+-- from the map header (def.w / camCol / camRow). $C6CF is that stride: the
+-- probe routines read it as bytes per row.
+function M:applyMapHeader()
+  local vm, d = self.vm, self.def
+  self.colLatch, self.rowLatch = 0, 0
+  if not vm then return end
+  for _, a in ipairs({ 0xC85F, 0xC860, 0xC85D, 0xC85E, 0xC86A, 0xC892, 0xC869, 0xC891, 0xC843, 0xC844, 0xC6D2, 0xC6D3 }) do
+    vm:wr8(a, 0)
+  end
+  vm:wr8(0xC842, 0x44)
+  if not d or not d.w then return end
+  local stride = d.w % 256
+  vm:wr8(0xC847, stride); vm:wr8(0xC6CF, stride)
+  if d.camCol ~= nil then vm:wr8(0xC845, d.camCol % 256) end
+  if d.camRow ~= nil then
+    vm:wr8(0xC846, d.camRow % 256)
+    vm:wr8(0xC848, (d.camRow + 0x0A) % 256)
+  end
+  vm:wr8(0xC84B, 0); vm:wr8(0xC84C, 0)
+  local acc = 0
+  for k = 0, 7 do
+    acc = acc + d.w
+    vm:wr8(0xC84D + 2 * k, acc % 256)
+    vm:wr8(0xC84E + 2 * k, math.floor(acc / 256) % 256)
+  end
+end
+
 -- 32 RGB555 words at bank:ptr in the cached script banks (0-based)
 function M:paletteBlock(bank, ptr)
   local r, o, w = self.vm.rom, bank * 0x4000 + ptr - 0x4000, {}
@@ -495,7 +526,10 @@ function M:loadArea(i)
     local w = {}; for k = 0, 31 do w[k] = self.def.bgWords[k + 1] end
     Panels.loadPalettes(self.vm, w, false)
   end
-  if self.x then self:snap() end
+  -- UnpackMapHeaderIntoWRAMBank3 ($2F37) and the $2DDC block byte. The player
+  -- cell is not moved (no snap); wCameraPixelX/Y stay, so an LCD-on load keeps
+  -- camOff/camFix. Header bytes 1-2 ($C849) are not in the cached def.
+  self:applyMapHeader()
   self.patches = {}; self.bgStale = nil
   if not lcdOn then
     -- LCD off: FinishStartup's DrawMetatileWindow draws the new plane; the port's
@@ -527,6 +561,7 @@ function M:enterMap(i, x, y)
   self.x, self.y = x, y
   self.def = nil -- port-only start: a full draw
   self:loadArea(i)
+  if self.x then self:snap() end -- $65 does not snap; a port-only start does
   self.moving = nil; self.facing = self.facing or "down"
   self:settleAList()
   if self.vm.threads then self.vm.threads = {} end

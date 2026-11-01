@@ -13,13 +13,26 @@ Calls LoadFiveBankedMapSources (`$2E15`) and nothing else:
 5. the WRAM 5 unpack (collision plane).
 
 It does not touch the object records, the threads, the `$C6F5`-`$C6FD`
-mailboxes, the A list, the player cell or the BG map. Every `$65` in the
-decoded event scripts names bank `$4F` with a record-aligned pointer. Most sit
-right after `$93`; nearly all others have `$93` earlier in the same script; a
-few are thread or talk scene changes with the LCD on.
+mailboxes, the A list, the player cell or the BG map. The `$2F37` header
+unpack still zeroes the logical camera (`$C85F`/`$C860`), the fine bytes, the
+load latches and their countdowns, the one-frame deltas (`$C843`/`$C844`) and
+sets `$C842` to `$44`. `$2DDC` stores the row stride at `$C6CF` and clears the
+live step (`$C6D2`/`$C6D3`). Neither writes `wCameraPixelX`/`wCameraPixelY`,
+and neither snaps the player.
 
-Port: `Overworld.loadArea` (map data, palettes, atlas). `enterMap` is the
-port-only start used by boot, saves and harness legs.
+The 123 inventory `live` rows are classified in
+`docs/mn-inventory/live-transitions.tsv`. 114 are executed loads and a `$93`
+runs earlier on every path, so the LCD is still off (`FinishStartup` has not
+reached `TurnOnLCD`). 105 of those have `$93` as the previous instruction.
+`chains()` does not show that `$93`: a root block starts at the `$65`. The
+other 9 bytes are not executed `$65`s (a `$9F` strip, an operand of another
+op, or the leftover at `1B:6EFD`). No executed row in that set is a thread or
+talk load with the LCD on.
+
+Port: `Overworld.loadArea` (map data, palettes, atlas, the `$2F37`/`$2DDC`
+bytes). It does not snap. `enterMap` is the port-only start used by boot,
+saves and harness legs, and it snaps after the load. Header bytes 1-2
+(`$C849`) are not in the cached map def; nothing in the port reads them.
 
 ## `$93` FinishStartup
 
@@ -84,12 +97,13 @@ atlases are identical; otherwise it draws the new map at once and logs
 
 `$65` does move the logical camera: its `$2F37` header unpack zeroes
 wMapColumn/wMapRow (`$C85F`/`$C860`), the fine bytes and the scroll deltas,
-while rSCX/rSCY (copied from wCameraPixelX/Y at VBlank) stay put. A static
-scan of all 706 `65 xx xx 4F` sites finds every one followed, before any
-frame wait, by `$82` or `$84` (or by `$45`/`$47` into a script that does),
-and those two store the column, row and fine bytes outright. So the port
-keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
-(test: mn_bg_ring_test).
+while rSCX/rSCY (copied from wCameraPixelX/Y at VBlank) stay put. The port
+does those clears on every `$65` and still keeps camOff/camFix when the LCD
+is on. `$82`/`$84` drop both (test: mn_bg_ring_test, mn_load65_test). The
+player's fine position is left where it was. Among the executed live rows,
+`12:6184` and `17:4D90` do run `$6B` glyph countdowns before `$82`, and both
+are reached only after `$93` and before `$94`, so those countdowns are
+RunScriptLoop passes, not presented frames.
 
 ## Edge reload stall (`$7E`/`$7F`)
 
