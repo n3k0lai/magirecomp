@@ -66,7 +66,8 @@ and does not snap (test: `mn_load65_test`).
 2. The 123 `live` transitions: done. See `live-transitions.tsv` and `mn_load65_test`.
 3. Camera split: done. ClampMapCamera is `mn.MapCamera`; `$82`/`$84`/`$86` and the `$16` split are in docs/mn-transitions.md. Open items: docs/mn-outliers.md, Camera split (2026-11-01).
 4. `$30`/`$6C` fades and palette timing vs 07:56ED and 5C00.
-5. Secrets: map-40 data runs, Hyren chains, map 167 (docs/mn-outliers.md).
+5. Secrets: Hyren chains, map 167 and the map-40 lists are in docs/mn-secrets.md.
+   Open: which `$A1A5` bit 1 state reaches 15:6041 (docs/mn-outliers.md).
 6. Routed stories (docs/mn-story-graph.md) against the code; rework divergences.
 
 Outliers go to `docs/mn-outliers.md`; nothing is guessed.
