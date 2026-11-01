@@ -13,7 +13,8 @@ What it walks
     {kind, bank, ptr}; index = cell - $40), `05` object records (running script
     at operand 9-11, second triple at 12-14), `09` slot scripts, `5A`/`5B`/`59` record fills
   * every reachable script, following far targets (`45`, `43`, `49`, `4B`,
-    `9C`, `47`, `8E`, `A0`-`A3`) and `46` (in-bank jump) to END ops.
+    `9C`, `47`, `8E`, `A0`-`A3`, `31` win and loss tails) and `46` (in-bank
+    jump) to END ops.
 
 What it records per op (with bank:addr)
   story word: `A9` stores, expr kind 4 reads (in `43`/`49`/`4B`/`A5`-`A7`)
@@ -126,6 +127,13 @@ class Rom:
                 t.append((self.u8(o + 9), self.u16(o + 10)))
                 t.append((self.u8(o + 12), self.u16(o + 13)))
             if op in (0xA0, 0xA1, 0xA2, 0xA3):
+                t.append((self.u8(o + 4), self.u16(o + 5)))
+            if op == 0x31:
+                # opcode_31.asm copies six bytes to $D3CD-$D3D2 and returns to
+                # the dispatcher, so the script also continues. After a battle,
+                # dispatch_nonzero_d016.asm enters $D3CD (bank, little-endian
+                # pointer) on any result other than mode 3, and $D3D0 on a loss.
+                t.append((self.u8(o + 1), self.u16(o + 2)))
                 t.append((self.u8(o + 4), self.u16(o + 5)))
             return 1 + L, t
         if L == "pick":
@@ -290,6 +298,9 @@ def decode(rom, o):
         e["spawn"] = {"slot": u8(o + 1), "x": u8(o + 4), "y": u8(o + 5), "script": "%02X:%04X" % (u8(o + 12), u16(o + 13))}
     elif op == 0x25:
         e["battle"] = True
+    elif op == 0x31:
+        e["tails"] = {"win": "%02X:%04X" % (u8(o + 1), u16(o + 2)),
+                      "loss": "%02X:%04X" % (u8(o + 4), u16(o + 5))}
     if writes:
         e["writes"] = writes
     if "test" in e:
@@ -419,7 +430,7 @@ def build(rom, maps=None):
 
 
 KEYS = ("story_store", "writes", "reads", "test", "flagtest", "item", "rect", "cellw", "relw",
-        "unpack", "load_map", "rebase", "spawn", "cases", "battle", "trig_list", "a_list")
+        "unpack", "load_map", "rebase", "spawn", "cases", "battle", "tails", "trig_list", "a_list")
 
 
 def interesting(e):

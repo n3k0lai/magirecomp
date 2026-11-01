@@ -215,18 +215,14 @@ function M.build(ow, o)
   return o
 end
 
--- Walk gate for script motion: objects enter only open cells ("cell == 0"); the slot-0
--- stand-in walks like the player and may end on a trigger cell ($C0+). A stand-in the
--- scene placed inside a wall is not gated: 180's 2A:5D42 puts Tony at 22,9 and 2A:5DBD
--- hops him over row 10 down to the floor row 11.
-function M.walkGate(cell, standIn, fx, fy, x, y)
-  local v = cell(x, y)
-  if standIn then
-    local here = cell(fx, fy)
-    if here ~= 0 and here < 0xC0 then return true end
-    return v == 0 or v >= 0xC0
-  end
-  return v == 0
+-- Scripted fine steps do not read the destination cell. ApplyFineXDelta (bank 5
+-- $67B1) and ApplyFineYDelta (bank 5 $67E7) add the signed byte at $C6D2 / $C6D3
+-- and, when bit 4 of the sum is set, mask it to $0F and step the cell. A $08 wall
+-- and a $C0+ trigger are both entered, from the floor or from inside the cell.
+-- Player steps use ProbeCells (bank 5 $6B31) and stay on World.step. The arguments
+-- are the old cell probe; they are ignored.
+function M.walkGate(_cell, _standIn, _fx, _fy, _x, _y)
+  return true
 end
 
 -- Animate: advance frame counters at 60 Hz; dx/dy motion accumulates as a
@@ -238,7 +234,8 @@ function M.tick(o, canEnter)
     -- ledge, -2..+4 px/frame) ends in a jump to an idle, so the arc must not repeat
     if not o.still and not o.spent then -- $16 walkers animate in place; the scroll carries them
       local nx, ny = o.ox + (f.dx or 0), o.oy + (f.dy or 0)
-      -- objects stop at blocked cells (Tavel Gorge kids halt at the cave wall)
+      -- canEnter is the caller's edge check. The cell byte is not a reason to stop
+      -- (ApplyFineXDelta / ApplyFineYDelta, 05:67B1 / 05:67E7).
       local tx = o.x + (nx >= 16 and 1 or nx <= -16 and -1 or 0)
       local ty = o.y + (ny >= 16 and 1 or ny <= -16 and -1 or 0)
       if (tx ~= o.x or ty ~= o.y) and canEnter and not f.screen and not canEnter(tx, ty) then nx, ny = o.ox, o.oy end

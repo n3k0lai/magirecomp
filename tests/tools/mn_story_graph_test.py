@@ -102,5 +102,16 @@ put(r, 0x35, 0x4700, [0x42])
 eff, bad = M.walk(M.Rom(bytes(r)), 0x35, 0x4000)
 ok(not any(e.get("cases") for e in eff), "43 on a byte is not a story selection")
 
+# $31: win bank/ptr at bytes 1-3, loss at bytes 4-6 (dispatch_nonzero_d016.asm).
+# The win tail stores story $04. The walk also continues past $31 to the $42.
+put(r, 0x36, 0x4000, [0x31, 0x36, 0x10, 0x41, 0x36, 0x20, 0x41, 0x42])
+put(r, 0x36, 0x4110, [0xA9, 0x04, 0x00, 0x42])
+put(r, 0x36, 0x4120, [0x42])
+eff, bad = M.walk(M.Rom(bytes(r)), 0x36, 0x4000)
+ok(any(e.get("story_store") == 0x04 for e in eff), "31 follows the win tail")
+tails = [e.get("tails") for e in eff if e.get("tails")]
+ok(tails == [{"win": "36:4110", "loss": "36:4120"}], "31 records both tails")
+ok(any(e.get("op") == "42" and e.get("at") == "36:4007" for e in eff), "31 does not end the script")
+
 print("mn_story_graph: %d failed" % fails)
 sys.exit(1 if fails else 0)

@@ -223,3 +223,21 @@ post-game (story `$19`/`$1A`) and the forge `$CD50` (traced in docs/mn-secrets.m
    arithmetic after the reads follows the asm. Any timing change shifts which record a `$47` picks:
    after the f40dee7c merge, seed 4 picks 1A:45D9 (1 in 6) on map 156's 1A:45C5 step trigger, and
    the road leg lands in 157 instead of 158.
+
+## 2026-11-01 routed stories
+
+Settled in docs/mn-story-audit.md and not repeated here: every `$A9` from `$01` to `$1A`, the 186 → 187
+flood at mark 3 and mark 5, and the scripted fine-step cell test (ApplyFineXDelta / ApplyFineYDelta do
+not read the cell; the port's old walk gate did).
+
+1. **Scripted steps off the map array.** ApplyFineXDelta (05:67B1) and ApplyFineYDelta (05:67E7) have no
+   bounds test. The port still rejects `x < 0`, `y < 0` and `x >= width` so a step cannot index off the
+   plane. `y >= height` stays open. No routed story step was found that needs the rejected edges.
+2. **Home-cell leash.** Overworld snaps a non-driven object back to its spawn when the Manhattan distance
+   passes 6. Nothing in ApplyFine*Delta does that. Script threads set `driven` at spawn and at `setAnim`,
+   so the leash does not apply to them. Whether a routed scene depends on a non-driven loop walking
+   further than 6 cells was not found.
+3. **Map 198 false stores.** The story-graph walk decoded `A9` shapes at 1B:7017, 1B:7144, 1B:71E5
+   (word `$9E4F`) and 1B:7721 (word `$D33D`) from scripts 1B:7B7C and 1B:7D64. Bank `$1B` evscripts stop
+   at 6CB7.asm. Those addresses are not `SC_StoreScriptWordAtA123`. The walk has no marker for where an
+   undecoded byte run starts, so it kept sizing ops.
