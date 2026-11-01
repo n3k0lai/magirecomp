@@ -3,6 +3,7 @@
 -- entry, step triggers and A-button cells.
 local Importer = require("mn.MnImporter")
 local World = require("mn.World")
+local MapCamera = require("mn.MapCamera")
 local VM = require("mn.ScriptVM")
 local bit = require("bit")
 local Sprites = require("mn.Sprites")
@@ -209,29 +210,25 @@ function M:host()
     lcdOff = function() s.fullDraw = true end,
     -- hMainLoopCounter ($FFA8) for $41's 4-frame phase (Grass.frame ticks it)
     frame = function() return s.vm:rd8(0xFFA8) end,
-    -- $82 CenterFineScrollOnScriptBase ($1E30): wMapColumn/Row = $C18E/F - 5 and
-    -- both fine bytes = 8, absolute, so an earlier $16/$83 scroll (camOff) is gone
-    centerCamera = function() s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply() end,
-    -- $84 CenterFineScrollOnScriptWord: wMapColumn/Row = E-5 / D-5, then the
-    -- scroll code clamps them to the map record's last column (byte 3, w-11)
-    -- and row (byte 4); fine scroll sits at FINE_SCROLL_CENTER (15 px in
-    -- PyBoy). Objects already placed keep their offset from the *unclamped*
-    -- camera, so they move by (unclamped - clamped). Tavel Gorge: row 3 ->
-    -- clamped 0, i.e. the kids' y=12 spawns land 3 rows up (emulator OAM).
+    -- $82 CenterFineScrollOnScriptBase ($1E30): column/row = $C18E/$C18F - 5,
+    -- both fine bytes = 8. The visible camera keeps following the player.
+    -- An earlier pan's camOff is dropped; the store is absolute.
+    centerCamera = function()
+      local c, r
+      if s.vm then c, r = s.vm:playerCell() end
+      if c ~= nil and r ~= nil then s.mapCam = MapCamera.center(c - 5, r - 5) end
+      s:ringRecord(); s.pan = nil; s.camFix = nil; s.camOff = nil; s:ringApply()
+    end,
+    -- $84 CenterFineScrollOnScriptWord ($1E8E): the word is already biased by
+    -- -5 (StoreMapCellFromDEMinus5). Fine is 8. ClampMapCamera runs later,
+    -- under $93 and from $86; the port applies that pin to camFix so the
+    -- first shown frame matches the post-$93 clamp. mapCam keeps the raw
+    -- store. Objects stay where they were placed. camFix is the unwrapped
+    -- pin (cell * 16 + fine), so a later pan can keep stepping it.
     cameraCell = function(c, r)
-      local W, H = s.def.w * 16, s.def.h * 16
-      local ux, uy = c * 16, r * 16
-      local cx = math.max(0, math.min(ux, (s.def.camCol or 99) * 16 + 15, W - 160))
-      local cy = math.max(0, math.min(uy, (s.def.camRow or 99) * 16 + 15, H - 144))
-      if s.def.camRow == 0 then cy = 0 end
-      local dx, dy = math.floor((ux - cx) / 16 + 0.5), math.floor((uy - cy) / 16 + 0.5)
-      if dx ~= 0 or dy ~= 0 then
-        -- slot 0 (player / its stand-in) is a map cell (C18E/F) and does not move:
-        -- PyBoy map 220 has Tony at row 25 after a 3-row walk from his row-28 spawn
-        for k, ob in pairs(s.objects) do if k ~= 0 then ob.x, ob.y = ob.x - dx, ob.y - dy; ob.hx, ob.hy = nil, nil end end
-        s.log[#s.log + 1] = ("camera clamp shift %d,%d"):format(dx, dy)
-      end
-      -- absolute like $82: an earlier $16/$83 scroll offset does not carry over
+      s.mapCam = MapCamera.center(c, r)
+      local pin = MapCamera.clamp(MapCamera.limits(s.def), s.mapCam)
+      local cx, cy = pin.col * 16 + pin.fx, pin.row * 16 + pin.fy
       s:ringRecord(); s.camFix = { cx, cy }; s.camOff = nil; s:ringApply()
     end,
     -- $7C/$7D scroll nudge (bank 1 $4587): the camera's top-left cell (C85F/C860)
@@ -487,6 +484,9 @@ function M:loadArea(i)
   local oldAtlas = lcdOn and self.map and love.filesystem.read(("%s/maps/%03d_meta_idx.png"):format(Importer.CACHE, self.map))
   if lcdOn then self:ringRecord() end
   self.def = Importer.loadMap(i); self.map = i
+  -- $2F37, the header unpack $65 calls, zeroes the logical camera. An LCD-on
+  -- load still keeps the visible camOff/camFix (below).
+  self.mapCam = MapCamera.origin()
   self.shown = {}; self.orig = {}
   for k, v in ipairs(self.def.cells or {}) do self.orig[k] = v end
   -- $65 LoadFiveBankedMapSources -> FillC72BFromBCThenBank7 ($2EC3): slot 0's
@@ -1300,7 +1300,8 @@ end
 -- 0 fine 0 (row 0 fine 0) or past the limit column $C845 (row $C846) at fine 15, so a
 -- pan stops at the map edge. A stride of 10 sets bit 3 (no sideways steps) and a row
 -- limit of $FF sets bit 7 (no vertical steps). The limits are the map header's bytes 3
--- and 4 (def.camCol / def.camRow); without them the field's own W - 160 / H - 144 apply.
+-- and 4 (def.camCol / def.camRow). Zero is a real limit: the legal range on that axis
+-- is fine 0..15. Without the bytes the field's own W - 160 / H - 144 apply.
 -- A camera already past an edge is not pulled back; only steps further out are refused.
 local function edgeStep(v, d, hi)
   if d < 0 then return math.max(d, math.min(0, -v)) end
@@ -1312,9 +1313,15 @@ function M:scrollDelta(dx, dy)
   dx = math.max(-4, math.min(4, dx)); dy = math.max(-4, math.min(4, dy))
   local cx, cy = self:cameraXY()
   if def.w == 10 then dx = 0
-  else dx = edgeStep(cx, dx, def.camCol and def.camCol * 16 + 15 or def.w * 16 - 160) end
+  else
+    local hi = def.camCol ~= nil and def.camCol * 16 + 15 or def.w * 16 - 160
+    dx = edgeStep(cx, dx, hi)
+  end
   if def.camRow == 0xFF then dy = 0
-  else dy = edgeStep(cy, dy, def.camRow and def.camRow * 16 + 15 or def.h * 16 - 144) end
+  else
+    local hi = def.camRow ~= nil and def.camRow * 16 + 15 or def.h * 16 - 144
+    dy = edgeStep(cy, dy, hi)
+  end
   return dx, dy
 end
 
@@ -1322,29 +1329,16 @@ end
 -- Every thread's handler adds its pair into $C843/$C844 (AddScriptDeltasUntilZero
 -- .resume, Opcode16AddScroll); FinishFrame runs the steps once on the sum and then
 -- clears both bytes. So two threads panning in the same frame move the camera by
--- their summed delta, clamped once. Port model: a $16 walker rides the camera step
--- actually taken (PyBoy: Eidon 13:58C2, the Tavel Gorge kids 1F:50CD); with several
--- pans every carried walker gets that one summed, clamped step.
+-- their summed delta, clamped once. Opcode16 only posts that scroll. The walker
+-- moves by the nested script's $C6D2/$C6D3 step (Sprites.tick), which is a
+-- different pair. p[5] names the $16 slot and is not a motion.
 function M:panFrame()
   local pans = self.pans; self.camOff = self.camOff or { 0, 0 }
   local sx, sy = 0, 0
   for _, p in ipairs(pans) do sx, sy = sx + p[2], sy + p[3] end
   local dx, dy = self:scrollDelta(sx, sy)
-  local carried = {}
-  for _, p in ipairs(pans) do
-    if p[5] then for slot in pairs(p[5]) do carried[slot] = true end end
-  end
-  for slot in pairs(carried) do
-    local ob = self.objects[slot]
-    if ob then
-      ob.ox, ob.oy = (ob.ox or 0) + dx, (ob.oy or 0) + dy
-      while ob.ox >= 16 do ob.ox = ob.ox - 16; ob.x = ob.x + 1 end
-      while ob.ox <= -16 do ob.ox = ob.ox + 16; ob.x = ob.x - 1 end
-      while ob.oy >= 16 do ob.oy = ob.oy - 16; ob.y = ob.y + 1 end
-      while ob.oy <= -16 do ob.oy = ob.oy + 16; ob.y = ob.y - 1 end
-    end
-  end
   self.camOff[1], self.camOff[2] = self.camOff[1] + dx, self.camOff[2] + dy
+  if self.mapCam then MapCamera.step(self.mapCam, dx, dy) end
   local left = {}
   for _, p in ipairs(pans) do p[1] = p[1] - 1; if p[1] > 0 then left[#left + 1] = p end end
   self.pans = #left > 0 and left or nil

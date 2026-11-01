@@ -89,7 +89,8 @@ scan of all 706 `65 xx xx 4F` sites finds every one followed, before any
 frame wait, by `$82` or `$84` (or by `$45`/`$47` into a script that does),
 and those two store the column, row and fine bytes outright. So the port
 keeps camOff/camFix across an LCD-on `$65`, and `$82`/`$84` drop both
-(test: mn_bg_ring_test).
+(test: mn_bg_ring_test). `loadArea` also sets `mapCam` to the origin, which
+is the `$2F37` clear of the logical camera.
 
 ## Edge reload stall (`$7E`/`$7F`)
 
@@ -122,6 +123,24 @@ origin with the old tiles in VRAM; the port unpins the camera (`camOff`,
 `camFix` cleared, so it follows Tony) and patches every cell at once. No
 decoded script uses `$67`, so the difference is never reached.
 
+## Camera split
+
+The asm keeps a logical camera and a pixel camera.
+
+- Logical: wMapColumn/wMapRow (`$C85F`/`$C860`) and fine X/Y (`$C85D`/`$C85E`, 0-15). `$82` and `$84` store cell − 5 and fine 8 (`StoreMapCellFromDEMinus5`, bias `$FB`). They do not call ClampMapCamera and they do not write rSCX/rSCY.
+- Pixels: `$C935`/`$C934`, copied to rSCX/rSCY. ClampMapCamera (`clamp_map_camera.asm`) rebuilds them. Callers are DrawMetatileWindow under `$93`, and `$86`. The window is 11 columns by 10 rows. `$C847` is the width. `$C845` is the rightmost camera column. `$C846` is the bottom camera row, or `$FF` when `$C846 + $0A` wraps to 9. `$C842` collects the edge flags: bit 3 when the width is 10, bit 2 at column 0 fine 0, bit 1 on the column limit at fine 15, bit 7 when there is no vertical scroll, bit 6 at row 0, bit 5 on the row limit at fine 15. A column of 0 or at/past the width pins to column 0 fine 0. A column from `$C845` up to the width pins to that column, fine 15. Rows use the same shape against `$C846 + $0A`. Inside both limits the fine byte stays as stored, so the fine 8 from `$82`/`$84` survives. Header unpack `$2F37` (used by `$65` and `$67`) zeroes the logical camera and stores `$C842 = $44`. Header bytes 3 and 4 are the column and row limits.
+
+Port (`mn.MapCamera`):
+
+- `$84` stores the raw logical camera on `mapCam` and sets the visible camera (`camFix`) to the unwrapped pin (column × 16 + fine). Objects stay where they were placed. A header limit of 0 leaves fine 15, and a later step may still travel through fine 0..15.
+- `$82` stores the logical camera from the player cell and clears `camFix`/`camOff`, so the visible camera follows the player.
+- `$65` (`loadArea`) and `$67` (`unpackMap`) set `mapCam` to the origin. An LCD-on `$65` still keeps `camOff`/`camFix`.
+- `$83` and `$16` sum into one frame delta. `scrollDelta` clamps it to ±4 and to pixel 0 or limit × 16 + 15 (or W − 160 / H − 144 when the header bytes are absent). `panFrame` steps `mapCam` by that applied delta.
+- `$16` posts the scroll pair. The walker moves by the nested script's `$C6D2`/`$C6D3` step (`Sprites.tick`).
+- `$86` runs the same clamp on the VM's camera bytes and writes `$C842`, `$C935`/`rSCX` and `$C934`/`rSCY`.
+
+Tests: `mn_map_camera_test`, `mn_scroll_edge_test`, `mn_bg_ring_test`, `mn_ops_travel_test`. What the asm leaves open is in `docs/mn-outliers.md` (Camera split, 2026-11-01).
+
 ## Not modelled
 
 - Seam palette timing. StepHorizontalScroll (`07:4CF5`) queues the 8 px tile
@@ -139,6 +158,4 @@ decoded script uses `$67`, so the difference is never reached.
 - A `$65` with the LCD on between maps with different tile sets (see above).
 - Ring slots written while off screen (an Opcode03Continue redraw at a column
   offset of 11-15) are not recorded; only the view is.
-- The port camera follows the player (`cameraXY`); the ROM's absolute
-  wMapColumn/wMapRow plus fine scroll are not reproduced pixel for pixel, so
-  the latches come from 8 px crossings of the port camera.
+- Scroll-edge latches (`$C892`/`$C86A`) come from 8 px crossings of the port's visible camera. `$84` sets that camera to the ClampMapCamera pin in full map pixels (the ROM's rSCX/rSCY are 8-bit). `$82` leaves it following the player. The remaining gaps are under Camera split (2026-11-01) in `docs/mn-outliers.md`.

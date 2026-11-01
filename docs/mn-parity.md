@@ -82,8 +82,7 @@ takes the LCD-off branches as the asm does, not only map setup.
   a post later than one frame; nothing found so far relies on a post expiring.
 - $29 JumpScriptBank7449: unused by every decomp script; the port logs it
   (docs/mn-outliers.md, Secrets and engines #3).
-- $16 pans ride the camera, so a walker stops where the camera stops
-  (PyBoy-checked; see the handler comment).
+- $16 scrolls the camera by its (sx, sy) pair and moves the walker by the nested script's $C6D2/$C6D3 step. Where the two pairs differ, the walker follows the anim (see mn-engines). The wall test on that step is the port's cell == 0 gate.
 
 ## Motion heads
 
@@ -128,7 +127,7 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $13 | SetRecordHeadWord | opcode_13.asm | 2 | ok | ScriptVM:270 |  |
 | $14 | SetSlotSecondScript | opcode_14.asm | 3 | ok | ScriptVM:382 |  |
 | $15 | SlotScriptSequence | opcode_15.asm | rec4 | rec4: records+terminator, ok | ScriptVM:385 |  |
-| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:397 | pan rides the camera (PyBoy: 13:58C2, 1F:50CD) |
+| $16 | SlotScriptSequenceScroll | opcode_16.asm | rec6 | rec6: records+terminator, ok | ScriptVM:531 | scroll pair on the camera; walker follows the nested $C6D2 step (mn_map_camera_test, mn_scroll_edge_test) |
 | $17 | CopySixScriptBytesFromOffset3_17 | copy_six_script_bytes.asm | 6 | ok | ops/Records:179 |  |
 | $18 | SetSpriteTileBase | opcode_18.asm | 1 | ok | ops/Records:187 |  |
 | $19 | SetHeadBit7AndYield | opcode_19.asm | 0 | ok | ScriptVM:548 |  |
@@ -236,11 +235,11 @@ takes the LCD-off branches as the asm does, not only map setup.
 | $7F | StageEightScriptBytesCopy_7F | stage_eight_script_bytes.asm | 8 | ok | ops/Records:331 |  |
 | $80 | WriteScriptBytesAcrossWramBanks | write_script_bytes_across_wram_banks.asm | 6 | ok | ScriptVM:490 |  |
 | $81 | WriteScriptBytesThroughBanks6And4 | write_script_bytes_through_banks_6_and_4.asm | 6 | unused in decomp scripts | ops/Records:106 |  |
-| $82 | CenterFineScrollOnScriptBase | center_fine_scroll_on_script_base.asm | 0 | ok | ScriptVM:349 |  |
-| $83 | AddScriptDeltasUntilZero | add_script_deltas_until_zero.asm | rec3 | rec3: records+terminator, ok | ScriptVM:676 |  |
-| $84 | CenterFineScrollOnScriptWord | center_fine_scroll_on_script_word.asm | 2 | ok | ScriptVM:611 |  |
+| $82 | CenterFineScrollOnScriptBase | center_fine_scroll_on_script_base.asm | 0 | ok | ScriptVM:463 |  |
+| $83 | AddScriptDeltasUntilZero | add_script_deltas_until_zero.asm | rec3 | rec3: records+terminator, ok | ScriptVM:815 |  |
+| $84 | CenterFineScrollOnScriptWord | center_fine_scroll_on_script_word.asm | 2 | ok | ScriptVM:750 |  |
 | $85 | StageScriptByteEnterBank1 | stage_script_byte_enter_bank1.asm | 1 | ok | ops/Flow:401 |  |
-| $86 | SeedCameraAndEnterLoop | seed_camera_loop.asm | 0 | ok | ops/Travel:154 |  |
+| $86 | SeedCameraAndEnterLoop | seed_camera_loop.asm | 0 | ok | ops/Travel:122 |  |
 | $87 | CopyThreeBytesCallBank7 | copy_three_c9fc_bank7.asm | 3 | ok | ScriptVM:655 |  |
 | $88 | CopyThreeBytesCall7465 | copy_three_call_7465.asm | 3 | ok | ops/Travel:217 |  |
 | $89 | LoadSRAMScriptAndDispatch | load_sram_script_dispatch.asm | 0 | ok | ScriptVM:503 |  |

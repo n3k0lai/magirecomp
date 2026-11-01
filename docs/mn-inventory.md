@@ -48,7 +48,7 @@ for `$93` is the LCD-off path. The 123 `live` rows are the open audit.
 
 1. Mailbox latch: find any `$5D`-`$62` waiter that depends on a one-frame post.
 2. The 123 `live` transitions: trace each to its `$93` or prove LCD-on, check the port path.
-3. Camera split (fix/mn-cam-split): `$84` ClampMapCamera from the asm, rebase on master.
+3. Camera split: done. ClampMapCamera is `mn.MapCamera`; `$82`/`$84`/`$86` and the `$16` split are in docs/mn-transitions.md. Open items: docs/mn-outliers.md, Camera split (2026-11-01).
 4. `$30`/`$6C` fades and palette timing vs 07:56ED and 5C00.
 5. Secrets: map-40 data runs, Hyren chains, map 167 (docs/mn-outliers.md).
 6. Routed stories (docs/mn-story-graph.md) against the code; rework divergences.

@@ -70,16 +70,16 @@ do -- stride 10: no sideways steps; row limit $FF: no vertical steps
   ok(x == 32 and y == 0, "row limit $FF: only the horizontal half moves")
 end
 
-do -- a $16 scroll carries its walkers by the clamped delta
+do -- panFrame moves the camera. The $16 slot named on the pan stays put.
   local s = world(40, 30, 29, 20, 0, 0)
   s.camFix = { 8, 100 }
-  s.objects[3] = { x = 5, y = 7 }
+  s.objects[3] = { x = 5, y = 7, ox = 0, oy = 0 }
   s.pans = { { 4, -4, 0, nil, { [3] = true } } }
   run(s, 4)
   local x = s:cameraXY()
   local ob = s.objects[3]
-  ok(x == 0, "carry pan stops at column 0")
-  ok(ob.x * 16 + ob.ox == 5 * 16 - 8, "walker moved 8 pixels, not 16")
+  ok(x == 0, "the pan stops at column 0")
+  ok(ob.x == 5 and ob.ox == 0 and ob.oy == 0, "panFrame leaves the walker where it is")
 end
 
 do -- without header limits the field's W-160 / H-144 apply
@@ -123,11 +123,48 @@ do -- the Tavel Gorge kids (1F:50CD): three walkers each start $16 with dy -1
   local _, y = s:cameraXY()
   ok(y == 0, "camera at the map top stays there")
   ok(s.objects[3].y == 3 and s.objects[4].y == 3 and s.objects[5].y == 3
-    and (s.objects[3].oy or 0) == 0, "the kids stay on row 3")
+    and (s.objects[3].oy or 0) == 0, "panFrame leaves the kids on row 3")
   local s2 = kids(64)
   local _, y2 = s2:cameraXY()
   ok(y2 == 64 - 24, "below the top the three -1s sum to -3 a frame")
-  ok(s2.objects[4].y * 16 + s2.objects[4].oy == 3 * 16 - 24, "each carried kid rides the summed step once")
+  ok(s2.objects[4].y == 3 and (s2.objects[4].oy or 0) == 0, "panFrame leaves each kid on row 3")
+end
+
+do -- row limit 0: the vertical range is fine 0..15 (bits 5 and 6 together)
+  local s = world(40, 30, 29, 0, 0, 0)
+  s.camFix = { 0, 15 }
+  s.pans = { { 20, 0, -1 } }
+  run(s, 20)
+  local _, y = s:cameraXY()
+  ok(y == 0, "row limit 0: up from fine 15 stops at fine 0")
+  s.pans = { { 20, 0, 1 } }
+  run(s, 20)
+  _, y = s:cameraXY()
+  ok(y == 15, "row limit 0: down stops at fine 15")
+end
+
+do -- column limit 0, and the width is not 10: no right step past fine 15
+  local s = world(20, 18, 0, 10, 0, 0)
+  s.camFix = { 15, 0 }
+  s.pans = { { 3, 4, 0 } }
+  run(s, 3)
+  ok(s:cameraXY() == 15, "column limit 0: right stops at fine 15")
+end
+
+do -- the walker moves by its anim step; the camera moves by the scroll pair
+  local Sprites = require("mn.Sprites")
+  local s = world(40, 30, 29, 20, 0, 0)
+  s.camFix = { 0, 4 }
+  local ob = { x = 5, y = 6, ox = 0, oy = 0, seq = { { n = 100, dx = 0, dy = -1 } }, fi = 1, ft = 0 }
+  s.objects[3] = ob
+  s.pans = { { 8, 0, -1, nil, { [3] = true } } }
+  for _ = 1, 8 do
+    Sprites.tick(ob, function() return true end)
+    if s.pans then s:panFrame() end
+  end
+  local _, y = s:cameraXY()
+  ok(y == 0, "camera dy -1 from fine 4 stops at 0")
+  ok(ob.y * 16 + ob.oy == 6 * 16 - 8, "the anim step is -1 a frame for all 8 frames")
 end
 
 do -- h.pan keeps one pan per call: same-count same-delta walkers are not merged
