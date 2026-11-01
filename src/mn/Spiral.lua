@@ -9,7 +9,13 @@
 -- on, which waits for VBlank, so one block lands per frame. Tile $FF of VRAM
 -- bank 1 is solid color 3 on the field maps, so the blocks are BG palette 7
 -- color 3 and, with the priority bit, cover the sprites too. Nothing else runs
--- meanwhile: the main loop is inside the handler. The tail is FinishStartup.
+-- meanwhile: the main loop is inside the handler. EnterOpcode30Target's
+-- CallCallback is one vblank before the first block (t = 0). Each
+-- StageTilemapQuad then selects sound and waits one vblank, so the block
+-- count equals the select count. The tail is jp FinishStartup: the LCD goes
+-- off as soon as the last CallCallback returns, with no SelectSoundCommand
+-- and no frame of the unwiped field in between. Overworld sets spiralHandoff
+-- once t == #order so the next pass resumes the script before its sound slice.
 local M = {}
 M.__index = M
 
@@ -39,6 +45,11 @@ end
 function M:update()
   self.t = self.t + 1
   if self.t > #self.order then return true end
+end
+
+-- Every block is staged for this frame's draw. The next pass is FinishStartup.
+function M:finishAfterDraw()
+  return #self.order > 0 and self.t == #self.order
 end
 
 function M:draw()

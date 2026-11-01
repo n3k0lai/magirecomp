@@ -237,3 +237,7 @@ Re-derived from clamp_map_camera.asm, center_fine_scroll_on_script_base.asm, cen
 7. **`$86` and the field camera.** ClampMapCamera updates the VM bytes (`$C85F`/`$C85D`/`$C860`/`$C85E`, `$C842`, SCX/SCY). `seedCamera` stores the `$20` box on the map def. The field's `mapCam` is updated by `$82`, `$84`, `$65`, `$67` and pans. `$C861`/`$C863` (the map pointer and the tilemap address ClampMapCamera builds) are not stored.
 8. **`mapCam` across an LCD-on `$65`.** The header unpack zeroes the logical camera while the port keeps the visible `camFix`/`camOff` until `$82`/`$84`. A pan in between steps `mapCam` from the origin by the visible camera's applied delta.
 9. **Map 220, Eidon, map 0.** Tony on map 220 and Eidon's `13:58C2`, and a screen check of map 0, were not re-run. The clamp math is pinned by `mn_map_camera_test` (including word `$0807` on limits 1/0 and a wrapped `$0000` store).
+
+### 2026-11-01 — opcode `$30` when `$C840` is not 07:56ED
+
+opcode_30.asm always maps bank 7 and jumps through EnterOpcode30Target (07:584A), which `jp`s the word at `$C840`. Every decoded `$30` (`SC_SetC840SoundThenBank7`) stores `ED 56`, FillTilemapRect22x20, whose tail is FinishStartup. The port runs that wipe. A different word is not entered: the script continues at the next opcode and FinishStartup does not run. No second target is lifted, so that path is not guessed.

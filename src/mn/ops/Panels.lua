@@ -57,8 +57,13 @@ local function plantCallback(vm)
   vm:wr8(0xC6E5, 0x45)
 end
 
+-- One field frame per pass that returns to FinishFrame. Map setup (vm.init)
+-- and FinishStartup's RunScriptLoop (VM:inStartup) run the next pass at once,
+-- LCD off, with no frame between them.
 local function frames(vm, n)
-  if not vm.init and n > 0 then coroutine.yield("wait", n) end
+  if not vm.init and n > 0 and not (vm.inStartup and vm:inStartup()) then
+    coroutine.yield("wait", n)
+  end
 end
 
 -- SaveScriptPtrAndSplitByte ($1997): low six bits of the byte are the outer
