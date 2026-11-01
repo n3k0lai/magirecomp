@@ -382,7 +382,18 @@ function VM:run(bank, ptr)
       self:wr8(0xC840, r:u8(o + 1)); self:wr8(0xC841, r:u8(o + 2))
       self:wr8(0xC923, self:rd8(0xC920)) -- opcode_30.asm saves wSoundIndex for the battle's end
       local v = r:u8(o + 3)
-      if v ~= 0xFF and not self.init and self:rd8(0xC920) ~= v then self:wr8(0xC920, v); h.music(v) end
+      -- $FF leaves the index, wSoundSelect and $C92C alone. Any other byte sets
+      -- wSoundActive only when the index changes, and always clears wSoundSelect
+      -- and stores $0F at $C92C (opcode_30.asm). The command runs on the next
+      -- SelectSoundCommand, which for the 07:56ED wipe is the first block.
+      if v ~= 0xFF then
+        if self:rd8(0xC920) ~= v then
+          self:wr8(0xC920, v); self:wr8(0xC91E, 1)
+          if not self.init then h.music(v) end
+        end
+        self:wr8(0xC92A, 0); self:wr8(0xC92C, 0x0F)
+        if h.sfxSelect then h.sfxSelect(0, nil, nil, 0x0F) end
+      end
       o = o + n
       -- 07:584A -> [$C840] = 07:56ED FillTilemapRect22x20, one block a frame (mn.Spiral),
       -- which ends in `jp FinishStartup` with hScriptPtr past this $30 (opcode_30.asm):
@@ -747,7 +758,8 @@ function VM:run(bank, ptr)
       if not self.init and not self:inStartup() then coroutine.yield("wait", 1) end -- next op on the next pass
     elseif op == 0x84 then -- CenterFineScrollOnScriptWord: wMapColumn = E-5, wMapRow = D-5 (window top-left cell)
       if h.cameraCell then h.cameraCell(r:u8(o + 1) - 5, r:u8(o + 2) - 5) else h.centerCamera() end; o = o + n
-    elseif op == 0x1D then if h.sfx then h.sfx(2) end; o = o + n -- wSoundRequest = 2
+    elseif op == 0x1D then -- opcode_1d.asm: wSoundRequest ($C91F) = 2, same pass
+      self:wr8(0xC91F, 2); if h.sfx then h.sfx(2) end; o = o + n
     elseif op == 0x44 then -- SkipTwoUnlessLcdOff: wLCDC == 0 follows the word
       if self:lcdOff() then o = off(r:u16(o + 1), cur.bank) else o = o + n end
     elseif op == 0xA4 then

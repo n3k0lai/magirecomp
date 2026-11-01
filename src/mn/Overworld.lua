@@ -760,6 +760,22 @@ function M:stepEdgeLatches()
 end
 
 function M:update()
+  -- FillTilemapRect22x20 ends in jp FinishStartup the moment the last
+  -- CallCallback returns. That pass has no SelectSoundCommand and must not
+  -- present the field with the wipe already gone. The handoff is armed on the
+  -- update that stages the last block (Spiral:finishAfterDraw).
+  if self.spiralHandoff then
+    self.spiralHandoff = nil
+    self.overlay, self.overlayDone = nil, nil
+    if self.vm and self.vm.wait then
+      self.vm.wait = self.vm.wait - 1
+      if self.vm.wait <= 0 then
+        self.vm.wait = nil
+        self.scriptWaiting = self.vm:resume()
+      end
+    end
+    return
+  end
   -- vblank slice for the SFX driver, including frames a menu or battle owns
   self.sfxOut:update(1 / 60)
   self:musicFadeFrame()
@@ -771,6 +787,10 @@ function M:update()
   -- a UI screen (src/mn/ui/*, contract in docs/mn-ui.md) owns input until it returns a result
   if self.overlay then
     local r = self.overlay:update()
+    if r == nil and self.overlay.finishAfterDraw and self.overlay:finishAfterDraw() then
+      self.spiralHandoff = true
+      return
+    end
     if r ~= nil then
       local done = self.overlayDone
       self.overlay, self.overlayDone = nil, nil

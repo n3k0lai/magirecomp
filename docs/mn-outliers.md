@@ -223,3 +223,7 @@ post-game (story `$19`/`$1A`) and the forge `$CD50` (traced in docs/mn-secrets.m
    arithmetic after the reads follows the asm. Any timing change shifts which record a `$47` picks:
    after the f40dee7c merge, seed 4 picks 1A:45D9 (1 in 6) on map 156's 1A:45C5 step trigger, and
    the road leg lands in 157 instead of 158.
+
+### 2026-11-01 — opcode `$30` when `$C840` is not 07:56ED
+
+opcode_30.asm always maps bank 7 and jumps through EnterOpcode30Target (07:584A), which `jp`s the word at `$C840`. Every decoded `$30` (`SC_SetC840SoundThenBank7`) stores `ED 56`, FillTilemapRect22x20, whose tail is FinishStartup. The port runs that wipe. A different word is not entered: the script continues at the next opcode and FinishStartup does not run. No second target is lifted, so that path is not guessed.
