@@ -196,20 +196,31 @@ Unresolved items from docs/mn-secrets.md and docs/mn-engines.md. None is guessed
 Resolved on fix/mn-secrets2 and removed from this list: Bolt and the other unsummoned ids
 (the ring forge, lifted), the sound test (unreferenced), the hidden `$B0` spots (Start-menu
 use of item `$2A`, SetupCommand4D), the `$11` scatter (PickMapCellFromDiv), `$38`/`$39`,
-`$76`/`$77`/`$7A`, the `$99`/`$9A`/`$9B` slides, `$4F` screen-space motion, the
-post-game (story `$19`/`$1A`) and the forge `$CD50` (traced in docs/mn-secrets.md).
+`$76`/`$77`/`$7A`, the `$99`/`$9A`/`$9B` slides, `$4F` screen-space motion, and the forge
+`$CD50` (traced in docs/mn-secrets.md). The `$19`/`$1A` stores are traced there too. Which
+`$A1A5` bit 1 state is still set at 15:6041 is open (item 9).
 
 1. **Thunder Hyren (id 71)**: obtainable through the forge, but its battle in
    Unused_Script_19_62AA has no caller. Cut content: nothing in the ROM reaches it.
-2. **Map 167** (Cave/Mush Hyren room) has no script warp in. Its only references are an
-   unused run at 10:4B2A-4B42 and word references at 15:6E0B and 59:5CC2.
+2. **Map 167** (resolved 2026-11-01). There is no inbound `$65` from another region, and
+   none was added. Slot `$1E` on maps 166, 171, 172, 173, 175, 177, 178 and 179 runs
+   17:5081. `$11` must match collision `$81`. One record of the `$47` of 10 (17:50A9)
+   plants head `$65A4`; the tail 17:4D6C then `$45`s to 17:4D90, which loads map 167 and
+   arms the Cave/Mush table 17:4F84. 10:4B2A is sprite-list data. 15:6E0B is a `$69` word
+   inside map 195's 15:6E01, not a warp. See docs/mn-secrets.md.
 3. **`$29`** has no use in any decoded script. It is `jp $7449` in the current script bank (a
    lone `ret` in bank 2, arbitrary bytes elsewhere). The port logs it. (`$67` has no use either,
    but `$2F37` is source now and the port runs it: ops/Records, `mn_unpack_map_test`.)
 4. **`$41` phase**: exact only when the host provides `h.frame` (hMainLoopCounter); otherwise
    the port waits the worst case, 4 x (count + 1).
-5. **Map-40 data runs**: the reachable `$38` (02:4126, 51:5604) and `$9D` (7B:478F) uses and
-   species 131 at 51:5614 sit inside map 40 at offsets that look like data read as code.
+5. **Map-40 data runs** (resolved 2026-11-01). The live map-40 entries install list
+   21:4228 (2A:4715, 2A:4CAC) or 21:4231 (2A:4769 and the later `$64 $31 $42` in that
+   file). Each list is two real exit scripts (2A:4000 / 2A:4009, and 2A:4012 / 2A:401B).
+   21:4238 is the low byte of pointer `$401B` inside 21:4231. Unused_Script_21_7953 is
+   also a `$65` of map 40 and installs `$64 $38 $42`, so a walker that treats `$1B` as a
+   count of 27 walks off the list. That walk is species 131 at 51:5614 and the `$38`
+   (02:4126, 51:5604) and `$9D` (7B:478F) reports. No `$64` record points at 51:5601.
+   The port installs the live lists. No port change.
 6. **Startup-loop spins**: FinishStartup's RunScriptLoop ends only on wScriptDone (`$C705`,
    set by `$94`; MarkScriptDone `$1141` has no caller). A main record that parks there
    (`$42`, `$12`, LCD-off `$A1`/`$A2`), or reaches `$41` off phase 3 with the counter frozen,
@@ -223,3 +234,10 @@ post-game (story `$19`/`$1A`) and the forge `$CD50` (traced in docs/mn-secrets.m
    arithmetic after the reads follows the asm. Any timing change shifts which record a `$47` picks:
    after the f40dee7c merge, seed 4 picks 1A:45D9 (1 in 6) on map 156's 1A:45C5 step trigger, and
    the road leg lands in 157 instead of 158.
+9. **`$A1A5` bit 1 at 15:6041** (2026-11-01). The third `$A225` step (15:6041) stores
+   story `$19` when bit 1 of `$A1A5` is set and `$1A` when it is clear. The bit is set
+   with story `$04` by both map-8 entries 14:6B30 and 14:6BCF, and cleared by `$AE` mask
+   `$FD` at 23:612A and 23:6956. 23:6765 takes 23:6770 when the bit is already set, and
+   that path stores story `$15` without clearing the bit. `$A9` does not clear it. Which
+   of those paths a save can still be on when it reaches 15:6041 is not settled, so the
+   port does not force either store. The `$43` / `$A9` handlers are the generic ones.

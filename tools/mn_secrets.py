@@ -6,9 +6,11 @@ map ids, species ids, op ids); it embeds and prints no ROM bytes or strings.
 Builds on mn_story_graph (same opcode sizes as the port's ScriptVM).
 
 Block graph: every map-entry script (`65 lo hi 4F`) is a root; a block is a
-straight run of ops to an END op (or another map's `65`), with edges for far
-targets (`45` `43` `49` `4B` `9C` `47` `8E` `A0`-`A3`), `46` jumps, `32` grass
-scripts, `64` trigger lists (cells $C0+i) and `69` A lists (cells $40+i).
+straight run of ops until it returns. `$27` returns (the battle does not
+resume that stream). `$94` ends the frame and the next byte is still this
+script. Edges are the far targets (`45` `43` `49` `4B` `9C` `47` `8E`
+`A0`-`A3` `31`), `46` jumps, `32` grass scripts, `05` record scripts,
+`64` trigger lists (cells $C0+i) and `69` A lists (cells $40+i).
 Backward shortest chains from an op to the map roots tell how it is reached.
 
 Report (--secrets):
@@ -66,7 +68,13 @@ def build_blocks(rom, entries=None, max_ops=800):
             if op == 0x46:
                 edges.append(("jr", G.off(rom.u16(o + 1), o // 0x4000)))
                 break
-            if op in rom.END and op != 0x93:
+            # $27 HaltClearD3C2 returns. The next ROM byte is the next record,
+            # not a fall-through (opcode_27.asm). $94 MarkScriptDone21B2 ends
+            # only this frame; the script resumes at the next byte (same as
+            # mn_story_graph.walk). $93 FinishStartup also continues.
+            if op == 0x27:
+                break
+            if op in rom.END and op not in (0x93, 0x94):
                 break
             o += n
         blocks[s] = {"ops": ops, "edges": edges}

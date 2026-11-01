@@ -125,6 +125,12 @@ class Rom:
                 # triple is the slot's running script. Bytes 12-14 go to record 24-26.
                 t.append((self.u8(o + 9), self.u16(o + 10)))
                 t.append((self.u8(o + 12), self.u16(o + 13)))
+            if op == 0x31:
+                # opcode_31.asm copies six bytes to $D3CD-$D3D2. After a battle,
+                # ContinueStartup runs the first triple on any result but a loss
+                # and the second triple on a loss (ScriptVM duelTail).
+                t.append((self.u8(o + 1), self.u16(o + 2)))
+                t.append((self.u8(o + 4), self.u16(o + 5)))
             if op in (0xA0, 0xA1, 0xA2, 0xA3):
                 t.append((self.u8(o + 4), self.u16(o + 5)))
             return 1 + L, t
