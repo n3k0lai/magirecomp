@@ -1,15 +1,12 @@
 -- mn.ops.Travel: bank-$29 map-to-map travel cards, the bank-7 "take" twin of $87,
 -- and the bank-3 choice calls. See src/mn/OpExt.lua for the handler contract.
-local bit = require("bit")
 local ListChoice = require("mn.ui.ListChoice")
+local MapCamera = require("mn.MapCamera")
 local Picture = require("mn.Picture")
-local bor, lshift = bit.bor, bit.lshift
 
 local M = { handlers = {} }
 
 local WRAM6 = 0x60000 -- bank 6 addresses, the same flat form as ScriptVM's bank-7 $7xxxx
-
-local function setbit(e, n) return bor(e, lshift(1, n)) end
 
 local function wordAt(vm, a)
   vm:wr8(a, 0x00); vm:wr8(a + 1, 0x00); vm:wr8(a + 2, 0x02); vm:wr8(a + 3, 0x14)
@@ -19,46 +16,17 @@ local function put16(vm, a, w)
   vm:wr8(a, w % 256); vm:wr8(a + 1, math.floor(w / 256))
 end
 
--- clamp_map_camera.asm: pin the column and row, then the scroll bytes.
+-- clamp_map_camera.asm, the same pin MapCamera.clamp applies on the field.
+-- $86 calls it after storing the $20 box. The picture reads the SCX/SCY bytes.
 local function clampCamera(vm)
-  local e = 0
-  local width = vm:rd8(0xC847)
-  local col = vm:rd8(0xC85F)
-  local function pinCol()
-    vm:wr8(0xC85F, 0); vm:wr8(0xC85D, 0); e = setbit(e, 2)
-    if vm:rd8(0xC845) == 0 then e = setbit(e, 1) end
-  end
-  if width == 0x0A then
-    e = setbit(e, 3); pinCol()
-  elseif col == 0 or col >= width then pinCol()
-  else
-    local lim = vm:rd8(0xC845)
-    if lim <= col then
-      e = setbit(e, 1); vm:wr8(0xC85D, 0x0F); vm:wr8(0xC85F, lim)
-      if lim == 0 then e = setbit(e, 2) end
-    end
-  end
-  local rowLim = vm:rd8(0xC846)
-  local height = (rowLim + 0x0A) % 256
-  local row = vm:rd8(0xC860)
-  local function pinRow()
-    vm:wr8(0xC860, 0); vm:wr8(0xC85E, 0); e = setbit(e, 6)
-    if rowLim == 0 then e = setbit(e, 5) end
-  end
-  if height == 0x09 then
-    e = setbit(e, 7); pinRow()
-  elseif row == 0 or row >= height then pinRow()
-  else
-    if rowLim <= row then
-      e = setbit(e, 5); vm:wr8(0xC85E, 0x0F); vm:wr8(0xC860, rowLim)
-      if rowLim == 0 then e = setbit(e, 6) end
-    end
-  end
+  local cam, e, px, py = MapCamera.clamp(
+    { w = vm:rd8(0xC847), col = vm:rd8(0xC845), row = vm:rd8(0xC846) },
+    { col = vm:rd8(0xC85F), row = vm:rd8(0xC860), fx = vm:rd8(0xC85D), fy = vm:rd8(0xC85E) })
+  vm:wr8(0xC85F, cam.col); vm:wr8(0xC85D, cam.fx)
+  vm:wr8(0xC860, cam.row); vm:wr8(0xC85E, cam.fy)
   vm:wr8(0xC842, e)
-  local scx = (vm:rd8(0xC85F) * 16 + vm:rd8(0xC85D)) % 256
-  local scy = (vm:rd8(0xC860) * 16 + vm:rd8(0xC85E)) % 256
-  vm:wr8(0xC935, scx); vm:wr8(0xFF43, scx)
-  vm:wr8(0xC934, scy); vm:wr8(0xFF42, scy)
+  vm:wr8(0xC935, px); vm:wr8(0xFF43, px)
+  vm:wr8(0xC934, py); vm:wr8(0xFF42, py)
 end
 
 -- CopyPrefixedBlockToD000 ($1EF5): `len` bytes land at $D000 in WRAM bank 6.
@@ -342,7 +310,7 @@ end
 
 function M.host(ow, h)
   -- $86 writes $20 into the stride and the camera limits $C845/$C846.
-  -- $84's cameraCell clamps through these same two fields on the map def.
+  -- ClampMapCamera reads those same two fields from the map header.
   h.seedCamera = function(box)
     if ow.def then ow.def.camCol, ow.def.camRow = box, box end
     ow.camBox = box

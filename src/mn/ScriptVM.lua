@@ -529,11 +529,13 @@ function VM:run(bank, ptr)
         if total > 0 then coroutine.yield("wait", total) end
       end
     elseif op == 0x16 then
-      -- Opcode16 (bank, ptr, frames, sx, sy)* until $00: each anim plays in place while
-      -- Opcode16AddScroll adds (sx, sy) to the scroll deltas $C843/$C844 every frame;
-      -- the walker rides the scroll, so it only travels as far as the camera can.
-      -- PyBoy: Eidon 13:58C2 (0E:53A0, $80 frames, 01,00) arrives 8 cells right; the
-      -- Tavel Gorge kids 1F:50CD (00,FF, camera already at the map top) stay on row 3.
+      -- Opcode16 (opcode_16.asm): (bank, ptr, frames, sx, sy)* until $00.
+      -- Opcode16AddScroll adds (sx, sy) to $C843/$C844. CopyTwoScriptBytesAndHandler
+      -- plants the nested script, and that script writes $C6D2/$C6D3.
+      -- ApplyFineXDelta / ApplyFineYDelta move the object by those bytes, apart
+      -- from the scroll step. The two pairs often match and often do not
+      -- (1A:5992 -> 0F:7654 is scroll 00,02 against a $4D of 00,01). The anim
+      -- plays; still would suppress the $C6D2 step.
       local q = o + 1
       while r:u8(q) ~= 0 do
         local b, p, nf = r:u8(q), r:u16(q + 1), r:u8(q + 3)
@@ -541,7 +543,7 @@ function VM:run(bank, ptr)
         if sx >= 128 then sx = sx - 256 end; if sy >= 128 then sy = sy - 256 end
         q = q + 6
         if self.curSlot and h.setAnim then
-          h.setAnim(self.curSlot, { { b, p, nf } }, true)
+          h.setAnim(self.curSlot, { { b, p, nf } })
           if (sx ~= 0 or sy ~= 0) and nf > 0 then h.pan(nf, sx, sy, self.curSlot) end
           if nf > 0 then coroutine.yield("wait", nf) end
         end

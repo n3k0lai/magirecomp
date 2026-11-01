@@ -192,12 +192,15 @@ online relay transport (`src/online/Client`, protocol framing) and `src/link` se
   lowpass 6 kHz. renderGB vs PyBoy: correlation 0.717 (plain synth 0.636),
   bass/mid/high 0.22/0.41/0.38 vs real 0.20/0.39/0.41, same 0.97 s beat.
 
-## Camera clamp / spawn shift (solved)
-`$84` sets wMapColumn/Row = E-5 / D-5 unclamped; the scroll code clamps them to
-map-record byte 3 (w-11, last column) and byte 4 (last row). Objects placed
-before `$84` keep their offset to the unclamped camera, so they move by
-(unclamped - clamped). Tavel Gorge: row 3 -> 0 = the 3-row shift. Cached as
-`camCol`/`camRow` (cache v7); `Overworld.cameraCell` applies it.
+## Camera clamp (ClampMapCamera)
+`$84` stores wMapColumn/Row = E−5 / D−5 and fine 8. ClampMapCamera (DrawMetatileWindow
+under `$93`, and `$86`) pins that camera: column 0 or past the width goes to column 0
+fine 0; a column from header byte 3 (`$C845`) up to the width goes to that column,
+fine 15; rows match against byte 4 (`$C846`). Objects stay where they were placed.
+The port applies the pin to the visible camera at `$84` (`mn.MapCamera`,
+`Overworld:cameraCell`) and keeps the raw store on `mapCam`. A row or column limit
+of 0 leaves fine 15, so a later step can still travel through fine 0..15. Open items:
+docs/mn-outliers.md, Camera split (2026-11-01).
 
 ## Sound driver findings (bank $30)
 - Period word is an 8.8 note number; summed from $DF15 + $DF1D + $DF23.

@@ -236,7 +236,7 @@ function M.tick(o, canEnter)
     local f = o.seq[o.fi]
     -- a list that does not loop back ($46) moves once: 20:5738 (Tony's hop off the 180
     -- ledge, -2..+4 px/frame) ends in a jump to an idle, so the arc must not repeat
-    if not o.still and not o.spent then -- $16 walkers animate in place; the scroll carries them
+    if not o.still and not o.spent then -- still suppresses the $C6D2 step; no $16 caller sets it
       local nx, ny = o.ox + (f.dx or 0), o.oy + (f.dy or 0)
       -- objects stop at blocked cells (Tavel Gorge kids halt at the cave wall)
       local tx = o.x + (nx >= 16 and 1 or nx <= -16 and -1 or 0)

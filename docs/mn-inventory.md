@@ -64,7 +64,7 @@ and does not snap (test: `mn_load65_test`).
 
 1. Mailbox latch: done. One-frame copy in `VM:tickThreads`. Proof per site class in docs/mn-parity.md. No reachable post of 0 and no `$60`-`$62` match of 0.
 2. The 123 `live` transitions: done. See `live-transitions.tsv` and `mn_load65_test`.
-3. Camera split (fix/mn-cam-split): `$84` ClampMapCamera from the asm, rebase on master.
+3. Camera split: done. ClampMapCamera is `mn.MapCamera`; `$82`/`$84`/`$86` and the `$16` split are in docs/mn-transitions.md. Open items: docs/mn-outliers.md, Camera split (2026-11-01).
 4. `$30`/`$6C` fades and palette timing vs 07:56ED and 5C00.
 5. Secrets: map-40 data runs, Hyren chains, map 167 (docs/mn-outliers.md).
 6. Routed stories (docs/mn-story-graph.md) against the code; rework divergences.

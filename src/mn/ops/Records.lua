@@ -12,6 +12,7 @@
 -- onto the live planes. $7E copies a rectangle inside the live planes.
 -- $03/$0D/$81 write the live planes through setCell.
 local bit = require("bit")
+local MapCamera = require("mn.MapCamera")
 local band, rshift = bit.band, bit.rshift
 
 local M = { handlers = {} }
@@ -467,6 +468,8 @@ function M.host(ow, h)
       ow.patches[i] = { x = (i - 1) % w, y = math.floor((i - 1) / w), mt = p.cells[i] }
     end
     ow.camOff, ow.camFix = nil, nil
+    -- $2F37 zeroes the logical camera along with the visible unpin above.
+    ow.mapCam = MapCamera.origin()
     return p
   end
 
