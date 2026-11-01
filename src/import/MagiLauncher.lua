@@ -16,7 +16,7 @@
 --
 -- Scope (work in progress): show the required credit, list the games this
 -- engine can boot, import a dropped ROM, and start a ready game.  Magi Nation
--- itself is listed but not playable yet.
+-- imports the player's own ROM (drop, roms/, or the mobile picker) and boots.
 
 local Attribution = require("src.core.Attribution")
 local GameVersion = require("src.core.GameVersion")
@@ -78,7 +78,7 @@ function MagiLauncher:refresh()
   local RomImport = require("src.import.RomImport")
   local rows = {
     { id = MAGI_ID, label = "Magi Nation (3D)", wip = true,
-      detail = "Magi Nation launcher WIP." },
+      detail = "Tap to import your own ROM, then play." },
   }
   for _, version in ipairs(GameVersion.ORDER) do
     local info = GameVersion.info(version)
@@ -120,21 +120,33 @@ function MagiLauncher:play(index)
   if self.onPlay then self.onPlay(row.id, nil, nil) end
 end
 
--- Hand off to the Magi Nation rebuild (src/mn/Boot.lua).  It needs the
--- player's own ROM at roms/magination.gbc or an existing private cache.
-function MagiLauncher:playMagi()
-  local okImp, MnImporter = pcall(function()
-    package.path = "src/?.lua;" .. package.path
-    return require("mn.MnImporter")
-  end)
-  local cached = okImp and MnImporter.isCached and MnImporter.isCached()
-  local f = io.open("roms/magination.gbc", "rb")
-  if f then f:close() end
-  if not cached and not f then
-    self.message = "Magi Nation (WIP): put your own Magi Nation (USA) ROM at "
-      .. "roms/magination.gbc, then press Enter again (or run love . --mn)."
-    return
+local PICKED_ROM = "picked_rom.gb" -- where the Android/iOS picker copies a ROM
+
+local function mnImporter()
+  package.path = "src/?.lua;" .. package.path
+  return require("mn.MnImporter")
+end
+MagiLauncher._mnImporter = mnImporter
+
+-- True when bytes are the supported Magi Nation (USA) dump.
+function MagiLauncher.isMagiRom(bytes)
+  if type(bytes) ~= "string" or #bytes == 0 then return false end
+  local sha = love.data.encode("string", "hex", love.data.hash("sha1", bytes))
+  return sha == mnImporter().SHA1
+end
+
+-- Build the private mn_cache from ROM bytes (never stored anywhere else).
+function MagiLauncher.importMagi(bytes)
+  if not MagiLauncher.isMagiRom(bytes) then
+    return nil, "That is not a clean Magi Nation (USA) ROM (SHA-1 mismatch)."
   end
+  local ok, res, err = pcall(mnImporter().import, bytes)
+  if not ok then return nil, tostring(res) end
+  if not res then return nil, tostring(err) end
+  return true
+end
+
+function MagiLauncher:_bootMagi()
   love.filesystem.setRequirePath("src/?.lua;src/?/init.lua;"
     .. love.filesystem.getRequirePath())
   local ok, err = pcall(function()
@@ -144,6 +156,44 @@ function MagiLauncher:playMagi()
   if not ok then self.message = "Magi Nation failed to start: " .. tostring(err) end
 end
 
+-- Queue ROM bytes; the import runs on the next update so the message draws.
+function MagiLauncher:_queueMagi(bytes)
+  self._magiBytes = bytes
+  self.message = "Importing Magi Nation (one time, may take a minute)..."
+end
+
+-- Hand off to the Magi Nation rebuild (src/mn/Boot.lua).  Needs the private
+-- cache; if it is missing, import the player's own ROM from roms/ (desktop
+-- checkout), the native file picker (Android/iOS), or a dropped file.
+function MagiLauncher:playMagi()
+  local okImp, Imp = pcall(mnImporter)
+  if okImp and Imp.isCached and Imp.isCached() then return self:_bootMagi() end
+  local f = io.open("roms/magination.gbc", "rb")
+  if f then
+    local bytes = f:read("*a"); f:close()
+    return self:_queueMagi(bytes)
+  end
+  if love.system and type(love.system.pickFile) == "function" then
+    love.filesystem.remove(PICKED_ROM)
+    if love.system.pickFile("rom") then
+      self._picking = true
+      self.message = "Choose your own Magi Nation (USA) ROM file."
+      return
+    end
+  end
+  self.message = "Magi Nation: drop your own Magi Nation (USA) ROM on this "
+    .. "window (or put it at roms/magination.gbc), then press Enter."
+end
+
+function MagiLauncher:_checkPicked()
+  if not self._picking or not love.filesystem.getInfo(PICKED_ROM) then return end
+  self._picking = false
+  local bytes = love.filesystem.read(PICKED_ROM)
+  love.filesystem.remove(PICKED_ROM)
+  if MagiLauncher.isMagiRom(bytes) then return self:_queueMagi(bytes) end
+  self.message = "That file is not a clean Magi Nation (USA) ROM."
+end
+
 function MagiLauncher:move(delta)
   local n = #self.rows
   if n == 0 then return end
@@ -151,6 +201,19 @@ function MagiLauncher:move(delta)
 end
 
 function MagiLauncher:update(dt)
+  self:_checkPicked()
+  if self._magiBytes then
+    if self._magiWait then
+      local bytes = self._magiBytes
+      self._magiBytes, self._magiWait = nil, nil
+      local ok, err = MagiLauncher.importMagi(bytes)
+      collectgarbage()
+      if ok then return self:_bootMagi() end
+      self.message = "Magi Nation import failed: " .. tostring(err)
+    else
+      self._magiWait = true -- let one frame draw the message first
+    end
+  end
   if self._import then self._import:update(dt) end
 end
 
@@ -247,6 +310,10 @@ end
 
 function MagiLauncher:filedropped(file)
   self.message = nil
+  local okOpen = pcall(file.open, file, "r")
+  local bytes = okOpen and file:read() or nil
+  pcall(file.close, file)
+  if MagiLauncher.isMagiRom(bytes) then return self:_queueMagi(bytes) end
   self:_importer():filedropped(file)
 end
 
@@ -257,10 +324,12 @@ end
 function MagiLauncher:savesChanged() self:refresh() end
 function MagiLauncher:resumeAfterOverlay() self:refresh() end
 
+function MagiLauncher:focus(on) if on then self:_checkPicked() end end
+
 local function noop() end
 for _, name in ipairs({ "gamepadreleased", "gamepadaxis", "joystickpressed",
     "joystickreleased", "joystickaxis", "joystickhat", "touchmoved",
-    "touchreleased", "mousereleased", "mousemoved", "textinput", "focus",
+    "touchreleased", "mousereleased", "mousemoved", "textinput",
     "prepareOverlayHandoff", "ignoreReturningPointer" }) do
   MagiLauncher[name] = noop
 end

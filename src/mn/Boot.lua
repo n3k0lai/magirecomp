@@ -57,9 +57,20 @@ function Boot.viewKey(k)
   if k == "f8" then cfg.pixel = not cfg.pixel; saveView(); return true end
   return false
 end
-function love.touchpressed()
-  if love.touch and #love.touch.getTouches() == 3 then Boot.viewKey("f7") end
+-- on-screen pad: touches become the keyboard path's key events
+local pad = require("mn.TouchPad").new(function(k, on)
+  if on then if love.keypressed then love.keypressed(k) end
+  elseif love.keyreleased then love.keyreleased(k) end
+end)
+Boot.pad = pad
+function love.touchpressed(id, x, y)
+  if love.touch and #love.touch.getTouches() == 3 then Boot.viewKey("f7"); return end
+  local w, h = love.graphics.getDimensions(); pad:press(id, x, y, w, h)
 end
+function love.touchmoved(id, x, y)
+  local w, h = love.graphics.getDimensions(); pad:move(id, x, y, w, h)
+end
+function love.touchreleased(id) pad:release(id) end
 
 local CREDIT = "MagiRecomp - " .. Attribution.UPSTREAM_CREDIT
 -- height (units) of the band under the game that carries the credit line
@@ -724,6 +735,7 @@ function love.draw()
     love.graphics.setColor(0.85, 0.85, 0.9, 1)
     love.graphics.printf(CREDIT, 8, v.sy + v.winH - v.band + 6, w - 16)
     love.graphics.setColor(1, 1, 1, 1)
+    pad:draw(w, h)
   end
   if opts.test and simW and os.getenv("MN_VIEW_WIN") == "1" and frame % 8 == 0 then
     if not winCanvas or winCanvas:getWidth() ~= simW or winCanvas:getHeight() ~= simH then winCanvas = love.graphics.newCanvas(simW, simH) end
